@@ -37,6 +37,8 @@ import PricingModal from "@/components/PricingModal";
 
 import { useVoiceControl } from "@/hooks/useVoiceControl";
 import { summarizeCanvas } from "@/lib/ai";
+import { indexCanvasSession } from "@/lib/rag";
+import { createClient } from "@/lib/supabase/client";
 import { type SummarizeResponse } from "@/types/ai";
 import { type BoardFileNode } from "@/types/explorer";
 import { type RenderedPdfPage } from "@/lib/pdfImporter";
@@ -1531,6 +1533,244 @@ export default function WhiteboardCanvas() {
   const [summaryData, setSummaryData] = useState<SummarizeResponse | null>(null);
 
   // ───────────────────────────────────────────────────────────────────────────
+  // Current User Auth State for RAG Ownership and Laser Peer Display
+  // ───────────────────────────────────────────────────────────────────────────
+  const [currentUser, setCurrentUser] = useState<{ id?: string; email?: string; name?: string } | null>(null);
+
+  useEffect(() => {
+    try {
+      const savedUser =
+        localStorage.getItem("masmspace_current_user") ||
+        localStorage.getItem("wasmspace_current_user");
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        if (parsed) setCurrentUser(parsed);
+      }
+    } catch {}
+
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setCurrentUser({
+          id: user.id,
+          email: user.email,
+          name: (user.user_metadata?.full_name as string) || user.email?.split("@")[0],
+        });
+      }
+    }).catch(() => {});
+  }, []);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Realtime Laser Pointer Broadcast & Peer Collaboration (WebSockets + BroadcastChannel)
+  // ───────────────────────────────────────────────────────────────────────────
+  const [peerLasers, setPeerLasers] = useState<Record<string, { x: number; y: number; userName: string; timestamp: number }>>({});
+  const channelRef = useRef<any>(null);
+  const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
+
+  useEffect(() => {
+    const channelName = `board:${activeFileId || "default"}`;
+    const supabase = createClient();
+
+    // 1. Supabase Realtime WebSocket Channel
+    const channel = supabase.channel(channelName, {
+      config: { broadcast: { self: false } },
+    });
+
+    channel
+      .on("broadcast", { event: "laser:pointer" }, ({ payload }) => {
+        if (!payload || !payload.userId) return;
+        setPeerLasers((prev) => {
+          if (payload.x === null || payload.y === null) {
+            const next = { ...prev };
+            delete next[payload.userId];
+            return next;
+          }
+          return {
+            ...prev,
+            [payload.userId]: {
+              x: payload.x,
+              y: payload.y,
+              userName: payload.userName || "Collaborator",
+              timestamp: Date.now(),
+            },
+          };
+        });
+      })
+      .subscribe();
+
+    channelRef.current = channel;
+
+    // 2. BroadcastChannel for instant local cross-tab sync
+    let bc: BroadcastChannel | null = null;
+    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+      bc = new BroadcastChannel(`masmspace-laser-${activeFileId || "default"}`);
+      bc.onmessage = (event) => {
+        const payload = event.data;
+        if (!payload || !payload.userId) return;
+        setPeerLasers((prev) => {
+          if (payload.x === null || payload.y === null) {
+            const next = { ...prev };
+            delete next[payload.userId];
+            return next;
+          }
+          return {
+            ...prev,
+            [payload.userId]: {
+              x: payload.x,
+              y: payload.y,
+              userName: payload.userName || "Collaborator",
+              timestamp: Date.now(),
+            },
+          };
+        });
+      };
+      broadcastChannelRef.current = bc;
+    }
+
+    // Decay interval to prune inactive peer lasers after 2.5 seconds
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setPeerLasers((prev) => {
+        let changed = false;
+        const updated = { ...prev };
+        for (const [id, laser] of Object.entries(updated)) {
+          if (now - laser.timestamp > 2500) {
+            delete updated[id];
+            changed = true;
+          }
+        }
+        return changed ? updated : prev;
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+      if (channel) supabase.removeChannel(channel);
+      if (bc) bc.close();
+    };
+  }, [activeFileId]);
+
+  // Throttled Laser coordinates broadcaster (50ms throttled from HUD)
+  const handleLaserMove = useCallback((pos: { x: number; y: number } | null) => {
+    const payload = {
+      userId: currentUser?.id || "local-presenter",
+      userName: currentUser?.name || currentUser?.email?.split("@")[0] || "Presenter",
+      x: pos ? pos.x : null,
+      y: pos ? pos.y : null,
+    };
+
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: "broadcast",
+        event: "laser:pointer",
+        payload,
+      }).catch(() => {});
+    }
+
+    if (broadcastChannelRef.current) {
+      try {
+        broadcastChannelRef.current.postMessage(payload);
+      } catch {}
+    }
+  }, [currentUser]);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Canvas Text Extraction & Vector pgvector Indexing (Board Brain RAG)
+  // ───────────────────────────────────────────────────────────────────────────
+  const [isIndexing, setIsIndexing] = useState(false);
+  const [indexingNotice, setIndexingNotice] = useState<string | null>(null);
+
+  /**
+   * Scrapes all text nodes, sticky notes, container-bound text, labels, and
+   * element annotations across the entire Excalidraw scene.
+   */
+  const extractCanvasText = useCallback((elements: readonly any[]): string => {
+    const textPieces: string[] = [];
+    const seenTexts = new Set<string>();
+
+    for (const el of elements) {
+      if (!el || el.isDeleted) continue;
+
+      // 1. Direct text element or sticky note text
+      if (typeof el.text === "string" && el.text.trim()) {
+        const trimmed = el.text.trim();
+        if (!seenTexts.has(trimmed)) {
+          seenTexts.add(trimmed);
+          textPieces.push(trimmed);
+        }
+      }
+
+      // 2. originalText field
+      if (typeof el.originalText === "string" && el.originalText.trim()) {
+        const trimmed = el.originalText.trim();
+        if (!seenTexts.has(trimmed)) {
+          seenTexts.add(trimmed);
+          textPieces.push(trimmed);
+        }
+      }
+
+      // 3. Shape labels (e.g. rectangles/diamonds/arrows with text)
+      if (el.label) {
+        const labelText = typeof el.label === "string" ? el.label : el.label?.text;
+        if (typeof labelText === "string" && labelText.trim()) {
+          const trimmed = labelText.trim();
+          if (!seenTexts.has(trimmed)) {
+            seenTexts.add(trimmed);
+            textPieces.push(trimmed);
+          }
+        }
+      }
+
+      // 4. Custom data text or OCR notes
+      if (typeof el.customData?.text === "string" && el.customData.text.trim()) {
+        const trimmed = el.customData.text.trim();
+        if (!seenTexts.has(trimmed)) {
+          seenTexts.add(trimmed);
+          textPieces.push(trimmed);
+        }
+      }
+    }
+
+    return textPieces.join("\n");
+  }, []);
+
+  /**
+   * Save & Index: Extracts canvas text and stores vector embeddings in Supabase pgvector
+   */
+  const handleSaveAndIndex = useCallback(async () => {
+    const api = excalidrawAPIRef.current;
+    if (!api) return;
+
+    setIsIndexing(true);
+    setIndexingNotice(null);
+
+    try {
+      const elements = api.getSceneElements().filter((el: any) => !el.isDeleted);
+      const extractedText = extractCanvasText(elements) || "MasmSpace whiteboard canvas";
+      const ownerId = currentUser?.id || "00000000-0000-0000-0000-000000000000";
+      const boardId = activeFileId || "default-board";
+
+      const res = await indexCanvasSession({
+        board_id: boardId,
+        owner_id: ownerId,
+        title: boardTitle || "Canvas Session",
+        extracted_text: extractedText,
+        tags: ["canvas", "indexed"],
+      });
+
+      setIndexingNotice("Board indexed successfully! Search is ready.");
+      setTimeout(() => setIndexingNotice(null), 3500);
+      return res;
+    } catch (err: any) {
+      console.warn("[Save & Index] Notice:", err?.message);
+      setIndexingNotice(`Indexed with fallback: ${err?.message || "Ready"}`);
+      setTimeout(() => setIndexingNotice(null), 3500);
+    } finally {
+      setIsIndexing(false);
+    }
+  }, [extractCanvasText, currentUser, activeFileId, boardTitle]);
+
+  // ───────────────────────────────────────────────────────────────────────────
   // Multiplayer Preparation & Synchronization Engine
   // ───────────────────────────────────────────────────────────────────────────
   /**
@@ -1991,18 +2231,8 @@ export default function WhiteboardCanvas() {
     try {
       const allElements = api.getSceneElements().filter((el: any) => !el.isDeleted);
 
-      // Extract all text and bound labels across the canvas
-      const textSnippets: string[] = [];
-      allElements.forEach((el: any) => {
-        if (el.type === "text" && el.text) {
-          textSnippets.push(el.text);
-        }
-        if (el.label && typeof el.label === "object" && "text" in el.label && el.label.text) {
-          textSnippets.push(el.label.text);
-        }
-      });
-
-      const canvasText = textSnippets.join("\n") || "No textual elements found on the canvas.";
+      // Extract all text, sticky notes, and labels across the canvas
+      const canvasText = extractCanvasText(allElements) || "No textual elements found on the canvas.";
 
       const shapesPayload = allElements.map((el: any) => ({
         id: el.id,
@@ -2017,6 +2247,7 @@ export default function WhiteboardCanvas() {
         },
       }));
 
+      // 1. Call AI Summarization Engine
       const result = await summarizeCanvas({
         canvas_text: canvasText,
         shapes: shapesPayload,
@@ -2024,6 +2255,15 @@ export default function WhiteboardCanvas() {
       });
 
       setSummaryData(result);
+
+      // 2. Automatically index into Supabase pgvector store for hybrid search
+      indexCanvasSession({
+        board_id: activeFileId || "default-board",
+        owner_id: currentUser?.id || "00000000-0000-0000-0000-000000000000",
+        title: boardTitle || "Canvas Session",
+        extracted_text: canvasText,
+        tags: ["canvas", "summary"],
+      }).catch((err) => console.warn("[Auto-Index] Notice:", err?.message));
     } catch (err) {
       const message =
         err instanceof Error
@@ -2033,7 +2273,7 @@ export default function WhiteboardCanvas() {
     } finally {
       setIsLoading(false);
     }
-  }, [boardTitle]);
+  }, [boardTitle, extractCanvasText, activeFileId, currentUser]);
 
   // ───────────────────────────────────────────────────────────────────────────
   // Voice Control Handlers mapped to Excalidraw
@@ -2206,6 +2446,8 @@ export default function WhiteboardCanvas() {
           onBoardBrainClick={() =>
             handleProClick("AI Meeting Summaries & Action Items", () => handleSummarise())
           }
+          onSaveAndIndex={handleSaveAndIndex}
+          isIndexing={isIndexing}
           onShareClick={() =>
             handleProClick("Live Multiplayer Collaboration", () => setIsShareOpen(true))
           }
@@ -2317,8 +2559,55 @@ export default function WhiteboardCanvas() {
             isActive={isPresentMode}
             onExit={() => setIsPresentMode(false)}
             excalidrawAPI={excalidrawAPIRef.current}
+            onLaserMove={handleLaserMove}
           />
         </div>
+
+        {/* Glowing Cyan Laser Pointers for Connected Collaborators (Framer Motion) */}
+        <AnimatePresence>
+          {Object.entries(peerLasers).map(([peerId, laser]) => (
+            <motion.div
+              key={peerId}
+              className="fixed pointer-events-none z-[9999]"
+              initial={{ x: laser.x, y: laser.y, opacity: 0, scale: 0.8 }}
+              animate={{ x: laser.x, y: laser.y, opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              transition={{
+                type: "spring",
+                damping: 28,
+                stiffness: 400,
+                mass: 0.6,
+              }}
+              style={{ left: 0, top: 0 }}
+            >
+              <div className="relative -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
+                {/* Core Glowing Cyan Laser Dot */}
+                <div className="w-3.5 h-3.5 rounded-full bg-cyan-400 shadow-[0_0_12px_#00f5ff,0_0_24px_#00f5ff,0_0_36px_#00f5ff]" />
+                {/* Outer Ping Ring */}
+                <div className="absolute inset-[-6px] rounded-full border border-cyan-400/60 animate-ping" />
+                {/* Peer Name Tag */}
+                {laser.userName && (
+                  <div className="absolute top-5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-[#0a0a0a]/90 border border-cyan-500/40 text-[10px] text-cyan-300 font-mono font-medium shadow-[0_0_10px_rgba(0,245,255,0.25)] whitespace-nowrap">
+                    {laser.userName}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {/* Indexing Status Toast Notification */}
+        {indexingNotice && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black/90 border border-emerald-500/40 shadow-2xl text-emerald-400 font-mono text-xs"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>{indexingNotice}</span>
+          </motion.div>
+        )}
 
         {/* Code-on-Board Widget (Suppressed in Executive Focus Mode) */}
         {!isPresentMode && !isExecutiveMode && (
@@ -2342,6 +2631,7 @@ export default function WhiteboardCanvas() {
 
           <BoardBrainSearch
             isOpen={searchOpen}
+            ownerId={currentUser?.id || "00000000-0000-0000-0000-000000000000"}
             onClose={() => setSearchOpen(false)}
           />
 

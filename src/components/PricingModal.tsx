@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Crown, Check, X, Sparkles, Zap, Shield, ArrowRight } from "lucide-react";
+import { Checkout } from "@/components/Checkout";
 
 interface PricingModalProps {
   isOpen: boolean;
@@ -20,29 +21,8 @@ export function PricingModal({
   onUpgradeSuccess,
 }: PricingModalProps) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
-  const [isProcessing, setIsProcessing] = useState(false);
 
   if (!isOpen) return null;
-
-  const handleUpgrade = () => {
-    setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      // Store local pro status for seamless demo
-      try {
-        const currentUser = localStorage.getItem("masmspace_current_user") || localStorage.getItem("wasmspace_current_user");
-        if (currentUser) {
-          const parsed = JSON.parse(currentUser);
-          parsed.role = "pro";
-          localStorage.setItem("masmspace_current_user", JSON.stringify(parsed));
-        }
-      } catch {
-        // ignore
-      }
-      onUpgradeSuccess?.();
-      onClose();
-    }, 800);
-  };
 
   return (
     <AnimatePresence>
@@ -174,27 +154,24 @@ export function PricingModal({
             </ul>
           </div>
 
-          {/* ── High-Contrast Glowing CTA Button ── */}
-          <button
-            type="button"
-            id="pricing-modal-upgrade-btn"
-            onClick={handleUpgrade}
-            disabled={isProcessing}
+          {/* ── High-Contrast Glowing Razorpay Checkout CTA ── */}
+          <Checkout
+            plan={billingCycle}
+            amount={100} // 100 paise = 1 INR testing
+            currency="INR"
+            buttonText={
+              billingCycle === "yearly"
+                ? "Upgrade to PRO — $49/yr"
+                : "Upgrade to PRO — $5/mo"
+            }
             className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-black font-extrabold font-mono text-sm tracking-tight transition-all duration-200 shadow-[0_0_30px_rgba(0,245,255,0.45)] hover:shadow-[0_0_40px_rgba(0,245,255,0.65)] hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            {isProcessing ? (
-              <span className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full border-2 border-black border-t-transparent animate-spin" />
-                Upgrading Account…
-              </span>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4 fill-black" />
-                <span>Upgrade to PRATHOMIX PRO</span>
-                <ArrowRight className="w-4 h-4 ml-1" />
-              </>
-            )}
-          </button>
+            onSuccess={() => {
+              onUpgradeSuccess?.();
+              setTimeout(() => {
+                onClose();
+              }, 1200);
+            }}
+          />
 
           <p className="text-[10px] text-center text-zinc-500 mt-3 flex items-center justify-center gap-1.5">
             <Shield className="w-3 h-3 text-zinc-400" />

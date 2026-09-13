@@ -123,8 +123,8 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
         <div className="flex items-center space-x-4">
           <ThemeToggle />
 
-          {/* ── 1. Smart Admin Navigation: Rendered ONLY if logged-in user is admin ── */}
-          {currentUser?.role === "admin" && (
+          {/* ── 1. Smart Admin Navigation: Rendered ONLY if user is admin@prathomix.tech ── */}
+          {currentUser?.email?.toLowerCase() === "admin@prathomix.tech" && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -139,7 +139,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
                 title="Admin Control Center"
               >
                 <ShieldCheck className="w-4 h-4 text-black" />
-                <span>Admin</span>
+                <span>Admin Panel</span>
               </Link>
             </motion.div>
           )}
@@ -190,6 +190,16 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
                       {currentUser.email}
                     </div>
                     <div className="py-1">
+                      {currentUser?.email?.toLowerCase() === "admin@prathomix.tech" && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setIsDropdownOpen(false)}
+                          className="block w-full text-left px-4 py-2.5 text-sm text-neon-cyan font-bold hover:bg-gray-800/50 transition-colors flex items-center gap-2"
+                        >
+                          <ShieldCheck className="w-4 h-4" />
+                          <span>Admin Panel</span>
+                        </Link>
+                      )}
                       <Link
                         href="/canvas"
                         onClick={() => setIsDropdownOpen(false)}
@@ -345,15 +355,15 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
               </div>
             )}
 
-            {/* Mobile Admin Link (Rendered only if admin) */}
-            {currentUser?.role === "admin" && (
+            {/* Mobile Admin Link (Rendered only if admin@prathomix.tech) */}
+            {currentUser?.email?.toLowerCase() === "admin@prathomix.tech" && (
               <Link
                 href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
                 className="block text-neon-cyan font-bold py-1 flex items-center gap-2 border-t border-black/5 dark:border-white/10 pt-2"
               >
                 <ShieldCheck className="w-4 h-4" />
-                <span>Admin Dashboard</span>
+                <span>Admin Panel</span>
               </Link>
             )}
           </motion.div>

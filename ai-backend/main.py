@@ -74,16 +74,26 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
         "https://masmspace.online",
         "https://www.masmspace.online",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
         os.getenv("FRONTEND_URL", "http://localhost:3000"),
     ],
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|.*masmspace\.online)(:\d+)?",
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=86400,
 )
+
+
+@app.options("/{full_path:path}")
+async def preflight_options_handler(full_path: str):
+    """Explicit preflight OPTIONS handler ensuring 200 OK for cross-origin callers."""
+    return JSONResponse(status_code=200, content={"status": "ok", "path": full_path})
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Config

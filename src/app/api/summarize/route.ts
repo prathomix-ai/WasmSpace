@@ -1,0 +1,37 @@
+import { NextRequest, NextResponse } from "next/server";
+
+const AI_BACKEND_URL =
+  process.env.NEXT_PUBLIC_AI_BACKEND_URL ||
+  process.env.AI_BACKEND_URL ||
+  "http://localhost:8000";
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json().catch(() => ({}));
+
+    // Forward to FastAPI backend
+    const res = await fetch(`${AI_BACKEND_URL}/api/summarize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(60000),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      return NextResponse.json(
+        { detail: err.detail || "AI backend summarization failed" },
+        { status: res.status }
+      );
+    }
+
+    const data = await res.json();
+    return NextResponse.json(data);
+  } catch (error: any) {
+    console.error("API Summarize Proxy Error:", error);
+    return NextResponse.json(
+      { detail: error?.message || "Internal server error during summarization" },
+      { status: 500 }
+    );
+  }
+}

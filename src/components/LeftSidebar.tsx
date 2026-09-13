@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -22,6 +22,8 @@ import {
   ArrowLeft,
   Menu,
   X,
+  ShieldCheck,
+  Database,
 } from "lucide-react";
 
 interface LeftSidebarProps {
@@ -31,6 +33,8 @@ interface LeftSidebarProps {
   onPresentClick: () => void;
   onSearchClick: () => void;
   onBoardBrainClick: () => void;
+  onSaveAndIndex?: () => void;
+  isIndexing?: boolean;
   onShareClick: () => void;
   onCodeStudioClick: () => void;
   isCodeOpen?: boolean;
@@ -59,6 +63,8 @@ export function LeftSidebar({
   onPresentClick,
   onSearchClick,
   onBoardBrainClick,
+  onSaveAndIndex,
+  isIndexing = false,
   onShareClick,
   onCodeStudioClick,
   isCodeOpen = false,
@@ -79,6 +85,21 @@ export function LeftSidebar({
   onAddStickyNote,
 }: LeftSidebarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored =
+        localStorage.getItem("masmspace_current_user") ||
+        localStorage.getItem("wasmspace_current_user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.email?.toLowerCase() === "admin@prathomix.tech") {
+          setIsAdmin(true);
+        }
+      }
+    } catch {}
+  }, []);
 
   // Natural flexbox PRO Badge (no absolute positioning)
   const ProBadge = () => (
@@ -323,6 +344,31 @@ export function LeftSidebar({
               {!isCollapsed && <ProBadge />}
             </button>
 
+            {/* Save & Index */}
+            {onSaveAndIndex && (
+              <button
+                type="button"
+                id="sidebar-btn-save-index"
+                onClick={onSaveAndIndex}
+                disabled={isIndexing}
+                className={`flex items-center w-full rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50 group ${
+                  isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+                }`}
+                title="Save & Index Canvas Text for Vector Search"
+              >
+                <div className="flex items-center gap-3">
+                  <Database
+                    className={`w-5 h-5 ${
+                      isIndexing ? "text-amber-400 animate-spin" : "text-emerald-400"
+                    } opacity-70 group-hover:opacity-100 transition-opacity shrink-0`}
+                  />
+                  {!isCollapsed && (
+                    <span>{isIndexing ? "Indexing…" : "Save & Index"}</span>
+                  )}
+                </div>
+              </button>
+            )}
+
             {/* Share (PRO) */}
             <button
               type="button"
@@ -441,6 +487,22 @@ export function LeftSidebar({
                 {!isCollapsed && <span>Screenshot</span>}
               </div>
             </button>
+
+            {/* Admin Panel (Only for admin@prathomix.tech) */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className={`flex items-center w-full rounded-lg text-sm font-medium text-neon-cyan hover:bg-neon-cyan/20 border border-neon-cyan/30 transition-colors cursor-pointer group ${
+                  isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+                }`}
+                title="Admin Control Center"
+              >
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="w-5 h-5 text-neon-cyan opacity-90 group-hover:opacity-100 shrink-0" />
+                  {!isCollapsed && <span className="font-bold">Admin Panel</span>}
+                </div>
+              </Link>
+            )}
 
             {/* Settings */}
             <button

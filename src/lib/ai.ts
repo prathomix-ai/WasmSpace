@@ -14,13 +14,26 @@ const AI_BACKEND_URL =
 export async function summarizeCanvas(
   request: SummarizeRequest
 ): Promise<SummarizeResponse> {
-  const response = await fetch(`${AI_BACKEND_URL}/api/summarize`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(request),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${AI_BACKEND_URL}/api/summarize`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    });
+  } catch (netErr) {
+    // If direct cross-origin fetch fails (CORS / network), fallback to internal Next.js proxy
+    response = await fetch("/api/summarize", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    });
+  }
 
   if (!response.ok) {
     let errorMessage = `AI backend error (${response.status})`;

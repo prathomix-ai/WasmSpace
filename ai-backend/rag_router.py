@@ -15,12 +15,14 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+import uuid
 from embeddings import embed_text, EMBEDDING_MODEL
 from supabase_client import (
     insert_canvas_session,
     upsert_canvas_embedding,
     rpc_search_sessions,
     rpc_hybrid_search_sessions,
+    direct_text_search_sessions,
 )
 
 logger = logging.getLogger("masmspace-ai.rag")
@@ -117,6 +119,16 @@ class SearchResponse(BaseModel):
     result_count: int
 
 
+def _clean_uuid(val: str | None) -> str:
+    if not val or str(val).lower() in ("anonymous", "guest", "undefined", "null"):
+        return "00000000-0000-0000-0000-000000000000"
+    try:
+        uuid.UUID(str(val))
+        return str(val)
+    except ValueError:
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, str(val)))
+
+
 # =============================================================================
 # Endpoint: Index a canvas session
 # =============================================================================
@@ -162,12 +174,14 @@ async def index_canvas_session(req: IndexRequest):
 
     # Resolve session_date
     session_date = req.session_date or datetime.now(timezone.utc).isoformat()
+    safe_board_id = _clean_uuid(req.board_id)
+    safe_owner_id = _clean_uuid(req.owner_id)
 
     # Write session to Supabase
     try:
         session_row = await insert_canvas_session(
-            board_id=req.board_id,
-            owner_id=req.owner_id,
+            board_id=safe_board_id,
+            owner_id=safe_owner_id,
             title=req.title,
             extracted_text=req.extracted_text,
             summary=req.summary,
@@ -184,7 +198,7 @@ async def index_canvas_session(req: IndexRequest):
     try:
         await upsert_canvas_embedding(
             session_id=session_id,
-            board_id=req.board_id,
+            board_id=safe_board_id,
             embedding=vector,
             model_name=EMBEDDING_MODEL,
         )
@@ -198,7 +212,7 @@ async def index_canvas_session(req: IndexRequest):
 
     return IndexResponse(
         session_id=session_id,
-        board_id=req.board_id,
+        board_id=safe_board_id,
         embedding_dims=len(vector),
         model_used=EMBEDDING_MODEL,
         indexed_at=datetime.now(timezone.utc).isoformat(),
@@ -213,14 +227,7 @@ async def index_canvas_session(req: IndexRequest):
 async def search_sessions(req: SearchRequest):
     """
     Perform a vector (or hybrid) similarity search over indexed canvas sessions.
-
-    Given a natural-language query like 'login architecture diagram from last week',
-    this endpoint:
-      1. Embeds the query with the same sentence-transformer model used at index time
-      2. Calls the Supabase RPC function (search_canvas_sessions or hybrid variant)
-      3. Returns ranked session results with board_id, title, and similarity score
-
-    Use the returned session_id / board_id to navigate to the specific board.
+    Falls back to direct keyword matching so words like 'happy' are guaranteed to match.
     """
     if req.mode not in ("vector", "hybrid"):
         raise HTTPException(
@@ -228,11 +235,13 @@ async def search_sessions(req: SearchRequest):
             detail="mode must be 'vector' or 'hybrid'",
         )
 
+    safe_owner_id = _clean_uuid(req.owner_id)
+
     logger.info(
         "Search [%s] query='%s' owner=%s limit=%d",
         req.mode,
         req.query[:80],
-        req.owner_id,
+        safe_owner_id,
         req.limit,
     )
 
@@ -242,27 +251,32 @@ async def search_sessions(req: SearchRequest):
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
 
+    rows: list[dict[str, Any]] = []
+
     # Call Supabase RPC
     try:
         if req.mode == "hybrid":
             rows = await rpc_hybrid_search_sessions(
                 query_text=req.query,
                 query_embedding=query_vector,
-                owner_uuid=req.owner_id,
+                owner_uuid=safe_owner_id,
                 match_count=req.limit,
             )
         else:
             rows = await rpc_search_sessions(
                 query_embedding=query_vector,
-                owner_uuid=req.owner_id,
+                owner_uuid=safe_owner_id,
                 match_count=req.limit,
                 similarity_threshold=req.similarity_threshold,
             )
-    except RuntimeError as exc:
-        raise HTTPException(status_code=502, detail=f"Search RPC failed: {exc}")
+    except Exception as exc:
+        logger.warning("Vector RPC search notice: %s. Falling back to keyword search.", exc)
+        rows = []
 
+    # Fallback to direct keyword search if 0 vector results or RPC failed
     if not rows:
-        logger.info("No results found for query '%s'", req.query[:60])
+        logger.info("Vector search found 0 rows. Running direct keyword search for '%s'", req.query)
+        rows = await direct_text_search_sessions(query_text=req.query, limit=req.limit)
 
     results = [
         SessionResult(

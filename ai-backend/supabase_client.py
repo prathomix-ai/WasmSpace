@@ -123,6 +123,48 @@ async def rpc_hybrid_search_sessions(
     return resp.json()
 
 
+async def direct_text_search_sessions(
+    query_text: str,
+    limit: int = 5,
+) -> list[dict[str, Any]]:
+    """Direct ILIKE fallback search across canvas_sessions extracted_text and title."""
+    clean_query = query_text.strip()
+    if not clean_query:
+        return []
+
+    url = f"{SUPABASE_URL}/rest/v1/canvas_sessions"
+    first_word = clean_query.split()[0]
+    params = {
+        "select": "*",
+        "or": f"(extracted_text.ilike.*{first_word}*,title.ilike.*{first_word}*)",
+        "limit": str(limit),
+        "order": "created_at.desc",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.get(url, params=params, headers=_headers())
+        if resp.status_code == 200:
+            rows = resp.json()
+            return [
+                {
+                    "session_id": r.get("id"),
+                    "board_id": r.get("board_id"),
+                    "title": r.get("title"),
+                    "extracted_text": r.get("extracted_text"),
+                    "summary": r.get("summary"),
+                    "tags": r.get("tags") or [],
+                    "shape_count": r.get("shape_count"),
+                    "session_date": r.get("session_date"),
+                    "similarity": 0.95,
+                }
+                for r in rows
+            ]
+        return []
+    except Exception as exc:
+        logger.warning("direct_text_search_sessions failed: %s", exc)
+        return []
+
+
 def _raise_for_status(resp: httpx.Response, op: str) -> None:
     if resp.status_code not in (200, 201, 204):
         logger.error("[supabase] %s failed %s: %s", op, resp.status_code, resp.text[:400])

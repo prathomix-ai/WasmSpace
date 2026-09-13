@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Sparkles, Loader2, ShieldCheck, AlertCircle } from "lucide-react";
+import { Sparkles, Loader2, ShieldCheck, AlertCircle, CheckCircle2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 declare global {
   interface Window {
@@ -23,8 +24,8 @@ export interface CheckoutProps {
 
 export function Checkout({
   plan = "monthly",
-  amount,
-  currency = "USD",
+  amount = 100, // 100 paise = 1 INR for testing
+  currency = "INR",
   userEmail,
   userName = "MasmSpace Creator",
   buttonText,
@@ -34,6 +35,7 @@ export function Checkout({
 }: CheckoutProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successPaymentId, setSuccessPaymentId] = useState<string | null>(null);
 
   // 1. Dynamic Razorpay Script Loader
   const loadRazorpayScript = (): Promise<boolean> => {
@@ -57,7 +59,7 @@ export function Checkout({
       setIsLoading(true);
       setErrorMessage(null);
 
-      // Load SDK
+      // Dynamically load Razorpay SDK
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
         const msg = "Unable to load Razorpay Checkout SDK. Please check your internet connection.";
@@ -67,17 +69,30 @@ export function Checkout({
         return;
       }
 
-      // Step 1: Create Order via Backend API
-      const orderRes = await fetch("/api/create-order", {
+      // Step 1: Create Order via Backend API (/api/create-razorpay-order or fallback /api/create-order)
+      let orderRes = await fetch("/api/create-razorpay-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plan,
-          amount,
-          currency,
+          amount: 100, // 100 paise = 1 INR for testing
+          currency: "INR",
           user_email: userEmail,
         }),
       });
+
+      if (!orderRes.ok) {
+        orderRes = await fetch("/api/create-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            plan,
+            amount: 100,
+            currency: "INR",
+            user_email: userEmail,
+          }),
+        });
+      }
 
       const orderData = await orderRes.json().catch(() => null);
 
@@ -96,9 +111,9 @@ export function Checkout({
           orderData.key_id ||
           process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
           "rzp_test_Ta2kWl9IX7CgkT",
-        amount: orderData.amount,
-        currency: orderData.currency || currency,
-        name: "MasmSpace Pro",
+        amount: orderData.amount, // 100 paise
+        currency: orderData.currency || "INR",
+        name: "MasmSpace PRO",
         description:
           plan === "yearly"
             ? "MasmSpace Pro Annual Membership ($49/yr)"
@@ -109,7 +124,7 @@ export function Checkout({
         },
         prefill: {
           name: userName,
-          email: userEmail || "creator@masmspace.ai",
+          email: userEmail || "creator@masmspace.online",
         },
         modal: {
           ondismiss: function () {
@@ -137,8 +152,11 @@ export function Checkout({
 
             const verifyData = await verifyRes.json().catch(() => null);
 
+            // ONLY update and show success when signature is cryptographically verified
             if (verifyRes.ok && verifyData?.success) {
-              // Update local state for immediate UI activation
+              setSuccessPaymentId(response.razorpay_payment_id);
+
+              // Update local state and refresh Supabase auth session
               try {
                 const stored =
                   localStorage.getItem("masmspace_current_user") ||
@@ -149,9 +167,17 @@ export function Checkout({
                   user.subscription_status = "active";
                   localStorage.setItem("masmspace_current_user", JSON.stringify(user));
                 }
+
+                const supabase = createClient();
+                await supabase.auth.getUser();
               } catch {}
 
               onSuccess?.(response.razorpay_payment_id);
+
+              // Refresh user session after brief acknowledgment
+              setTimeout(() => {
+                window.location.reload();
+              }, 1500);
             } else {
               const errMsg =
                 verifyData?.error || "Payment signature verification failed.";
@@ -190,6 +216,18 @@ export function Checkout({
   const defaultButtonLabel =
     plan === "yearly" ? "Upgrade to Pro — $49/yr" : "Upgrade to Pro — $5/mo";
 
+  if (successPaymentId) {
+    return (
+      <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/50 text-emerald-300 flex items-center gap-3 shadow-[0_0_25px_rgba(16,185,129,0.25)]">
+        <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+        <div className="text-xs font-mono">
+          <div className="font-bold text-white">Payment Verified! Welcome to PRO.</div>
+          <div className="text-emerald-400/80 text-[10px]">Payment ID: {successPaymentId}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <button
@@ -197,17 +235,17 @@ export function Checkout({
         disabled={isLoading}
         className={
           className ||
-          `w-full py-3.5 px-6 rounded-xl font-bold font-mono text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 border bg-gradient-to-r from-neon-cyan/20 via-cyan-500/10 to-neon-purple/20 hover:from-neon-cyan/30 hover:to-neon-purple/30 text-neon-cyan border-neon-cyan/40 shadow-[0_0_20px_rgba(0,245,255,0.15)] hover:shadow-[0_0_30px_rgba(0,245,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed`
+          `w-full py-3.5 px-6 rounded-xl font-bold font-mono text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 border bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-black border-cyan-400/40 shadow-[0_0_20px_rgba(0,245,255,0.25)] hover:shadow-[0_0_30px_rgba(0,245,255,0.45)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`
         }
       >
         {isLoading ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin text-neon-cyan" />
+            <Loader2 className="w-4 h-4 animate-spin text-black" />
             <span>Connecting to Razorpay...</span>
           </>
         ) : (
           <>
-            <Sparkles className="w-4 h-4 text-neon-cyan animate-pulse" />
+            <Sparkles className="w-4 h-4 fill-black text-black" />
             <span>{buttonText || defaultButtonLabel}</span>
           </>
         )}
@@ -229,3 +267,5 @@ export function Checkout({
     </div>
   );
 }
+
+export default Checkout;

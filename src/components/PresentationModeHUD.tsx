@@ -8,6 +8,7 @@ interface PresentationModeHUDProps {
   onExit: () => void;
   editor?: any;
   excalidrawAPI?: any;
+  onLaserMove?: (pos: { x: number; y: number } | null) => void;
 }
 
 export default function PresentationModeHUD({
@@ -15,15 +16,19 @@ export default function PresentationModeHUD({
   onExit,
   editor,
   excalidrawAPI,
+  onLaserMove,
 }: PresentationModeHUDProps) {
   const [laserActive, setLaserActive] = useState(true);
   const [laserPos, setLaserPos] = useState<{ x: number; y: number }>({ x: -100, y: -100 });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
-  // Laser Pointer cursor tracker (Throttled to >= 100ms to preserve memory & CPU on low-end devices)
+  // Laser Pointer cursor tracker (Throttled to 50ms for fluid WebSocket broadcast)
   useEffect(() => {
-    if (!isActive || !laserActive) return;
+    if (!isActive || !laserActive) {
+      onLaserMove?.(null);
+      return;
+    }
 
     let lastUpdate = 0;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -32,24 +37,33 @@ export default function PresentationModeHUD({
       const now = performance.now();
       const pos = { x: e.clientX, y: e.clientY };
 
-      if (now - lastUpdate >= 100) {
+      if (now - lastUpdate >= 50) {
         lastUpdate = now;
         setLaserPos(pos);
+        onLaserMove?.(pos);
       } else if (!timer) {
         timer = setTimeout(() => {
           setLaserPos(pos);
+          onLaserMove?.(pos);
           lastUpdate = performance.now();
           timer = null;
-        }, 100);
+        }, 50);
       }
     };
 
+    const handleMouseLeave = () => {
+      onLaserMove?.(null);
+    };
+
     window.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseleave", handleMouseLeave);
     return () => {
       if (timer) clearTimeout(timer);
       window.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseleave", handleMouseLeave);
+      onLaserMove?.(null);
     };
-  }, [isActive, laserActive]);
+  }, [isActive, laserActive, onLaserMove]);
 
   // Fullscreen state listener
   useEffect(() => {
