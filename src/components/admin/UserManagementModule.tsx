@@ -4,48 +4,16 @@ import React, { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { type UserProfile, type SubscriptionStatus, type UserRole } from "@/types/admin";
 
-// Demo/Fallback users for preview when Supabase is running locally without active connection
-const INITIAL_DEMO_USERS: UserProfile[] = [
-  {
-    id: "usr_admin_01",
-    email: "admin@prathomix.tech",
-    role: "admin",
-    subscription_status: "enterprise",
-    created_at: "2026-08-15T10:00:00Z",
-  },
-  {
-    id: "usr_dev_02",
-    email: "sarah.connor@cyberdyne.io",
-    role: "user",
-    subscription_status: "pro",
-    created_at: "2026-09-01T14:22:00Z",
-  },
-  {
-    id: "usr_free_03",
-    email: "alex.chen@innovate.co",
-    role: "user",
-    subscription_status: "free",
-    created_at: "2026-09-04T08:15:00Z",
-  },
-  {
-    id: "usr_free_04",
-    email: "elena.rostova@designworks.net",
-    role: "user",
-    subscription_status: "free",
-    created_at: "2026-09-07T18:40:00Z",
-  },
-];
-
 export default function UserManagementModule() {
-  const [users, setUsers] = useState<UserProfile[]>(INITIAL_DEMO_USERS);
-  const [isLoading, setIsLoading] = useState(false);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [targetEmail, setTargetEmail] = useState("");
   const [targetStatus, setTargetStatus] = useState<SubscriptionStatus>("pro");
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch profiles from Supabase
+  // Fetch real user profiles from Supabase
   const fetchProfiles = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -56,13 +24,12 @@ export default function UserManagementModule() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        // Fall back to demo list if Supabase is offline or table does not yet exist
-        console.warn("Supabase profiles query notice (using local cache):", error.message);
-      } else if (data && data.length > 0) {
+        console.warn("[Admin] Supabase profiles query notice:", error.message);
+      } else if (data) {
         setUsers(data as UserProfile[]);
       }
     } catch (err: any) {
-      console.warn("Using offline demo users:", err?.message);
+      console.warn("[Admin] Error fetching profiles:", err?.message);
     } finally {
       setIsLoading(false);
     }

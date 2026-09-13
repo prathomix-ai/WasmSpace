@@ -32,9 +32,19 @@ export default function VSCodeExplorer({
   onImportPdfPages,
   leftOffset = 252,
 }: VSCodeExplorerProps) {
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
-    new Set(["folder-1", "folder-2"])
-  );
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => {
+    const folderIds = new Set<string>();
+    const collectFolderIds = (items: BoardFileNode[]) => {
+      items?.forEach((item) => {
+        if (item.type === "folder") {
+          folderIds.add(item.id);
+          if (item.children) collectFolderIds(item.children);
+        }
+      });
+    };
+    collectFolderIds(nodes);
+    return folderIds;
+  });
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState<string>("");
   const [isImportingPdf, setIsImportingPdf] = useState(false);

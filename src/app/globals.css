@@ -1739,11 +1739,44 @@ body {
 .excalidraw .App-bottom-bar,
 .excalidraw .LayerUI__hint,
 .excalidraw .footer-center,
-.excalidraw .layer-ui__wrapper__footer-center {
+.excalidraw .layer-ui__wrapper__footer-center,
+.excalidraw .help-icon,
+.excalidraw button[aria-label="Help"],
+.excalidraw [data-testid="help-icon"] {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Present Mode: Clean Slate + Sketch Bar + Laser Pointer + Draggable HUD
+   Keep the Sketch Bar (.App-toolbar) accessible so presenters can draw/annotate
+   ═══════════════════════════════════════════════════════════════════════════ */
+.present-mode-active .excalidraw .layer-ui__wrapper__top-right,
+.present-mode-active .excalidraw .layer-ui__wrapper__footer-left,
+.present-mode-active .excalidraw .layer-ui__wrapper__footer-right,
+.present-mode-active .excalidraw .sidebar-trigger,
+.present-mode-active .excalidraw .zen-mode-transition,
+.present-mode-active .excalidraw .App-menu {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.present-mode-active .excalidraw .App-toolbar-container {
+  top: 16px !important;
+  z-index: 45 !important;
+}
+
+.present-mode-active .excalidraw .App-toolbar {
+  display: flex !important;
+  pointer-events: auto !important;
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.15) !important;
+}
+
+.present-mode-active .excalidraw .App-toolbar-content {
+  display: flex !important;
+  pointer-events: auto !important;
 }
 
 /* ── Sleek Custom Scrollbar for Quick Commands & Drawers ── */

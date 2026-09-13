@@ -24,7 +24,10 @@ import {
   X,
   ShieldCheck,
   Database,
+  Maximize2,
+  CloudUpload,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 interface LeftSidebarProps {
   boardTitle: string;
@@ -50,6 +53,12 @@ interface LeftSidebarProps {
   isProUser?: boolean;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  // Full Screen / Hide Sidebar
+  onToggleSidebarVisibility?: () => void;
+  isSidebarVisible?: boolean;
+  // Cloud Save
+  onSaveToCloud?: () => void;
+  isSavingCloud?: boolean;
   // Executive Focus Mode
   isExecutiveMode?: boolean;
   onToggleExecutiveMode?: () => void;
@@ -79,6 +88,10 @@ export function LeftSidebar({
   isProUser = false,
   isCollapsed,
   onToggleCollapse,
+  onToggleSidebarVisibility,
+  isSidebarVisible = true,
+  onSaveToCloud,
+  isSavingCloud = false,
   isExecutiveMode = false,
   onToggleExecutiveMode,
   onSelectPenTool,
@@ -86,20 +99,85 @@ export function LeftSidebar({
 }: LeftSidebarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [hasProSubscription, setHasProSubscription] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored =
-        localStorage.getItem("masmspace_current_user") ||
-        localStorage.getItem("wasmspace_current_user");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed?.email?.toLowerCase() === "admin@prathomix.tech") {
-          setIsAdmin(true);
+    let isMounted = true;
+
+    async function checkSubscription() {
+      // 1. Fast initial sync from cached local storage session
+      try {
+        const stored =
+          localStorage.getItem("masmspace_current_user") ||
+          localStorage.getItem("wasmspace_current_user");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const email = parsed?.email?.toLowerCase();
+          const role = parsed?.role?.toLowerCase();
+          const sub = parsed?.subscription_status?.toLowerCase();
+
+          if (email === "admin@prathomix.tech" || role === "admin") {
+            setIsAdmin(true);
+            setHasProSubscription(true);
+          } else if (role === "pro" || sub === "pro" || sub === "active") {
+            setHasProSubscription(true);
+          }
         }
+      } catch {}
+
+      // 2. Fetch live subscription status & role directly from Supabase
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user && isMounted) {
+          const email = user.email?.toLowerCase();
+          if (email === "admin@prathomix.tech") {
+            setIsAdmin(true);
+            setHasProSubscription(true);
+          }
+
+          // Check user metadata
+          const metaRole = user.user_metadata?.role?.toLowerCase();
+          const metaSub = user.user_metadata?.subscription_status?.toLowerCase();
+          if (metaRole === "pro" || metaRole === "admin" || metaSub === "pro" || metaSub === "active") {
+            setHasProSubscription(true);
+          }
+
+          // Check public.profiles table
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role, subscription_status")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          if (profile && isMounted) {
+            const role = profile.role?.toLowerCase();
+            const sub = profile.subscription_status?.toLowerCase();
+            if (role === "admin") {
+              setIsAdmin(true);
+              setHasProSubscription(true);
+            } else if (role === "pro" || sub === "pro" || sub === "active") {
+              setHasProSubscription(true);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[LeftSidebar] Supabase subscription check notice:", err);
       }
-    } catch {}
+    }
+
+    checkSubscription();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  // Effective PRO status combines props with database subscription state
+  const effectiveIsPro = Boolean(isProUser || hasProSubscription);
 
   // Natural flexbox PRO Badge with glowing cyberpunk neon shadow
   const ProBadge = () => (
@@ -142,15 +220,28 @@ export function LeftSidebar({
               </span>
             </Link>
 
-            <button
-              type="button"
-              onClick={onToggleCollapse}
-              className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer border border-transparent hover:border-white/5"
-              title="Collapse Sidebar"
-              aria-label="Collapse Sidebar"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              {onToggleSidebarVisibility && (
+                <button
+                  type="button"
+                  onClick={onToggleSidebarVisibility}
+                  className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-cyan-400 transition-colors cursor-pointer border border-transparent hover:border-white/5"
+                  title="Full Screen / Hide Sidebar (Ctrl+\)"
+                  aria-label="Full Screen Mode"
+                >
+                  <Maximize2 className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer border border-transparent hover:border-white/5"
+                title="Collapse Sidebar"
+                aria-label="Collapse Sidebar"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </div>
           </>
         ) : (
           <div className="flex flex-col items-center gap-2">
@@ -169,6 +260,17 @@ export function LeftSidebar({
                 />
               </div>
             </Link>
+            {onToggleSidebarVisibility && (
+              <button
+                type="button"
+                onClick={onToggleSidebarVisibility}
+                className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-cyan-400 transition-colors cursor-pointer border border-transparent hover:border-white/5"
+                title="Full Screen / Hide Sidebar (Ctrl+\)"
+                aria-label="Full Screen Mode"
+              >
+                <Maximize2 className="w-4 h-4" />
+              </button>
+            )}
             <button
               type="button"
               onClick={onToggleCollapse}
@@ -202,10 +304,10 @@ export function LeftSidebar({
       {/* ── 3. Navigation Content ── */}
       {isExecutiveMode ? (
         /* ── Executive Focus Mode: Clean, Distraction-Free Suite ── */
-        <div className="flex flex-col gap-2">
+        <div className="bg-[#09090b]/60 backdrop-blur-md border border-white/10 rounded-2xl py-4 px-2 flex flex-col gap-2">
           <div
             className={`rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 ${
-              isCollapsed ? "p-2.5 flex justify-center" : "px-3.5 py-3"
+              isCollapsed ? "p-2 flex justify-center" : "px-3 py-2.5"
             }`}
           >
             <div className="flex items-center gap-3">
@@ -224,12 +326,12 @@ export function LeftSidebar({
             type="button"
             id="sidebar-btn-exec-pen"
             onClick={onSelectPenTool}
-            className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
-              isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+            className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+              isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
             }`}
             title="Pen (Natural Freehand Sketching)"
           >
-            <div className="flex items-center gap-3.5">
+            <div className="flex items-center gap-3">
               <PenTool className="w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] transition-all shrink-0" />
               {!isCollapsed && <span>Draw Pen</span>}
             </div>
@@ -240,12 +342,12 @@ export function LeftSidebar({
             type="button"
             id="sidebar-btn-exec-sticky"
             onClick={onAddStickyNote}
-            className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
-              isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+            className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+              isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
             }`}
             title="Add Sticky Note"
           >
-            <div className="flex items-center gap-3.5">
+            <div className="flex items-center gap-3">
               <StickyNote className="w-5 h-5 text-yellow-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] transition-all shrink-0" />
               {!isCollapsed && <span>Sticky Note</span>}
             </div>
@@ -256,12 +358,12 @@ export function LeftSidebar({
             type="button"
             id="sidebar-btn-exec-present"
             onClick={onPresentClick}
-            className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
-              isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+            className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+              isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
             }`}
             title="Laser Presentation Pointer"
           >
-            <div className="flex items-center gap-3.5">
+            <div className="flex items-center gap-3">
               <Tv className="w-5 h-5 text-rose-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(244,63,94,0.5)] transition-all shrink-0" />
               {!isCollapsed && <span>Laser Pointer</span>}
             </div>
@@ -274,20 +376,20 @@ export function LeftSidebar({
             type="button"
             id="sidebar-btn-exit-exec"
             onClick={onToggleExecutiveMode}
-            className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
-              isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+            className={`flex items-center w-full text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+              isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
             }`}
             title="Exit Executive Focus Mode"
           >
-            <div className="flex items-center gap-3.5">
+            <div className="flex items-center gap-3">
               <ArrowLeft className="w-5 h-5 text-gray-400 opacity-80 group-hover:opacity-100 group-hover:-translate-x-0.5 transition-all shrink-0" />
               {!isCollapsed && <span>Exit Focus</span>}
             </div>
           </button>
         </div>
       ) : (
-        /* ── Standard Full Suite Navigation ── */
-        <>
+        /* ── Standard Full Suite Navigation: Premium Glassmorphism Dock ── */
+        <div className="bg-[#09090b]/60 backdrop-blur-md border border-white/10 rounded-2xl py-4 px-2 flex flex-col gap-3 shadow-inner">
           {/* ── Primary Tools (Present to Voice AI) ── */}
           <div className="flex flex-col gap-1.5">
             {/* Present (PRO) */}
@@ -295,16 +397,16 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-present"
               onClick={onPresentClick}
-              className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
-                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+              className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
               }`}
               title="Present Mode (Laser & Slide deck)"
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-3">
                 <Tv className="w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)] transition-all shrink-0" />
                 {!isCollapsed && <span>Present</span>}
               </div>
-              {!isCollapsed && <ProBadge />}
+              {!isCollapsed && !effectiveIsPro && <ProBadge />}
             </button>
 
             {/* Search (PRO) */}
@@ -312,16 +414,16 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-search"
               onClick={onSearchClick}
-              className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
-                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+              className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
               }`}
               title="Search Canvas Sessions via Vector RAG"
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-3">
                 <Search className="w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)] transition-all shrink-0" />
                 {!isCollapsed && <span>Search</span>}
               </div>
-              {!isCollapsed && <ProBadge />}
+              {!isCollapsed && !effectiveIsPro && <ProBadge />}
             </button>
 
             {/* Board Brain (PRO) */}
@@ -330,18 +432,18 @@ export function LeftSidebar({
               id="sidebar-btn-board-brain"
               onClick={onBoardBrainClick}
               disabled={isSummarising}
-              className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer disabled:opacity-50 group ${
-                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+              className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer disabled:opacity-50 group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
               }`}
               title="AI Board Brain: Meeting Action Items & Summaries"
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-3">
                 <Brain className="w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)] transition-all shrink-0" />
                 {!isCollapsed && (
                   <span>{isSummarising ? "Analysing…" : "Board Brain"}</span>
                 )}
               </div>
-              {!isCollapsed && <ProBadge />}
+              {!isCollapsed && !effectiveIsPro && <ProBadge />}
             </button>
 
             {/* Save & Index */}
@@ -351,12 +453,12 @@ export function LeftSidebar({
                 id="sidebar-btn-save-index"
                 onClick={onSaveAndIndex}
                 disabled={isIndexing}
-                className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer disabled:opacity-50 group ${
-                  isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+                className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer disabled:opacity-50 group ${
+                  isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 }`}
                 title="Save & Index Canvas Text for Vector Search"
               >
-                <div className="flex items-center gap-3.5">
+                <div className="flex items-center gap-3">
                   <Database
                     className={`w-5 h-5 ${
                       isIndexing ? "text-amber-400 animate-spin" : "text-emerald-400"
@@ -374,16 +476,16 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-share"
               onClick={onShareClick}
-              className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
-                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+              className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
               }`}
               title="Live Multiplayer Collaboration"
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-3">
                 <Share2 className="w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)] transition-all shrink-0" />
                 {!isCollapsed && <span>Share</span>}
               </div>
-              {!isCollapsed && <ProBadge />}
+              {!isCollapsed && !effectiveIsPro && <ProBadge />}
             </button>
 
             {/* Code Studio (Multi-lang) */}
@@ -391,16 +493,16 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-code"
               onClick={onCodeStudioClick}
-              className={`flex items-center w-full rounded-xl text-sm font-medium transition-all cursor-pointer group ${
-                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+              className={`flex items-center w-full text-sm font-medium hover:bg-white/10 rounded-lg transition-all cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
               } ${
                 isCodeOpen
                   ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
-                  : "text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5"
+                  : "text-gray-300 hover:text-white border border-transparent hover:border-white/5"
               }`}
               title="Multi-Language Code Studio (Python, C, C++, Java, JS, TS, SQL)"
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-3">
                 <Code2 className="w-5 h-5 text-emerald-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(52,211,153,0.6)] transition-all shrink-0" />
                 {!isCollapsed && <span>Code Studio</span>}
               </div>
@@ -416,12 +518,12 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-voice-robot"
               onClick={onVoiceClick}
-              className={`flex items-center w-full rounded-xl text-sm font-medium transition-all cursor-pointer group ${
-                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+              className={`flex items-center w-full text-sm font-medium hover:bg-white/10 rounded-lg transition-all cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
               } ${
                 isVoiceListening
                   ? "bg-purple-900/50 text-purple-200 border border-purple-400/80 shadow-[0_0_16px_rgba(168,85,247,0.4)]"
-                  : "text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5"
+                  : "text-gray-300 hover:text-white border border-transparent hover:border-white/5"
               }`}
               title={
                 isVoiceListening
@@ -429,7 +531,7 @@ export function LeftSidebar({
                   : "Voice AI (Speak meeting notes & drawing commands)"
               }
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-3">
                 <Bot
                   className={`w-5 h-5 shrink-0 transition-opacity ${
                     isVoiceListening
@@ -447,8 +549,8 @@ export function LeftSidebar({
             </button>
           </div>
 
-          {/* ── Divider ── */}
-          <div className="w-full h-px bg-white/5 my-1.5 shrink-0" />
+          {/* ── Subtle Internal Divider ── */}
+          <div className="w-full h-px bg-white/10 my-0.5 shrink-0" />
 
           {/* ── Secondary Tools (Project Files to Settings) ── */}
           <div className="flex flex-col gap-1.5">
@@ -457,16 +559,16 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-files"
               onClick={onToggleExplorer}
-              className={`flex items-center w-full rounded-xl text-sm font-medium transition-all cursor-pointer group ${
-                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+              className={`flex items-center w-full text-sm font-medium hover:bg-white/10 rounded-lg transition-all cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
               } ${
                 isExplorerOpen
                   ? "bg-cyan-500/15 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]"
-                  : "text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5"
+                  : "text-gray-300 hover:text-white border border-transparent hover:border-white/5"
               }`}
               title="Project Files (VS Code Tree)"
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-3">
                 <FolderClosed className="w-5 h-5 text-amber-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.6)] transition-all shrink-0" />
                 {!isCollapsed && <span>Project Files</span>}
               </div>
@@ -477,12 +579,12 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-screenshot"
               onClick={onTakeScreenshot}
-              className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
-                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+              className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
               }`}
               title={isProUser ? "Take Screenshot (Clean 4K)" : "Take Screenshot (Free Watermark)"}
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-3">
                 <Camera className="w-5 h-5 text-gray-300 opacity-80 group-hover:opacity-100 transition-opacity shrink-0" />
                 {!isCollapsed && <span>Screenshot</span>}
               </div>
@@ -492,16 +594,35 @@ export function LeftSidebar({
             {isAdmin && (
               <Link
                 href="/admin"
-                className={`flex items-center w-full rounded-xl text-sm font-semibold text-cyan-300 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 shadow-[0_0_14px_rgba(6,182,212,0.35)] hover:shadow-[0_0_22px_rgba(6,182,212,0.6)] transition-all cursor-pointer group ${
-                  isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+                className={`flex items-center w-full text-sm font-semibold text-cyan-300 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 shadow-[0_0_14px_rgba(6,182,212,0.35)] hover:shadow-[0_0_22px_rgba(6,182,212,0.6)] rounded-lg transition-all cursor-pointer group ${
+                  isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 }`}
                 title="Admin Control Center"
               >
-                <div className="flex items-center gap-3.5">
+                <div className="flex items-center gap-3">
                   <ShieldCheck className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)] shrink-0" />
                   {!isCollapsed && <span className="font-bold tracking-tight">Admin Panel</span>}
                 </div>
               </Link>
+            )}
+
+            {/* Save to Cloud (Supabase) */}
+            {onSaveToCloud && (
+              <button
+                type="button"
+                id="sidebar-btn-save-cloud"
+                onClick={onSaveToCloud}
+                disabled={isSavingCloud}
+                className={`flex items-center w-full text-sm font-medium text-cyan-300 hover:text-white hover:bg-cyan-500/10 rounded-lg transition-all border border-transparent hover:border-cyan-500/20 cursor-pointer group ${
+                  isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
+                } ${isSavingCloud ? "opacity-75 cursor-wait" : ""}`}
+                title="Save Scene to Supabase Cloud"
+              >
+                <div className="flex items-center gap-3">
+                  <CloudUpload className={`w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 transition-all shrink-0 ${isSavingCloud ? "animate-bounce" : ""}`} />
+                  {!isCollapsed && <span>{isSavingCloud ? "Saving..." : "Save to Cloud"}</span>}
+                </div>
+              </button>
             )}
 
             {/* Settings */}
@@ -509,12 +630,12 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-settings"
               onClick={onOpenSettings}
-              className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
-                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+              className={`flex items-center w-full text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
               }`}
               title="Canvas Settings"
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-3">
                 <Settings className="w-5 h-5 text-gray-400 opacity-80 group-hover:opacity-100 group-hover:rotate-45 transition-all shrink-0" />
                 {!isCollapsed && <span>Settings</span>}
               </div>
@@ -525,12 +646,12 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-toggle-exec"
               onClick={onToggleExecutiveMode}
-              className={`flex items-center w-full rounded-xl text-sm font-medium text-amber-300 hover:text-white hover:bg-amber-500/15 border border-transparent hover:border-amber-500/30 transition-all cursor-pointer group ${
-                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+              className={`flex items-center w-full text-sm font-medium text-amber-300 hover:text-white hover:bg-amber-500/20 rounded-lg transition-all border border-transparent hover:border-amber-500/30 cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
               }`}
               title="Executive Focus Mode (Distraction-free Pen, Sticky Notes & Laser)"
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-3">
                 <Briefcase className="w-5 h-5 text-amber-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.5)] transition-all shrink-0" />
                 {!isCollapsed && <span>Executive Focus</span>}
               </div>
@@ -541,22 +662,25 @@ export function LeftSidebar({
               )}
             </button>
           </div>
-        </>
+        </div>
       )}
 
-      {/* ── 4. Bottom Section: Upgrade to Pro (Pushed to very bottom with mt-auto) ── */}
+      {/* ── 4. Bottom Section: Upgrade to Pro or Subtle PRO Active (Pushed to very bottom with mt-auto) ── */}
       <div className="mt-auto pt-2 shrink-0">
-        {isProUser ? (
+        {effectiveIsPro ? (
           <div
-            className={`flex items-center w-full rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm font-semibold select-none ${
-              isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+            className={`flex items-center w-full rounded-xl bg-cyan-500/5 border border-white/5 text-zinc-400 text-xs font-mono select-none transition-all ${
+              isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-2.5"
             }`}
-            title="MasmSpace PRO Subscriber Active"
+            title="MasmSpace PRO Subscription Active"
           >
-            <div className="flex items-center gap-3.5">
-              <Crown className="w-5 h-5 fill-amber-400 text-amber-400 shrink-0 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-              {!isCollapsed && <span>PRO ACTIVE</span>}
+            <div className="flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)] shrink-0" />
+              {!isCollapsed && <span className="font-semibold text-zinc-300">PRO Active</span>}
             </div>
+            {!isCollapsed && (
+              <span className="text-[10px] text-cyan-400/80 font-mono">Plan Active</span>
+            )}
           </div>
         ) : (
           <button
@@ -868,19 +992,29 @@ export function LeftSidebar({
               )}
             </div>
 
-            {/* Upgrade PRO at bottom of mobile menu */}
-            <div className="mt-auto pt-3 border-t border-white/10">
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenProModal();
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/40 text-cyan-300 font-bold text-xs shadow-lg cursor-pointer"
-              >
-                <Crown className="w-4 h-4 fill-cyan-400 text-cyan-400" />
-                <span>{isProUser ? "PRO ACTIVE" : "GET PRO ACCESS"}</span>
-              </button>
+            {/* Upgrade PRO or Subtle PRO Active at bottom of mobile menu */}
+            <div className="mt-auto pt-3 border-t border-white/5">
+              {effectiveIsPro ? (
+                <div className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-cyan-500/5 border border-white/5 text-zinc-400 text-xs font-mono">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
+                    <span className="font-semibold text-zinc-300">PRO Active</span>
+                  </div>
+                  <span className="text-[10px] text-cyan-400/80">Plan Active</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenProModal();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/40 text-cyan-300 font-bold text-xs shadow-lg cursor-pointer"
+                >
+                  <Crown className="w-4 h-4 fill-cyan-400 text-cyan-400" />
+                  <span>GET PRO ACCESS</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

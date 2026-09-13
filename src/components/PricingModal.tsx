@@ -39,7 +39,7 @@ export function PricingModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 16 }}
           transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-[95%] md:max-w-2xl mx-auto rounded-3xl bg-zinc-950/85 backdrop-blur-2xl border-2 border-cyan-500/40 shadow-[0_0_60px_rgba(0,245,255,0.25)] p-5 sm:p-8 text-white overflow-hidden"
+          className="relative w-[95%] md:max-w-2xl mx-auto rounded-3xl bg-zinc-950/85 backdrop-blur-2xl border-2 border-cyan-500/40 shadow-[0_0_60px_rgba(0,245,255,0.25)] p-5 sm:p-8 text-white overflow-y-auto max-h-[92vh] custom-scrollbar"
         >
           {/* Ambient Glows */}
           <div className="absolute -top-32 -right-32 w-64 h-64 rounded-full bg-cyan-500/20 blur-3xl pointer-events-none" />
@@ -120,36 +120,69 @@ export function PricingModal({
             </button>
           </div>
 
-          {/* ── Highlighted Features List ── */}
-          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2.5 mb-6">
-            <div className="text-[11px] font-mono font-semibold uppercase text-zinc-400 tracking-wider flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Everything Included in PRATHOMIX PRO:</span>
+          {/* ── High-Impact PRO Features List ── */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#09090b]/60 backdrop-blur-xl border border-white/10 mb-6 shadow-[0_0_30px_rgba(0,0,0,0.4)]">
+            <div className="text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-2 pb-3 mb-4 border-b border-white/5">
+              <Zap className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] shrink-0" />
+              <span className="bg-gradient-to-r from-cyan-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent font-extrabold tracking-wider">
+                EVERYTHING INCLUDED IN PRATHOMIX PRO:
+              </span>
             </div>
-            <ul className="space-y-2 text-xs text-zinc-200">
-              <li className="flex items-center gap-2.5">
-                <div className="w-4 h-4 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
-                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+
+            <ul className="space-y-5">
+              {/* Feature 1 */}
+              <li className="flex items-start gap-3">
+                <Check className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] shrink-0 mt-0.5" strokeWidth={2.5} />
+                <div className="leading-snug">
+                  <span className="font-semibold text-white">🧠 Unlimited &apos;Board Brain&apos; Intelligence</span>{" "}
+                  <span className="text-sm text-gray-400 font-normal block sm:inline sm:ml-1">
+                    (Instant canvas summaries powered by Gemini 1.5 Pro &amp; Groq Llama-3.3)
+                  </span>
                 </div>
-                <span className="font-medium text-white">250 Daily AI Actions</span>
               </li>
-              <li className="flex items-center gap-2.5">
-                <div className="w-4 h-4 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
-                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+
+              {/* Feature 2 */}
+              <li className="flex items-start gap-3">
+                <Check className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] shrink-0 mt-0.5" strokeWidth={2.5} />
+                <div className="leading-snug">
+                  <span className="font-semibold text-white">⚡ Massive AI Action Limits</span>{" "}
+                  <span className="text-sm text-gray-400 font-normal block sm:inline sm:ml-1">
+                    (Up to 500 daily requests for vector search, coding, and voice AI)
+                  </span>
                 </div>
-                <span className="font-medium text-white">Gemini 1.5 Pro Access &amp; Groq Llama-3.3</span>
               </li>
-              <li className="flex items-center gap-2.5">
-                <div className="w-4 h-4 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
-                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+
+              {/* Feature 3 */}
+              <li className="flex items-start gap-3">
+                <Check className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] shrink-0 mt-0.5" strokeWidth={2.5} />
+                <div className="leading-snug">
+                  <span className="font-semibold text-white">🎨 Pristine 4K Exports</span>{" "}
+                  <span className="text-sm text-gray-400 font-normal block sm:inline sm:ml-1">
+                    (Crystal-clear, watermark-free downloads for professional presentations)
+                  </span>
                 </div>
-                <span className="font-medium text-white">Watermark-free Clean 4K Exports</span>
               </li>
-              <li className="flex items-center gap-2.5">
-                <div className="w-4 h-4 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
-                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+
+              {/* Feature 4 */}
+              <li className="flex items-start gap-3">
+                <Check className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] shrink-0 mt-0.5" strokeWidth={2.5} />
+                <div className="leading-snug">
+                  <span className="font-semibold text-white">🌐 Elite Multiplayer &amp; Presenter Tools</span>{" "}
+                  <span className="text-sm text-gray-400 font-normal block sm:inline sm:ml-1">
+                    (Unlock live laser pointers, admin controls, and seamless sync)
+                  </span>
                 </div>
-                <span className="font-medium text-white">Priority 24/7 Enterprise Support</span>
+              </li>
+
+              {/* Feature 5 */}
+              <li className="flex items-start gap-3">
+                <Check className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] shrink-0 mt-0.5" strokeWidth={2.5} />
+                <div className="leading-snug">
+                  <span className="font-semibold text-white">🛡️ Priority 24/7 VIP Support</span>{" "}
+                  <span className="text-sm text-gray-400 font-normal block sm:inline sm:ml-1">
+                    (Direct access to the PRATHOMIX engineering team)
+                  </span>
+                </div>
               </li>
             </ul>
           </div>
@@ -157,8 +190,8 @@ export function PricingModal({
           {/* ── High-Contrast Glowing Razorpay Checkout CTA ── */}
           <Checkout
             plan={billingCycle}
-            amount={100} // 100 paise = 1 INR testing
-            currency="INR"
+            amount={billingCycle === "yearly" ? 4900 : 500}
+            currency="USD"
             buttonText={
               billingCycle === "yearly"
                 ? "Upgrade to PRO — $49/yr"

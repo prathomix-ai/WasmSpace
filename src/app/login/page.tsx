@@ -56,32 +56,18 @@ function LoginForm() {
     setSuccessMsg(null);
     setGoogleLoading(true);
 
+    const redirectUrl = searchParams.get("next") || searchParams.get("redirect") || "/canvas";
+
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: typeof window !== "undefined" ? `${window.location.origin}/canvas` : undefined,
+          redirectTo: typeof window !== "undefined" ? `${window.location.origin}${redirectUrl.startsWith("/") ? redirectUrl : `/${redirectUrl}`}` : undefined,
         },
       });
 
       if (error) {
-        // Fallback for dev/mock environment if Supabase credentials are placeholder
-        if (
-          error.message.includes("fetch") ||
-          error.message.includes("placeholder") ||
-          error.message.includes("Invalid API key")
-        ) {
-          const mockUser = {
-            email: "google.user@masmspace.ai",
-            name: "Google Explorer",
-            role: "user" as const,
-          };
-          localStorage.setItem("masmspace_current_user", JSON.stringify(mockUser));
-          setSuccessMsg("Logged in with Google! Redirecting...");
-          setTimeout(() => router.push("/canvas"), 800);
-          return;
-        }
         throw error;
       }
     } catch (err: any) {
@@ -107,44 +93,33 @@ function LoginForm() {
         return;
       }
     }
-
-    setLoading(true);
+    const redirectUrl = searchParams.get("next") || searchParams.get("redirect") || "/canvas";
+    const targetPath = redirectUrl.startsWith("/") ? redirectUrl : `/${redirectUrl}`;
 
     try {
       const supabase = createClient();
 
       if (isSignUp) {
+        if (password !== confirmPassword) {
+          setErrorMsg("Passwords do not match.");
+          setLoading(false);
+          return;
+        }
+
         // Supabase Auth Sign-Up
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               full_name: fullName,
-              phone_number: phoneNumber,
+              phone: phoneNumber,
+              role: "user",
             },
           },
         });
 
         if (error) {
-          // Fallback if Supabase is offline / mock local
-          if (
-            error.message.includes("fetch") ||
-            error.message.includes("placeholder") ||
-            error.message.includes("Invalid API key")
-          ) {
-            const role = email.toLowerCase().includes("admin") ? "admin" : "user";
-            const sessionData = JSON.stringify({
-              email,
-              name: fullName || email.split("@")[0],
-              phone: phoneNumber,
-              role,
-            });
-            localStorage.setItem("masmspace_current_user", sessionData);
-            setSuccessMsg("Account created locally! Redirecting...");
-            setTimeout(() => router.push("/canvas"), 800);
-            return;
-          }
           throw error;
         }
 
@@ -160,27 +135,6 @@ function LoginForm() {
         });
 
         if (error) {
-          // Fallback if Supabase is unconfigured / local mock dev test
-          if (
-            error.message.includes("fetch") ||
-            error.message.includes("placeholder") ||
-            error.message.includes("Invalid login") ||
-            error.message.includes("Invalid API key")
-          ) {
-            const role: "user" | "admin" = email.toLowerCase().includes("admin")
-              ? "admin"
-              : "user";
-            const sessionData = JSON.stringify({
-              email,
-              name: email.split("@")[0],
-              role,
-            });
-            localStorage.setItem("masmspace_current_user", sessionData);
-
-            setSuccessMsg("Logged in successfully! Redirecting...");
-            setTimeout(() => router.push("/canvas"), 800);
-            return;
-          }
           throw error;
         }
 
@@ -207,7 +161,7 @@ function LoginForm() {
         localStorage.setItem("masmspace_current_user", sessionData);
 
         setSuccessMsg("Logged in successfully! Redirecting...");
-        setTimeout(() => router.push("/canvas"), 800);
+        setTimeout(() => router.push(targetPath), 800);
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Authentication failed. Please try again.");

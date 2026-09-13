@@ -21,6 +21,14 @@ import {
   ListTodo,
   Route,
   Loader2,
+  HelpCircle,
+  CloudUpload,
+  PanelLeftOpen,
+  Maximize2,
+  Minimize2,
+  Check,
+  Radio,
+  UserX,
 } from "lucide-react";
 import "@excalidraw/excalidraw/index.css";
 
@@ -257,22 +265,110 @@ export default function WhiteboardCanvas() {
     tier: "free",
   });
 
-  // Auto-grant PRO & Admin privileges for admin@prathomix.tech
+  // Sync PRO & Admin privileges from Supabase public.profiles & local storage
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("masmspace_current_user") || localStorage.getItem("wasmspace_current_user");
-      if (stored) {
-        const user = JSON.parse(stored);
-        if (
-          user?.email?.toLowerCase() === "admin@prathomix.tech" ||
-          user?.role === "admin"
-        ) {
-          setIsProUser(true);
+    let isMounted = true;
+
+    async function syncSubscriptionTier() {
+      // 1. Fast local storage check
+      try {
+        const stored = localStorage.getItem("masmspace_current_user") || localStorage.getItem("wasmspace_current_user");
+        if (stored) {
+          const user = JSON.parse(stored);
+          const email = user?.email?.toLowerCase();
+          const role = user?.role?.toLowerCase();
+          const sub = user?.subscription_status?.toLowerCase();
+          if (
+            email === "admin@prathomix.tech" ||
+            role === "admin" ||
+            role === "pro" ||
+            sub === "pro" ||
+            sub === "active"
+          ) {
+            setIsProUser(true);
+          }
         }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
+
+      // 2. Fetch live subscription status from Supabase public.profiles
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user && isMounted) {
+          const email = user.email?.toLowerCase() || "";
+
+          // Check user metadata
+          const metaRole = user.user_metadata?.role?.toLowerCase();
+          const metaSub = user.user_metadata?.subscription_status?.toLowerCase();
+          const metaPro = user.user_metadata?.is_pro === true;
+
+          // Check public.profiles row
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          // Check ai_usage_limits
+          let usageData: any = null;
+          try {
+            const { data: u } = await supabase
+              .from("ai_usage_limits")
+              .select("*")
+              .or(`user_email.eq.${email},user_id.eq.${user.id}`)
+              .maybeSingle();
+            usageData = u;
+          } catch {}
+
+          const role = profile?.role?.toLowerCase();
+          const sub = profile?.subscription_status?.toLowerCase();
+          const rawTier = profile?.tier?.toLowerCase();
+          const isProFlag = profile?.is_pro === true || metaPro;
+
+          const isPro =
+            email === "admin@prathomix.tech" ||
+            metaRole === "pro" ||
+            metaRole === "admin" ||
+            metaSub === "pro" ||
+            metaSub === "active" ||
+            role === "admin" ||
+            role === "pro" ||
+            sub === "pro" ||
+            sub === "active" ||
+            rawTier === "pro" ||
+            rawTier === "enterprise" ||
+            isProFlag;
+
+          if (isPro) {
+            setIsProUser(true);
+            setAiUsage({
+              actions_used: usageData?.actions_used || 0,
+              action_limit: 999999,
+              tier: rawTier === "enterprise" ? "enterprise" : "pro",
+            });
+          } else {
+            setAiUsage({
+              actions_used: usageData?.actions_used || 0,
+              action_limit: usageData?.action_limit || 15,
+              tier: "free",
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("[WhiteboardCanvas] Supabase tier sync notice:", err);
+      }
     }
+
+    syncSubscriptionTier();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   /**
@@ -300,10 +396,83 @@ export default function WhiteboardCanvas() {
   const [isPresentMode, setIsPresentMode] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
-  // File Tree State (VS Code style explorer)
-  const [treeNodes, setTreeNodes] = useState<BoardFileNode[]>(INITIAL_TREE_NODES);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  const [isAutoSave, setIsAutoSave] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("masmspace_canvas_autosave");
+      return stored !== null ? stored === "true" : true;
+    }
+    return true;
+  });
+  const [isSavingCloud, setIsSavingCloud] = useState(false);
+  const [cloudSaveNotice, setCloudSaveNotice] = useState<string | null>(null);
+  const [liveNotice, setLiveNotice] = useState<string | null>(null);
+
+  // Keyboard shortcut listener to toggle Full Screen (Ctrl+\ or Cmd+\)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "\\") {
+        e.preventDefault();
+        setIsSidebarVisible((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // File Tree State (VS Code style explorer - dynamically loaded from localStorage)
+  const [treeNodes, setTreeNodes] = useState<BoardFileNode[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("masmspace_explorer_tree_nodes");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return INITIAL_TREE_NODES;
+  });
   const [activeFileId, setActiveFileId] = useState<string>("file-main-session");
+  const [activeRoomId, setActiveRoomId] = useState<string>("");
+
+  // Persist tree nodes when files/folders are modified
+  useEffect(() => {
+    if (typeof window !== "undefined" && treeNodes && treeNodes.length > 0) {
+      try {
+        localStorage.setItem("masmspace_explorer_tree_nodes", JSON.stringify(treeNodes));
+      } catch {}
+    }
+  }, [treeNodes]);
+
+  // Read URL query parameter ?room= on mount to join live shared room dynamically
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const roomParam = params.get("room");
+      if (roomParam && roomParam.trim()) {
+        const cleanRoom = roomParam.trim();
+        setActiveRoomId(cleanRoom);
+        setActiveFileId(`file-${cleanRoom}`);
+        setLiveNotice(`Connected to live collaboration room: ${cleanRoom}`);
+      }
+    }
+  }, []);
+
+  // ── Clear all selections when entering/exiting Present Mode (keep viewModeEnabled=false so presenter can sketch/annotate) ──
+  useEffect(() => {
+    if (excalidrawAPIRef.current?.updateScene) {
+      excalidrawAPIRef.current.updateScene({
+        appState: {
+          viewModeEnabled: false,
+          selectedElementIds: {},
+          selectedGroupIds: {},
+        },
+      });
+    }
+  }, [isPresentMode]);
 
   // Rotate corporate transcription phrases during active voice sync
   useEffect(() => {
@@ -1563,12 +1732,20 @@ export default function WhiteboardCanvas() {
   // ───────────────────────────────────────────────────────────────────────────
   // Realtime Laser Pointer Broadcast & Peer Collaboration (WebSockets + BroadcastChannel)
   // ───────────────────────────────────────────────────────────────────────────
+  // Unique client instance ID to avoid cursor overwrites in multiplayer
+  const clientIdRef = useRef<string>(
+    typeof window !== "undefined"
+      ? `client_${Math.random().toString(36).substring(2, 9)}_${Date.now().toString(36)}`
+      : "client_default"
+  );
   const [peerLasers, setPeerLasers] = useState<Record<string, { x: number; y: number; userName: string; timestamp: number }>>({});
   const channelRef = useRef<any>(null);
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
+  const isRemoteUpdateRef = useRef<boolean>(false);
 
   useEffect(() => {
-    const channelName = `board:${activeFileId || "default"}`;
+    const effectiveRoom = activeRoomId || activeFileId || "default";
+    const channelName = `board:${effectiveRoom}`;
     const supabase = createClient();
 
     // 1. Supabase Realtime WebSocket Channel
@@ -1578,16 +1755,20 @@ export default function WhiteboardCanvas() {
 
     channel
       .on("broadcast", { event: "laser:pointer" }, ({ payload }) => {
-        if (!payload || !payload.userId) return;
+        if (!payload) return;
+        const incomingClientId = payload.clientId || payload.userId;
+        if (!incomingClientId || incomingClientId === clientIdRef.current) return;
+
         setPeerLasers((prev) => {
           if (payload.x === null || payload.y === null) {
+            if (!prev[incomingClientId]) return prev;
             const next = { ...prev };
-            delete next[payload.userId];
+            delete next[incomingClientId];
             return next;
           }
           return {
             ...prev,
-            [payload.userId]: {
+            [incomingClientId]: {
               x: payload.x,
               y: payload.y,
               userName: payload.userName || "Collaborator",
@@ -1596,26 +1777,170 @@ export default function WhiteboardCanvas() {
           };
         });
       })
-      .subscribe();
+      .on("broadcast", { event: "canvas:change" }, ({ payload }) => {
+        if (!payload || !payload.elements) return;
+        const incomingSenderId = payload.senderId || payload.clientId;
+        if (incomingSenderId && incomingSenderId === clientIdRef.current) return;
+
+        const api = excalidrawAPI || excalidrawAPIRef.current;
+        if (!api?.updateScene) return;
+
+        isRemoteUpdateRef.current = true;
+        api.updateScene({
+          elements: payload.elements,
+          commitToHistory: false,
+        });
+        setTimeout(() => {
+          isRemoteUpdateRef.current = false;
+        }, 100);
+      })
+      .on("broadcast", { event: "room:request_sync" }, ({ payload }) => {
+        if (!payload || payload.requesterId === clientIdRef.current) return;
+        const api = excalidrawAPI || excalidrawAPIRef.current;
+        if (!api?.getSceneElements) return;
+
+        const currentElements = api.getSceneElements().filter((el: any) => !el.isDeleted);
+        if (currentElements.length > 0 && channelRef.current) {
+          try {
+            channelRef.current.send({
+              type: "broadcast",
+              event: "canvas:change",
+              payload: {
+                senderId: clientIdRef.current,
+                boardId: effectiveRoom,
+                elements: currentElements,
+                timestamp: Date.now(),
+              },
+            });
+          } catch {}
+        }
+      })
+      .on("broadcast", { event: "peer:kicked" }, ({ payload }) => {
+        if (!payload?.targetPeerId) return;
+        const myId = currentUser?.id || clientIdRef.current;
+        if (payload.targetPeerId === myId) {
+          setLiveNotice("You have been removed from this live session by the host.");
+          setPeerLasers({});
+          if (channelRef.current) {
+            supabase.removeChannel(channelRef.current);
+            channelRef.current = null;
+          }
+          if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            url.searchParams.delete("room");
+            window.history.replaceState({}, "", url.pathname);
+          }
+        } else {
+          setPeerLasers((prev) => {
+            const next = { ...prev };
+            delete next[payload.targetPeerId];
+            return next;
+          });
+        }
+      })
+      .on("broadcast", { event: "room:terminated" }, () => {
+        setLiveNotice("The host has ended this live collaboration session. Canvas reverted to private mode.");
+        setPeerLasers({});
+        if (channelRef.current) {
+          supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
+        }
+        if (typeof window !== "undefined") {
+          const url = new URL(window.location.href);
+          url.searchParams.delete("room");
+          window.history.replaceState({}, "", url.pathname);
+        }
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          // Solicit current canvas state from existing collaborators in the room
+          channel.send({
+            type: "broadcast",
+            event: "room:request_sync",
+            payload: { requesterId: clientIdRef.current },
+          });
+        }
+      });
 
     channelRef.current = channel;
 
     // 2. BroadcastChannel for instant local cross-tab sync
     let bc: BroadcastChannel | null = null;
     if (typeof window !== "undefined" && "BroadcastChannel" in window) {
-      bc = new BroadcastChannel(`masmspace-laser-${activeFileId || "default"}`);
+      bc = new BroadcastChannel(`masmspace-collab-${effectiveRoom}`);
       bc.onmessage = (event) => {
         const payload = event.data;
-        if (!payload || !payload.userId) return;
+        if (!payload) return;
+
+        if (payload.event === "canvas:change") {
+          const incomingSenderId = payload.senderId || payload.clientId;
+          if (incomingSenderId === clientIdRef.current) return;
+          const api = excalidrawAPI || excalidrawAPIRef.current;
+          if (api?.updateScene && payload.elements) {
+            isRemoteUpdateRef.current = true;
+            api.updateScene({
+              elements: payload.elements,
+              commitToHistory: false,
+            });
+            setTimeout(() => {
+              isRemoteUpdateRef.current = false;
+            }, 100);
+          }
+          return;
+        }
+
+        if (payload.event === "room:request_sync") {
+          if (payload.requesterId === clientIdRef.current) return;
+          const api = excalidrawAPI || excalidrawAPIRef.current;
+          if (api?.getSceneElements) {
+            const currentElements = api.getSceneElements().filter((el: any) => !el.isDeleted);
+            if (currentElements.length > 0 && bc) {
+              bc.postMessage({
+                event: "canvas:change",
+                senderId: clientIdRef.current,
+                boardId: effectiveRoom,
+                elements: currentElements,
+                timestamp: Date.now(),
+              });
+            }
+          }
+          return;
+        }
+
+        if (payload.event === "peer:kicked") {
+          const myId = currentUser?.id || clientIdRef.current;
+          if (payload.targetPeerId === myId) {
+            setLiveNotice("You have been removed from this live session by the host.");
+            setPeerLasers({});
+          } else {
+            setPeerLasers((prev) => {
+              const next = { ...prev };
+              delete next[payload.targetPeerId];
+              return next;
+            });
+          }
+          return;
+        }
+
+        if (payload.event === "room:terminated") {
+          setLiveNotice("The host has ended this live collaboration session. Canvas reverted to private mode.");
+          setPeerLasers({});
+          return;
+        }
+
+        const incomingClientId = payload.clientId || payload.userId;
+        if (!incomingClientId || incomingClientId === clientIdRef.current) return;
+
         setPeerLasers((prev) => {
           if (payload.x === null || payload.y === null) {
+            if (!prev[incomingClientId]) return prev;
             const next = { ...prev };
-            delete next[payload.userId];
+            delete next[incomingClientId];
             return next;
           }
           return {
             ...prev,
-            [payload.userId]: {
+            [incomingClientId]: {
               x: payload.x,
               y: payload.y,
               userName: payload.userName || "Collaborator",
@@ -1648,12 +1973,14 @@ export default function WhiteboardCanvas() {
       if (channel) supabase.removeChannel(channel);
       if (bc) bc.close();
     };
-  }, [activeFileId]);
+  }, [activeFileId, activeRoomId, currentUser, excalidrawAPI]);
 
   // Throttled Laser coordinates broadcaster (50ms throttled from HUD)
   const handleLaserMove = useCallback((pos: { x: number; y: number } | null) => {
+    const clientId = clientIdRef.current;
     const payload = {
-      userId: currentUser?.id || "local-presenter",
+      clientId,
+      userId: currentUser?.id || clientId,
       userName: currentUser?.name || currentUser?.email?.split("@")[0] || "Presenter",
       x: pos ? pos.x : null,
       y: pos ? pos.y : null,
@@ -1673,6 +2000,57 @@ export default function WhiteboardCanvas() {
       } catch {}
     }
   }, [currentUser]);
+
+  // Host Control: End Live Session
+  const handleEndLiveSession = useCallback(() => {
+    const supabase = createClient();
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: "broadcast",
+        event: "room:terminated",
+        payload: { roomId: activeFileId },
+      }).catch(() => {});
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+    if (broadcastChannelRef.current) {
+      try {
+        broadcastChannelRef.current.postMessage({ event: "room:terminated" });
+      } catch {}
+    }
+    setPeerLasers({});
+    setLiveNotice("Live session ended. Canvas reverted to private session.");
+    setTimeout(() => setLiveNotice(null), 4000);
+
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("room");
+      window.history.replaceState({}, "", url.pathname);
+    }
+  }, [activeFileId]);
+
+  // Host Control: Kick / Remove Participant
+  const handleKickPeer = useCallback((peerId: string) => {
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: "broadcast",
+        event: "peer:kicked",
+        payload: { targetPeerId: peerId },
+      }).catch(() => {});
+    }
+    if (broadcastChannelRef.current) {
+      try {
+        broadcastChannelRef.current.postMessage({ event: "peer:kicked", targetPeerId: peerId });
+      } catch {}
+    }
+    setPeerLasers((prev) => {
+      const next = { ...prev };
+      delete next[peerId];
+      return next;
+    });
+    setLiveNotice("Participant removed from session.");
+    setTimeout(() => setLiveNotice(null), 3000);
+  }, []);
 
   // ───────────────────────────────────────────────────────────────────────────
   // Canvas Text Extraction & Vector pgvector Indexing (Board Brain RAG)
@@ -1785,46 +2163,264 @@ export default function WhiteboardCanvas() {
 
   const broadcastCanvasUpdate = useCallback(
     (elements: readonly any[], appState: any) => {
+      if (isRemoteUpdateRef.current) return;
+      if (!elements || elements.length === 0) return;
+
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
 
       syncTimeoutRef.current = setTimeout(() => {
-        if (process.env.NODE_ENV === "development" && elements && appState) {
-          // Development diagnostic logger for local state tracking
-          // console.debug(`[Multiplayer Sync] ${elements.length} elements cached.`);
+        const effectiveRoom = activeRoomId || activeFileId || "session-main";
+        const payload = {
+          boardId: effectiveRoom,
+          elements,
+          senderId: clientIdRef.current,
+          appState: {
+            viewBackgroundColor: appState?.viewBackgroundColor,
+            zoom: appState?.zoom,
+            scrollX: appState?.scrollX,
+            scrollY: appState?.scrollY,
+          },
+          timestamp: Date.now(),
+        };
+
+        // 1. Broadcast via Supabase Realtime Channel
+        if (channelRef.current) {
+          try {
+            channelRef.current.send({
+              type: "broadcast",
+              event: "canvas:change",
+              payload,
+            });
+          } catch (err) {
+            console.warn("[Multiplayer Sync] Realtime send notice:", err);
+          }
         }
-        /* 
-         * ── Supabase Realtime WebSocket Push Architecture ──────────────────
-         * In production with active Supabase credentials:
-         *
-         * const channel = supabase.channel(`board:${activeFileId}`, {
-         *   config: { broadcast: { self: false, ack: false } },
-         * });
-         * 
-         * channel.send({
-         *   type: "broadcast",
-         *   event: "canvas:change",
-         *   payload: {
-         *     boardId: activeFileId,
-         *     elements, // Serialized Excalidraw scene elements
-         *     appState: {
-         *       viewBackgroundColor: appState.viewBackgroundColor,
-         *       zoom: appState.zoom,
-         *       scrollX: appState.scrollX,
-         *       scrollY: appState.scrollY,
-         *     },
-         *     timestamp: Date.now(),
-         *   },
-         * });
-         */
-        // Dev log placeholder showing captured element count
-        // console.log(`[Multiplayer Sync] Broadcasted ${elements.length} elements for board ${activeFileId}`);
-      }, 150);
+
+        // 2. Broadcast via local BroadcastChannel
+        if (broadcastChannelRef.current) {
+          try {
+            broadcastChannelRef.current.postMessage({
+              event: "canvas:change",
+              ...payload,
+            });
+          } catch {}
+        }
+      }, 120);
     },
-    []
+    [activeFileId, activeRoomId]
   );
 
   /**
-   * Excalidraw onChange Event Handler
+   * Save current Excalidraw scene to Supabase Cloud (workspaces / canvas_state)
+   */
+  const handleSaveToCloud = useCallback(
+    async (isManual: boolean = false) => {
+      const api = excalidrawAPIRef.current;
+      if (!api) return;
+
+      setIsSavingCloud(true);
+
+      try {
+        const elements = api.getSceneElements().filter((el: any) => !el.isDeleted);
+        const appState = api.getAppState();
+        const files = api.getFiles();
+
+        const scenePayload = {
+          elements,
+          appState: {
+            viewBackgroundColor: appState.viewBackgroundColor,
+            zoom: appState.zoom,
+            scrollX: appState.scrollX,
+            scrollY: appState.scrollY,
+          },
+          files,
+          title: boardTitle,
+          updatedAt: new Date().toISOString(),
+        };
+
+        // Cache locally for instantaneous local recovery
+        try {
+          localStorage.setItem(`masmspace_saved_scene_${activeFileId}`, JSON.stringify(scenePayload));
+          localStorage.setItem("masmspace_saved_scene_latest", JSON.stringify(scenePayload));
+        } catch (e) {
+          console.warn("[LocalCache] Notice:", e);
+        }
+
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          if (isManual) {
+            setCloudSaveNotice("✓ Saved locally (Log in to sync with Cloud)");
+            setTimeout(() => setCloudSaveNotice(null), 3000);
+          }
+          return;
+        }
+
+        let savedSuccessfully = false;
+
+        // Strategy 1: Save to workspaces table if present
+        try {
+          const { error: wsError } = await supabase.from("workspaces").upsert(
+            {
+              id: activeFileId && activeFileId.length === 36 ? activeFileId : undefined,
+              user_id: user.id,
+              title: boardTitle || "MasmSpace Session",
+              data: scenePayload,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "id" }
+          );
+          if (!wsError) savedSuccessfully = true;
+        } catch {}
+
+        // Strategy 2: Save to canvas_state + boards tables (schema.sql)
+        if (!savedSuccessfully) {
+          try {
+            const { data: boardData } = await supabase
+              .from("boards")
+              .upsert({
+                name: boardTitle || "Untitled Board",
+                owner_id: user.id,
+                updated_at: new Date().toISOString(),
+              })
+              .select("id")
+              .single();
+
+            if (boardData?.id) {
+              await supabase.from("canvas_state").upsert(
+                {
+                  board_id: boardData.id,
+                  state: scenePayload,
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: "board_id" }
+              );
+              savedSuccessfully = true;
+            }
+          } catch (err) {
+            console.warn("[SaveToCloud] Boards schema attempt notice:", err);
+          }
+        }
+
+        if (isManual || savedSuccessfully) {
+          setCloudSaveNotice(savedSuccessfully ? "✓ Saved to Supabase Cloud" : "✓ Saved Locally");
+          setTimeout(() => setCloudSaveNotice(null), 3000);
+        }
+      } catch (err: any) {
+        console.warn("[SaveToCloud] Error:", err?.message);
+        if (isManual) {
+          setCloudSaveNotice("Save fallback active");
+          setTimeout(() => setCloudSaveNotice(null), 3000);
+        }
+      } finally {
+        setIsSavingCloud(false);
+      }
+    },
+    [activeFileId, boardTitle]
+  );
+
+  // Auto-load saved workspace on initial render or user authentication
+  const hasLoadedInitialSceneRef = useRef(false);
+
+  useEffect(() => {
+    if (!excalidrawAPI || hasLoadedInitialSceneRef.current) return;
+
+    let isMounted = true;
+    async function loadSavedScene() {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        let loadedData: any = null;
+
+        if (user) {
+          // Attempt 1: Load from workspaces
+          try {
+            const { data: wsData } = await supabase
+              .from("workspaces")
+              .select("data, title")
+              .eq("user_id", user.id)
+              .order("updated_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (wsData?.data?.elements?.length) {
+              loadedData = wsData.data;
+              if (wsData.title && isMounted) {
+                setBoardTitle(wsData.title);
+              }
+            }
+          } catch {}
+
+          // Attempt 2: Load from canvas_state / boards
+          if (!loadedData) {
+            try {
+              const { data: boardData } = await supabase
+                .from("boards")
+                .select("id, name, canvas_state(state)")
+                .eq("owner_id", user.id)
+                .order("updated_at", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+              const statePayload = (boardData as any)?.canvas_state?.[0]?.state;
+              if (statePayload?.elements?.length) {
+                loadedData = statePayload;
+                if (boardData?.name && isMounted) {
+                  setBoardTitle(boardData.name);
+                }
+              }
+            } catch {}
+          }
+        }
+
+        // Attempt 3: Local storage fallback
+        if (!loadedData && typeof window !== "undefined") {
+          try {
+            const raw =
+              localStorage.getItem(`masmspace_saved_scene_${activeFileId}`) ||
+              localStorage.getItem("masmspace_saved_scene_latest");
+            if (raw) {
+              loadedData = JSON.parse(raw);
+            }
+          } catch {}
+        }
+
+        if (loadedData?.elements?.length && isMounted && excalidrawAPIRef.current) {
+          const api = excalidrawAPIRef.current;
+          if (loadedData.files) {
+            api.addFiles(Object.values(loadedData.files));
+          }
+          api.updateScene({
+            elements: loadedData.elements,
+            appState: loadedData.appState || {},
+            commitToHistory: false,
+          });
+          hasLoadedInitialSceneRef.current = true;
+          setCloudSaveNotice("✓ Restored saved canvas session");
+          setTimeout(() => setCloudSaveNotice(null), 3000);
+        }
+      } catch (err) {
+        console.warn("[AutoLoad] Notice:", err);
+      }
+    }
+
+    loadSavedScene();
+    return () => {
+      isMounted = false;
+    };
+  }, [excalidrawAPI, activeFileId]);
+
+  // Debounced auto-save timeout ref (3000ms delay)
+  const autoSaveDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  /**
+   * Excalidraw onChange Event Handler with Debounced Cloud Auto-Save (3000ms)
    */
   const handleCanvasChange = useCallback(
     (elements: readonly any[], appState: any, files: any) => {
@@ -1833,8 +2429,18 @@ export default function WhiteboardCanvas() {
 
       // 2. Trigger debounced multiplayer sync
       broadcastCanvasUpdate(elements, appState);
+
+      // 3. Debounced Auto-Save to Supabase Cloud (3000ms delay)
+      if (isAutoSave) {
+        if (autoSaveDebounceRef.current) {
+          clearTimeout(autoSaveDebounceRef.current);
+        }
+        autoSaveDebounceRef.current = setTimeout(() => {
+          handleSaveToCloud(false);
+        }, 3000);
+      }
     },
-    [activeFileId, broadcastCanvasUpdate]
+    [activeFileId, broadcastCanvasUpdate, isAutoSave, handleSaveToCloud]
   );
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -2068,44 +2674,64 @@ export default function WhiteboardCanvas() {
   );
 
   // ───────────────────────────────────────────────────────────────────────────
-  // Multi-Language Code Studio: Insert Output to Canvas
+  // Multi-Language Code Studio: Insert Code or Output to Canvas
   // ───────────────────────────────────────────────────────────────────────────
   const handleInsertCodeOutput = useCallback(
-    async (executionResult: string, isError: boolean, selectedLanguage: string = "python") => {
+    async (
+      content: string,
+      isError: boolean = false,
+      selectedLanguage: string = "python",
+      type: "code" | "output" = "output"
+    ) => {
       const api = excalidrawAPIRef.current;
-      if (!api) return;
+      if (!api || !content) return;
 
-      // Clean up any duplicate prefixes if already present in executionResult
-      const cleanedResult = executionResult
-        .replace(/^(?:[^\w\s]*\s*)?[A-Za-z0-9#+]+\s*Output:\s*/i, "")
-        .trim();
-
-      // Dynamic language output title (e.g., 'c' -> "C Output:", 'javascript' -> "Javascript Output:")
       const langTitle = selectedLanguage
         ? selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)
         : "Code";
 
-      const outputText = `${langTitle} Output:\n\n${cleanedResult.slice(0, 600)}`;
+      let headerText: string;
+      let cardBg: string;
+      let cardStroke: string;
+
+      if (type === "code") {
+        headerText = `// 💻 ${langTitle} Source Code:\n\n${content.trim()}`;
+        cardBg = "#090d16";
+        cardStroke = "#00f5ff";
+      } else {
+        const cleanedResult = content
+          .replace(/^(?:[^\w\s]*\s*)?[A-Za-z0-9#+]+\s*Output:\s*/i, "")
+          .trim();
+        headerText = `${isError ? "⚠️" : "⚡"} ${langTitle} Output:\n\n${cleanedResult}`;
+        cardBg = isError ? "#450a0a" : "#1e1338";
+        cardStroke = isError ? "#ef4444" : "#a855f7";
+      }
 
       const { convertToExcalidrawElements } = await import("@excalidraw/excalidraw");
       const appState = api.getAppState();
-      const posX = appState.scrollX ? -appState.scrollX + 300 : 300;
-      const posY = appState.scrollY ? -appState.scrollY + 200 : 200;
+      const posX = appState.scrollX ? -appState.scrollX + 320 : 320;
+      const posY = appState.scrollY ? -appState.scrollY + 180 : 180;
+
+      const lines = headerText.split("\n");
+      const calculatedHeight = Math.min(Math.max(160, lines.length * 20 + 50), 650);
+      const maxLineLen = Math.max(...lines.map((l) => l.length));
+      const calculatedWidth = Math.min(Math.max(400, maxLineLen * 9 + 40), 750);
 
       const newNote = convertToExcalidrawElements([
         {
           type: "rectangle",
           x: posX,
           y: posY,
-          width: 380,
-          height: 180,
-          backgroundColor: isError ? "#450a0a" : "#1e1338",
-          strokeColor: isError ? "#ef4444" : "#a855f7",
+          width: calculatedWidth,
+          height: calculatedHeight,
+          backgroundColor: cardBg,
+          strokeColor: cardStroke,
           fillStyle: "solid",
           roundness: { type: 3 },
           label: {
-            text: outputText,
-            fontSize: 14,
+            text: headerText.slice(0, 2000),
+            fontSize: 13,
+            fontFamily: 3, // Monospace font
             strokeColor: "#f8fafc",
           },
         },
@@ -2445,7 +3071,7 @@ export default function WhiteboardCanvas() {
       />
 
       {/* ── 1. Custom Left Navigation Sidebar (Strict flex-shrink-0, no canvas overlap) ── */}
-      {!isPresentMode && (
+      {!isPresentMode && isSidebarVisible && (
         <LeftSidebar
           boardTitle={boardTitle}
           onBoardTitleChange={setBoardTitle}
@@ -2479,6 +3105,10 @@ export default function WhiteboardCanvas() {
           isProUser={isProUser}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
+          onToggleSidebarVisibility={() => setIsSidebarVisible(false)}
+          isSidebarVisible={isSidebarVisible}
+          onSaveToCloud={() => handleSaveToCloud(true)}
+          isSavingCloud={isSavingCloud}
           isExecutiveMode={isExecutiveMode}
           onToggleExecutiveMode={() => setIsExecutiveMode((prev) => !prev)}
           onSelectPenTool={handleSelectPenTool}
@@ -2487,7 +3117,7 @@ export default function WhiteboardCanvas() {
       )}
 
       {/* ── 2. Excalidraw Canvas Wrapper (Flex-1 remaining space) ── */}
-      <div className="flex-1 relative h-full w-full overflow-hidden z-10">
+      <div className={`flex-1 relative h-full w-full overflow-hidden z-10 ${isPresentMode ? "present-mode-active" : ""}`}>
         <Excalidraw
           excalidrawAPI={(api) => {
             excalidrawAPIRef.current = api;
@@ -2495,6 +3125,7 @@ export default function WhiteboardCanvas() {
           }}
           theme="dark"
           viewModeEnabled={false}
+          zenModeEnabled={false}
           onChange={handleCanvasChange}
           UIOptions={{
             canvasActions: {
@@ -2546,6 +3177,82 @@ export default function WhiteboardCanvas() {
             )}
           </AnimatePresence>
 
+        {/* Floating Toggle to Restore Sidebar when in Full Screen Mode */}
+        {!isSidebarVisible && !isPresentMode && (
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="fixed top-4 left-4 z-50 pointer-events-auto"
+          >
+            <button
+              onClick={() => setIsSidebarVisible(true)}
+              className="px-3.5 py-2 rounded-xl bg-[#09090b]/85 backdrop-blur-xl border border-white/10 hover:border-cyan-400/50 text-xs font-mono text-cyan-300 hover:text-white transition-all flex items-center gap-2 shadow-[0_4px_20px_rgba(0,0,0,0.6)] cursor-pointer group"
+              title="Exit Full Screen / Show Sidebar (Ctrl+\)"
+            >
+              <PanelLeftOpen className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+              <span>Show Sidebar</span>
+              <span className="text-[10px] text-zinc-500 font-sans hidden sm:inline">Ctrl+\</span>
+            </button>
+          </motion.div>
+        )}
+
+        {/* Manual Save to Cloud Floating Button in Canvas UI */}
+        {!isPresentMode && (
+          <div className="fixed top-4 right-16 z-40 pointer-events-auto flex items-center gap-2">
+            <button
+              onClick={() => handleSaveToCloud(true)}
+              disabled={isSavingCloud}
+              className={`px-3 py-1.5 rounded-xl bg-[#09090b]/75 backdrop-blur-xl border border-white/10 hover:border-cyan-400/50 text-xs font-mono transition-all flex items-center gap-2 shadow-[0_4px_20px_rgba(0,0,0,0.5)] cursor-pointer ${
+                isSavingCloud ? "text-cyan-400 cursor-wait" : "text-zinc-300 hover:text-white"
+              }`}
+              title={isAutoSave ? "Manual Cloud Save (Auto-Save: Active 3s)" : "Save Canvas to Supabase Cloud"}
+            >
+              <CloudUpload className={`w-3.5 h-3.5 text-cyan-400 ${isSavingCloud ? "animate-bounce" : ""}`} />
+              <span>{isSavingCloud ? "Saving..." : "Save to Cloud"}</span>
+              {isAutoSave && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" title="Auto-Save Enabled" />
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Cloud Save Toast Notification */}
+        <AnimatePresence>
+          {cloudSaveNotice && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-xl bg-[#09090b]/90 backdrop-blur-md border border-cyan-500/40 shadow-2xl text-cyan-300 font-mono text-xs"
+            >
+              <Check className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{cloudSaveNotice}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Live Session Alert Toast Notification */}
+        <AnimatePresence>
+          {liveNotice && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#09090b]/95 backdrop-blur-xl border border-cyan-500/40 shadow-[0_0_24px_rgba(6,182,212,0.3)] text-cyan-300 font-mono text-xs pointer-events-auto"
+            >
+              <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+              <span>{liveNotice}</span>
+              <button
+                onClick={() => setLiveNotice(null)}
+                className="ml-2 p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-white/10"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* VS Code-Style Left Explorer Panel Drawer (Suppressed in Executive Focus Mode) */}
         {!isPresentMode && !isExecutiveMode && (
           <div className="pointer-events-auto">
@@ -2560,7 +3267,7 @@ export default function WhiteboardCanvas() {
               onRenameNode={handleRenameNode}
               onDeleteNode={handleDeleteNode}
               onImportPdfPages={handleImportPdfPages}
-              leftOffset={isSidebarCollapsed ? 68 : 260}
+              leftOffset={!isSidebarVisible ? 16 : isSidebarCollapsed ? 68 : 260}
             />
           </div>
         )}
@@ -2623,11 +3330,12 @@ export default function WhiteboardCanvas() {
 
         {/* Code-on-Board Widget (Suppressed in Executive Focus Mode) */}
         {!isPresentMode && !isExecutiveMode && (
-          <div className="pointer-events-auto">
+          <div className="pointer-events-auto relative z-50">
             <CodeOnBoardWidget
               isOpen={isCodeWidgetOpen}
               onClose={() => setIsCodeWidgetOpen(false)}
               onInsertToCanvas={handleInsertCodeOutput}
+              leftOffset={!isSidebarVisible ? 20 : isSidebarCollapsed ? 90 : 280}
             />
           </div>
         )}
@@ -2675,6 +3383,8 @@ export default function WhiteboardCanvas() {
             actionsUsed={aiUsage.actions_used}
             actionLimit={aiUsage.action_limit}
             tier={aiUsage.tier}
+            autoSave={isAutoSave}
+            onAutoSaveChange={(val) => setIsAutoSave(val)}
             onClearAllData={() => {
               if (excalidrawAPIRef.current) {
                 excalidrawAPIRef.current.resetScene();
@@ -2687,30 +3397,146 @@ export default function WhiteboardCanvas() {
             isOpen={isShareOpen}
             onClose={() => setIsShareOpen(false)}
             boardTitle={boardTitle}
+            roomId={activeRoomId || activeFileId || "session-main"}
+            isHost={true}
+            onEndSession={handleEndLiveSession}
+            onKickPeer={handleKickPeer}
           />
+
+          {/* Help & Keyboard Shortcuts Dialog */}
+          <AnimatePresence>
+            {isHelpModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm pointer-events-auto">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="w-full max-w-lg bg-[#09090b]/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-2xl text-white flex flex-col gap-4"
+                >
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)]">
+                        <HelpCircle className="w-4 h-4" />
+                      </div>
+                      <h3 className="font-bold text-sm text-white">MasmSpace Help & Shortcuts</h3>
+                    </div>
+                    <button
+                      onClick={() => setIsHelpModalOpen(false)}
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                      aria-label="Close Help"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 text-xs text-zinc-300 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                        <span className="text-zinc-400">Selection Tool</span>
+                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">V / 1</kbd>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                        <span className="text-zinc-400">Draw Pen</span>
+                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">P / 7</kbd>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                        <span className="text-zinc-400">Rectangle</span>
+                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">R / 2</kbd>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                        <span className="text-zinc-400">Diamond</span>
+                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">D / 3</kbd>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                        <span className="text-zinc-400">Arrow</span>
+                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">A / 5</kbd>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                        <span className="text-zinc-400">Text Tool</span>
+                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">T / 8</kbd>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                        <span className="text-zinc-400">Undo / Redo</span>
+                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">Ctrl+Z / Ctrl+Y</kbd>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                        <span className="text-zinc-400">Delete</span>
+                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">Del / Backspace</kbd>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-cyan-200 flex flex-col gap-1 text-[11px]">
+                      <div className="font-semibold text-cyan-300 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5" /> Presenter & Multiplayer Features
+                      </div>
+                      <p className="text-zinc-300 text-[10px] leading-relaxed">
+                        • Click <strong className="text-white">Present</strong> in the sidebar to activate the laser pointer and distraction-free Presentation Mode.
+                      </p>
+                      <p className="text-zinc-300 text-[10px] leading-relaxed">
+                        • Use <strong className="text-white">Share</strong> to copy the multiplayer session link for real-time collaboration with unique cursor mapping.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2 border-t border-white/10">
+                    <button
+                      onClick={() => setIsHelpModalOpen(false)}
+                      className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs transition-colors"
+                    >
+                      Got it
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* ── AI Canvas Assistant: Floating Action Button (FAB) & Glassmorphism Chatbot ── */}
+        {/* ── AI Canvas Assistant: Floating Action Buttons & Glassmorphism Chatbot ── */}
         {!isPresentMode && !isExecutiveMode && (
           <>
-            {/* Glowing Cyberpunk FAB Button at bottom-right (detached floating island) */}
-            <button
-              id="ai-chatbot-fab"
-              onClick={() => setIsChatOpen((prev) => !prev)}
-              className={`fixed bottom-20 md:bottom-6 right-4 md:right-8 z-40 p-3.5 rounded-2xl backdrop-blur-xl border transition-all duration-300 shadow-2xl flex items-center justify-center pointer-events-auto group ${
-                isChatOpen
-                  ? "bg-[#09090b]/80 border-cyan-400/60 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.45)] scale-105"
-                  : "bg-[#09090b]/60 border-white/5 text-zinc-300 hover:text-cyan-300 hover:border-cyan-400/50 hover:shadow-[0_0_16px_rgba(6,182,212,0.35)] hover:scale-105"
-              }`}
-              aria-label="Toggle AI Chatbot"
-              title="AI Whiteboard Assistant"
-            >
-              <Bot className="w-6 h-6 transition-transform duration-300 group-hover:rotate-12" />
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></span>
-              </span>
-            </button>
+            {/* Bottom-Right Stacked Floating Container (Clean, No Overlap) */}
+            <div className="absolute bottom-6 right-6 flex flex-col items-center gap-3 z-50">
+              {/* Glowing Cyberpunk AI Assistant FAB Button */}
+              <button
+                id="ai-chatbot-fab"
+                onClick={() => setIsChatOpen((prev) => !prev)}
+                className={`p-3.5 rounded-2xl backdrop-blur-xl border transition-all duration-300 shadow-2xl flex items-center justify-center pointer-events-auto group ${
+                  isChatOpen
+                    ? "bg-[#09090b]/80 border-cyan-400/60 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.45)] scale-105"
+                    : "bg-[#09090b]/60 border-white/5 text-zinc-300 hover:text-cyan-300 hover:border-cyan-400/50 hover:shadow-[0_0_16px_rgba(6,182,212,0.35)] hover:scale-105"
+                }`}
+                aria-label="Toggle AI Chatbot"
+                title="AI Whiteboard Assistant"
+              >
+                <Bot className="w-6 h-6 transition-transform duration-300 group-hover:rotate-12" />
+                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></span>
+                </span>
+              </button>
+
+              {/* Help & Keyboard Shortcuts (?) Button */}
+              <button
+                id="help-shortcuts-btn"
+                onClick={() => {
+                  if (excalidrawAPIRef.current) {
+                    try {
+                      excalidrawAPIRef.current.setAppState({ openDialog: { name: "help" } });
+                    } catch {
+                      setIsHelpModalOpen(true);
+                    }
+                  } else {
+                    setIsHelpModalOpen(true);
+                  }
+                }}
+                className="p-3.5 rounded-2xl backdrop-blur-xl bg-[#09090b]/60 border border-white/10 text-zinc-300 hover:text-cyan-300 hover:border-cyan-400/50 hover:shadow-[0_0_16px_rgba(6,182,212,0.35)] hover:scale-105 transition-all duration-300 shadow-2xl flex items-center justify-center pointer-events-auto group"
+                aria-label="Help and Shortcuts (?)"
+                title="Help & Keyboard Shortcuts (?)"
+              >
+                <HelpCircle className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+              </button>
+            </div>
 
             {/* Slide-in Sleek Cyberpunk Glassmorphism Chat Panel & Quick Commands */}
             <AnimatePresence>
@@ -2720,7 +3546,7 @@ export default function WhiteboardCanvas() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 20, scale: 0.95 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="fixed bottom-24 right-4 sm:right-8 w-[calc(100vw-2rem)] sm:w-88 max-w-sm bg-[#09090b]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4 z-40 flex flex-col gap-3.5 shadow-[0_0_40px_rgba(0,0,0,0.7)] pointer-events-auto"
+                  className="fixed bottom-36 right-6 w-[calc(100vw-2rem)] sm:w-88 max-w-sm bg-[#09090b]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4 z-50 flex flex-col gap-3.5 shadow-[0_0_40px_rgba(0,0,0,0.7)] pointer-events-auto"
                 >
                   {/* Header */}
                   <div className="flex items-center justify-between border-b border-white/5 pb-3">

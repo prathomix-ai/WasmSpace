@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,7 +20,9 @@ import {
   Boxes,
   Activity,
   Play,
+  LogOut,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LandingPage() {
   // ── Segment-Wise Tabs State ────────────────────────────────────────────────
@@ -33,6 +35,62 @@ export default function LandingPage() {
 
   // ── Pro Pricing Billing Cycle (Monthly: $5/mo, Yearly: $49/yr Save 18%) ──
   const [proBillingCycle, setProBillingCycle] = useState<"monthly" | "yearly">("monthly");
+
+  // ── Authentication & Sign-Out State ───────────────────────────────────────
+  const [currentUser, setCurrentUser] = useState<{ email?: string; name?: string } | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function checkUser() {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && isMounted) {
+          setCurrentUser({
+            email: user.email,
+            name: (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || user.email?.split("@")[0],
+          });
+          return;
+        }
+      } catch {}
+
+      if (typeof window !== "undefined" && isMounted) {
+        try {
+          const stored = localStorage.getItem("masmspace_current_user") || localStorage.getItem("wasmspace_current_user");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed) setCurrentUser(parsed);
+          }
+        } catch {}
+      }
+    }
+
+    checkUser();
+    return () => { isMounted = false; };
+  }, []);
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("masmspace_current_user");
+        localStorage.removeItem("wasmspace_current_user");
+        localStorage.removeItem("masmspace_user_avatar");
+      }
+      setCurrentUser(null);
+    } catch (err) {
+      console.error("Sign out error:", err);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("masmspace_current_user");
+      }
+      setCurrentUser(null);
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
 
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
@@ -205,16 +263,39 @@ print("[Pyodide WASM] Tensor layer converged.")`,
             </a>
           </nav>
 
-          <div className="flex items-center gap-4 sm:gap-6">
-            <Link
-              href="/login"
-              className="text-sm font-medium text-gray-400 hover:text-white transition-colors"
-            >
-              Sign In
-            </Link>
+          <div className="flex items-center gap-3 sm:gap-4">
+            {currentUser ? (
+              <>
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-mono text-zinc-300">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                  <span className="truncate max-w-[120px] md:max-w-[160px] text-zinc-200 font-medium">
+                    {currentUser.name || currentUser.email}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  disabled={isSigningOut}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 transition-all cursor-pointer shadow-sm"
+                  title="Sign out of MasmSpace"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>{isSigningOut ? "Signing out..." : "Sign Out"}</span>
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="text-sm font-medium text-gray-400 hover:text-white transition-colors"
+              >
+                Sign In
+              </Link>
+            )}
+
             <Link
               href="/canvas"
-              className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-cyan-500/20 via-cyan-400/20 to-purple-500/20 hover:from-cyan-500/30 hover:to-purple-500/30 border border-cyan-400/40 hover:border-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.25)] hover:shadow-[0_0_30px_rgba(6,182,212,0.45)] transition-all duration-300 active:scale-[0.98]"
+              className="group relative inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-cyan-500/20 via-cyan-400/20 to-purple-500/20 hover:from-cyan-500/30 hover:to-purple-500/30 border border-cyan-400/40 hover:border-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.25)] hover:shadow-[0_0_30px_rgba(6,182,212,0.45)] transition-all duration-300 active:scale-[0.98]"
             >
               <span>Launch Canvas</span>
               <ArrowRight className="w-4 h-4 text-cyan-400 group-hover:translate-x-0.5 transition-transform" />

@@ -375,10 +375,8 @@ async def create_razorpay_order(req: CreateOrderRequest):
         client = get_razorpay_client()
         is_yearly = req.plan.lower() == "yearly"
 
-        # TODO: REVERT TO $5 PRICING AFTER TESTING
-        # Temporarily hardcoded for live verification testing: 1 INR = 100 paise
-        amount_subunits = 100
-        currency = "INR"
+        amount_subunits = 4900 if is_yearly else 500
+        currency = "USD"
 
         receipt_id = req.receipt or f"rcpt_{req.plan}_{int(time.time())}"
 

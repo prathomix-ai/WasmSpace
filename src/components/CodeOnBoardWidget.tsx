@@ -19,7 +19,8 @@ interface CodeOnBoardWidgetProps {
   isOpen: boolean;
   onClose: () => void;
   editor?: Editor | null;
-  onInsertToCanvas?: (content: string, isError: boolean, language?: string) => void;
+  onInsertToCanvas?: (content: string, isError?: boolean, language?: string, type?: "code" | "output") => void;
+  leftOffset?: number;
 }
 
 export default function CodeOnBoardWidget({
@@ -27,6 +28,7 @@ export default function CodeOnBoardWidget({
   onClose,
   editor,
   onInsertToCanvas,
+  leftOffset = 280,
 }: CodeOnBoardWidgetProps) {
   // Active programming language
   const [language, setLanguage] = useState<SupportedLanguage>("c");
@@ -52,10 +54,16 @@ export default function CodeOnBoardWidget({
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<"output" | "trace" | "preview">("output");
 
-  // Dragging state
-  const [position, setPosition] = useState<{ x: number; y: number }>({ x: 40, y: 70 });
+  // Dragging state (Starts to the right of the sidebar: left 280px, top 70px)
+  const [position, setPosition] = useState<{ x: number; y: number }>({ x: leftOffset, y: 70 });
   const isDraggingRef = useRef(false);
   const dragStartOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (leftOffset !== undefined) {
+      setPosition((prev) => ({ ...prev, x: leftOffset }));
+    }
+  }, [leftOffset]);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const autoRunTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -294,22 +302,12 @@ export default function CodeOnBoardWidget({
     setStatusMessage("Ready");
   };
 
-  // Send output to whiteboard canvas as a Note shape
-  const handleInsertOutputToCanvas = () => {
-    const rawContent =
-      result?.stdout?.trim() ||
-      result?.returnValue ||
-      (result?.error ? `Error:\n${result.error}` : code);
-
-    const langTitle = language
-      ? language.charAt(0).toUpperCase() + language.slice(1)
-      : "Code";
-
-    const noteText = `${langTitle} Output:\n\n${rawContent.slice(0, 600)}`;
+  // Context-aware text inserter to whiteboard canvas (Code or Output)
+  const handleAddTextToCanvas = (content: string, type: "code" | "output" = "output") => {
+    if (!content || !content.trim()) return;
 
     if (onInsertToCanvas) {
-      // Pass clean execution result and language so canvas formats cleanly without duplicate headers
-      onInsertToCanvas(rawContent, !!result?.error, language);
+      onInsertToCanvas(content, !!result?.error, language, type);
       return;
     }
 
@@ -319,13 +317,34 @@ export default function CodeOnBoardWidget({
     const centerX = viewport ? viewport.center.x : 300;
     const centerY = viewport ? viewport.center.y : 200;
 
+    const langTitle = language
+      ? language.charAt(0).toUpperCase() + language.slice(1)
+      : "Code";
+
+    const header = type === "code" ? `// ${langTitle} Source Code:\n\n` : `${langTitle} Output:\n\n`;
+    const noteText = `${header}${content.slice(0, 1000)}`;
+
     addNoteToCanvas(
       editor,
       noteText,
       centerX - 100,
       centerY - 100,
-      result?.error ? "red" : "violet"
+      type === "code" ? "blue" : result?.error ? "red" : "violet"
     );
+  };
+
+  // Add source code directly to canvas
+  const handleAddCodeToCanvas = () => {
+    handleAddTextToCanvas(code, "code");
+  };
+
+  // Add execution output directly to canvas
+  const handleAddOutputToCanvas = () => {
+    const rawContent =
+      result?.stdout?.trim() ||
+      result?.returnValue ||
+      (result?.error ? `Error:\n${result.error}` : "No output available");
+    handleAddTextToCanvas(rawContent, "output");
   };
 
   // Copy code to clipboard
@@ -407,12 +426,13 @@ export default function CodeOnBoardWidget({
   return (
     <AnimatePresence>
       <motion.div
-        className="code-on-board-widget glass"
+        className="fixed z-50 code-on-board-widget glass bg-[#09090b]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col"
         style={{
           left: position.x,
           top: position.y,
-          width: isMinimized ? "340px" : "600px",
+          width: isMinimized ? "340px" : "620px",
           maxHeight: "92vh",
+          zIndex: 50,
         }}
         initial={{ opacity: 0, scale: 0.92, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -558,11 +578,12 @@ export default function CodeOnBoardWidget({
                   {isCopied ? "✓ Copied" : "📋 Copy"}
                 </button>
                 <button
-                  className="subbar-btn insert-btn px-2.5 py-1 rounded-lg text-xs bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-400/30 transition-all cursor-pointer shadow-[0_0_10px_rgba(168,85,247,0.15)]"
-                  onClick={handleInsertOutputToCanvas}
-                  title="Insert result as note on canvas"
+                  className="subbar-btn insert-btn px-2.5 py-1 rounded-lg text-xs bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-400/30 transition-all cursor-pointer shadow-[0_0_10px_rgba(6,182,212,0.15)] flex items-center gap-1 font-medium"
+                  onClick={handleAddCodeToCanvas}
+                  title="Paste source code onto canvas"
                 >
-                  📌 Add to Canvas
+                  <span>📄</span>
+                  <span>Add Code</span>
                 </button>
               </div>
             </div>
@@ -696,7 +717,7 @@ export default function CodeOnBoardWidget({
                 <div className="flex items-center gap-2 text-[11px] font-mono text-zinc-400">
                   {result?.iterationCount !== undefined && (
                     <span className="text-neon-green">
-                      🔄 {result.iterationCount} iterations
+                      🔄 {result.iterationCount}
                     </span>
                   )}
                   {result && (
@@ -704,6 +725,16 @@ export default function CodeOnBoardWidget({
                       ⚡ {result.executionTimeMs}ms
                     </span>
                   )}
+                  <button
+                    type="button"
+                    className="px-2.5 py-0.5 rounded-lg text-xs bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-400/30 transition-all cursor-pointer shadow-[0_0_10px_rgba(168,85,247,0.15)] flex items-center gap-1 font-medium disabled:opacity-40"
+                    onClick={handleAddOutputToCanvas}
+                    title="Paste terminal output onto canvas"
+                    disabled={!result && !isRunning}
+                  >
+                    <span>📌</span>
+                    <span>Add Output</span>
+                  </button>
                 </div>
               </div>
 

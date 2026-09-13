@@ -13,14 +13,12 @@ export async function POST(req: NextRequest) {
     const key_secret = process.env.RAZORPAY_KEY_SECRET;
 
     const body = await req.json().catch(() => ({}));
-    const { plan = "monthly", currency: _currency = "INR", receipt, user_email } = body;
+    const { plan = "monthly", currency: _currency = "USD", receipt, user_email } = body;
     const isYearly = plan === "yearly";
 
     // ── 1. Calculate Amount in Currency Lowest Subunits (* 100) ─────────────
-    // TODO: REVERT TO $5 PRICING AFTER TESTING
-    // Temporarily hardcoded for live verification testing: 1 INR = 100 paise
-    const amountInSubunits = 100;
-    const rawCurrency = "INR";
+    const amountInSubunits = isYearly ? 4900 : 500;
+    const rawCurrency = "USD";
 
     // ── 2. Attempt Order Creation via FastAPI Backend (Primary) ─────────────
     try {

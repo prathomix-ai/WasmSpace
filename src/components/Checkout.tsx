@@ -24,8 +24,8 @@ export interface CheckoutProps {
 
 export function Checkout({
   plan = "monthly",
-  amount = 100, // 100 paise = 1 INR for testing
-  currency = "INR",
+  amount = 500, // 500 cents = $5 USD
+  currency = "USD",
   userEmail,
   userName = "MasmSpace Creator",
   buttonText,
@@ -70,13 +70,16 @@ export function Checkout({
       }
 
       // Step 1: Create Order via Backend API (/api/create-razorpay-order or fallback /api/create-order)
+      const orderAmount = amount || (plan === "yearly" ? 4900 : 500);
+      const orderCurrency = currency || "USD";
+
       let orderRes = await fetch("/api/create-razorpay-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plan,
-          amount: 100, // 100 paise = 1 INR for testing
-          currency: "INR",
+          amount: orderAmount,
+          currency: orderCurrency,
           user_email: userEmail,
         }),
       });
@@ -87,8 +90,8 @@ export function Checkout({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             plan,
-            amount: 100,
-            currency: "INR",
+            amount: orderAmount,
+            currency: orderCurrency,
             user_email: userEmail,
           }),
         });
@@ -111,8 +114,8 @@ export function Checkout({
           orderData.key_id ||
           process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
           "rzp_test_Ta2kWl9IX7CgkT",
-        amount: orderData.amount, // 100 paise
-        currency: orderData.currency || "INR",
+        amount: orderData.amount || orderAmount,
+        currency: orderData.currency || orderCurrency,
         name: "MasmSpace PRO",
         description:
           plan === "yearly"

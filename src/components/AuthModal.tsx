@@ -57,22 +57,6 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
       });
 
       if (error) {
-        // Fallback for dev/mock environment if Supabase credentials are placeholder
-        if (
-          error.message.includes("fetch") ||
-          error.message.includes("placeholder") ||
-          error.message.includes("Invalid API key")
-        ) {
-          const mockUser = {
-            email: "google.user@masmspace.ai",
-            name: "Google Explorer",
-            role: "user" as const,
-          };
-          localStorage.setItem("masmspace_current_user", JSON.stringify(mockUser));
-          onAuthSuccess?.({ email: mockUser.email, role: mockUser.role });
-          onClose();
-          return;
-        }
         throw error;
       }
     } catch (err: any) {
@@ -116,24 +100,6 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
         });
 
         if (error) {
-          // Dev mock fallback if Supabase is unconfigured
-          if (
-            error.message.includes("fetch") ||
-            error.message.includes("placeholder") ||
-            error.message.includes("Invalid API key")
-          ) {
-            const role = email.toLowerCase().includes("admin") ? "admin" : "user";
-            const payload = JSON.stringify({
-              email,
-              name: fullName || email.split("@")[0],
-              phone: phoneNumber,
-              role,
-            });
-            localStorage.setItem("masmspace_current_user", payload);
-            onAuthSuccess?.({ email, role });
-            onClose();
-            return;
-          }
           throw error;
         }
 
@@ -146,22 +112,6 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
         });
 
         if (error) {
-          // Dev mock fallback
-          if (
-            error.message.includes("fetch") ||
-            error.message.includes("placeholder") ||
-            error.message.includes("Invalid login") ||
-            error.message.includes("Invalid API key")
-          ) {
-            const role: "user" | "admin" = email.toLowerCase().includes("admin")
-              ? "admin"
-              : "user";
-            const payload = JSON.stringify({ email, role });
-            localStorage.setItem("masmspace_current_user", payload);
-            onAuthSuccess?.({ email, role });
-            onClose();
-            return;
-          }
           throw error;
         }
 

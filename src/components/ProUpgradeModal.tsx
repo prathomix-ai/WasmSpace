@@ -75,31 +75,58 @@ export function ProUpgradeModal({
           </p>
 
           {/* Feature List */}
-          <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2 mb-5">
-            <div className="text-[11px] font-mono font-semibold uppercase text-zinc-400 tracking-wider flex items-center gap-1.5">
-              <Zap className="w-3 h-3 text-cyan-400" />
-              <span>What&apos;s Included:</span>
+          <div className="p-4 rounded-2xl bg-[#09090b]/60 backdrop-blur-xl border border-white/10 mb-5 shadow-[0_0_24px_rgba(0,0,0,0.3)]">
+            <div className="text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-2 pb-2.5 mb-3 border-b border-white/5">
+              <Zap className="w-3.5 h-3.5 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] shrink-0" />
+              <span className="bg-gradient-to-r from-cyan-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent font-extrabold tracking-wider">
+                EVERYTHING INCLUDED IN PRATHOMIX PRO:
+              </span>
             </div>
-            <ul className="space-y-1.5 text-xs text-zinc-200">
-              <li className="flex items-center gap-2">
-                <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                <span><strong>AI Board Brain:</strong> Vector semantic canvas search</span>
+            <ul className="space-y-4">
+              <li className="flex items-start gap-2.5">
+                <Check className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] shrink-0 mt-0.5" strokeWidth={2.5} />
+                <div className="leading-snug">
+                  <span className="font-semibold text-white text-xs">🧠 Unlimited &apos;Board Brain&apos; Intelligence</span>{" "}
+                  <span className="text-xs text-gray-400 font-normal block">
+                    (Instant canvas summaries powered by Gemini 1.5 Pro &amp; Groq Llama-3.3)
+                  </span>
+                </div>
               </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                <span><strong>AI Summaries:</strong> Instant meeting action items</span>
+              <li className="flex items-start gap-2.5">
+                <Check className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] shrink-0 mt-0.5" strokeWidth={2.5} />
+                <div className="leading-snug">
+                  <span className="font-semibold text-white text-xs">⚡ Massive AI Action Limits</span>{" "}
+                  <span className="text-xs text-gray-400 font-normal block">
+                    (Up to 500 daily requests for vector search, coding, and voice AI)
+                  </span>
+                </div>
               </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                <span><strong>Live Share:</strong> Multiplayer realtime collaboration</span>
+              <li className="flex items-start gap-2.5">
+                <Check className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] shrink-0 mt-0.5" strokeWidth={2.5} />
+                <div className="leading-snug">
+                  <span className="font-semibold text-white text-xs">🎨 Pristine 4K Exports</span>{" "}
+                  <span className="text-xs text-gray-400 font-normal block">
+                    (Crystal-clear, watermark-free downloads for professional presentations)
+                  </span>
+                </div>
               </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                <span><strong>Presentation Mode:</strong> Interactive laser &amp; step presenter</span>
+              <li className="flex items-start gap-2.5">
+                <Check className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] shrink-0 mt-0.5" strokeWidth={2.5} />
+                <div className="leading-snug">
+                  <span className="font-semibold text-white text-xs">🌐 Elite Multiplayer &amp; Presenter Tools</span>{" "}
+                  <span className="text-xs text-gray-400 font-normal block">
+                    (Unlock live laser pointers, admin controls, and seamless sync)
+                  </span>
+                </div>
               </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                <span><strong>Clean Exports:</strong> Remove all watermarks</span>
+              <li className="flex items-start gap-2.5">
+                <Check className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] shrink-0 mt-0.5" strokeWidth={2.5} />
+                <div className="leading-snug">
+                  <span className="font-semibold text-white text-xs">🛡️ Priority 24/7 VIP Support</span>{" "}
+                  <span className="text-xs text-gray-400 font-normal block">
+                    (Direct access to the PRATHOMIX engineering team)
+                  </span>
+                </div>
               </li>
             </ul>
           </div>
