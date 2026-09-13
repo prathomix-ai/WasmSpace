@@ -101,9 +101,9 @@ export function LeftSidebar({
     } catch {}
   }, []);
 
-  // Natural flexbox PRO Badge (no absolute positioning)
+  // Natural flexbox PRO Badge with glowing cyberpunk neon shadow
   const ProBadge = () => (
-    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shrink-0 font-mono leading-none select-none">
+    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.35)] shrink-0 font-mono leading-none select-none">
       PRO
     </span>
   );
@@ -111,14 +111,14 @@ export function LeftSidebar({
   return (
     <>
       <aside
-        className={`hidden md:flex flex-col h-full flex-shrink-0 relative z-50 overflow-y-auto custom-scrollbar bg-black/40 backdrop-blur-md border-r border-white/10 select-none transition-all duration-300 ${
-          isCollapsed ? "w-[72px] p-2 gap-3" : "w-64 p-4 gap-4"
+        className={`hidden md:flex flex-col flex-shrink-0 relative z-50 overflow-y-auto custom-scrollbar my-3 ml-3 h-[calc(100vh-1.5rem)] bg-[#09090b]/60 backdrop-blur-xl border border-white/5 rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.5)] select-none transition-all duration-300 ${
+          isCollapsed ? "w-[76px] p-2.5 gap-3" : "w-64 p-3.5 gap-3.5"
         }`}
       >
       {/* ── 1. Header: Logo & Collapse Button ── */}
       <div
-        className={`flex items-center mb-2 shrink-0 ${
-          isCollapsed ? "flex-col justify-center gap-2" : "justify-between w-full"
+        className={`flex items-center shrink-0 ${
+          isCollapsed ? "flex-col justify-center gap-2" : "justify-between w-full px-1"
         }`}
       >
         {!isCollapsed ? (
@@ -134,7 +134,7 @@ export function LeftSidebar({
                   alt="MasmSpace Logo"
                   width={32}
                   height={32}
-                  className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+                  className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.5)]"
                 />
               </div>
               <span className="font-bold text-white tracking-tight font-sans text-base">
@@ -145,7 +145,7 @@ export function LeftSidebar({
             <button
               type="button"
               onClick={onToggleCollapse}
-              className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer border border-transparent hover:border-white/5"
               title="Collapse Sidebar"
               aria-label="Collapse Sidebar"
             >
@@ -165,14 +165,14 @@ export function LeftSidebar({
                   alt="MasmSpace Logo"
                   width={32}
                   height={32}
-                  className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+                  className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.5)]"
                 />
               </div>
             </Link>
             <button
               type="button"
               onClick={onToggleCollapse}
-              className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer border border-transparent hover:border-white/5"
               title="Expand Sidebar"
               aria-label="Expand Sidebar"
             >
@@ -184,7 +184,7 @@ export function LeftSidebar({
 
       {/* ── 2. Session Box: Board Title Input (Visible when expanded) ── */}
       {!isCollapsed && (
-        <div className="bg-black/20 border border-white/10 rounded-lg p-2 text-sm shrink-0 focus-within:border-cyan-400/50 transition-colors">
+        <div className="bg-[#09090b]/40 border border-white/5 rounded-xl px-3 py-2.5 text-sm shrink-0 focus-within:border-cyan-400/50 focus-within:shadow-[0_0_12px_rgba(6,182,212,0.25)] transition-all">
           <input
             id="sidebar-board-title"
             type="text"
@@ -202,13 +202,13 @@ export function LeftSidebar({
       {/* ── 3. Navigation Content ── */}
       {isExecutiveMode ? (
         /* ── Executive Focus Mode: Clean, Distraction-Free Suite ── */
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           <div
-            className={`rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 ${
-              isCollapsed ? "p-2 flex justify-center" : "p-2.5"
+            className={`rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 ${
+              isCollapsed ? "p-2.5 flex justify-center" : "px-3.5 py-3"
             }`}
           >
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <Briefcase className="w-5 h-5 text-amber-400 shrink-0" />
               {!isCollapsed && (
                 <div>
@@ -224,13 +224,13 @@ export function LeftSidebar({
             type="button"
             id="sidebar-btn-exec-pen"
             onClick={onSelectPenTool}
-            className={`flex items-center w-full rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer group ${
-              isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+            className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
+              isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
             }`}
             title="Pen (Natural Freehand Sketching)"
           >
-            <div className="flex items-center gap-3">
-              <PenTool className="w-5 h-5 text-cyan-400 opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+            <div className="flex items-center gap-3.5">
+              <PenTool className="w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] transition-all shrink-0" />
               {!isCollapsed && <span>Draw Pen</span>}
             </div>
           </button>
@@ -240,13 +240,13 @@ export function LeftSidebar({
             type="button"
             id="sidebar-btn-exec-sticky"
             onClick={onAddStickyNote}
-            className={`flex items-center w-full rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer group ${
-              isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+            className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
+              isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
             }`}
             title="Add Sticky Note"
           >
-            <div className="flex items-center gap-3">
-              <StickyNote className="w-5 h-5 text-yellow-400 opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+            <div className="flex items-center gap-3.5">
+              <StickyNote className="w-5 h-5 text-yellow-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] transition-all shrink-0" />
               {!isCollapsed && <span>Sticky Note</span>}
             </div>
           </button>
@@ -256,31 +256,31 @@ export function LeftSidebar({
             type="button"
             id="sidebar-btn-exec-present"
             onClick={onPresentClick}
-            className={`flex items-center w-full rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer group ${
-              isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+            className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
+              isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
             }`}
             title="Laser Presentation Pointer"
           >
-            <div className="flex items-center gap-3">
-              <Tv className="w-5 h-5 text-rose-400 opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+            <div className="flex items-center gap-3.5">
+              <Tv className="w-5 h-5 text-rose-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(244,63,94,0.5)] transition-all shrink-0" />
               {!isCollapsed && <span>Laser Pointer</span>}
             </div>
           </button>
 
-          <div className="w-full h-px bg-white/10 my-2" />
+          <div className="w-full h-px bg-white/5 my-1" />
 
           {/* Exit Executive Focus Mode */}
           <button
             type="button"
             id="sidebar-btn-exit-exec"
             onClick={onToggleExecutiveMode}
-            className={`flex items-center w-full rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer group ${
-              isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+            className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
+              isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
             }`}
             title="Exit Executive Focus Mode"
           >
-            <div className="flex items-center gap-3">
-              <ArrowLeft className="w-5 h-5 text-gray-400 opacity-70 group-hover:opacity-100 group-hover:-translate-x-0.5 transition-all shrink-0" />
+            <div className="flex items-center gap-3.5">
+              <ArrowLeft className="w-5 h-5 text-gray-400 opacity-80 group-hover:opacity-100 group-hover:-translate-x-0.5 transition-all shrink-0" />
               {!isCollapsed && <span>Exit Focus</span>}
             </div>
           </button>
@@ -289,19 +289,19 @@ export function LeftSidebar({
         /* ── Standard Full Suite Navigation ── */
         <>
           {/* ── Primary Tools (Present to Voice AI) ── */}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             {/* Present (PRO) */}
             <button
               type="button"
               id="sidebar-btn-present"
               onClick={onPresentClick}
-              className={`flex items-center w-full rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer group ${
-                isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+              className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
               }`}
               title="Present Mode (Laser & Slide deck)"
             >
-              <div className="flex items-center gap-3">
-                <Tv className="w-5 h-5 text-cyan-400 opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+              <div className="flex items-center gap-3.5">
+                <Tv className="w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)] transition-all shrink-0" />
                 {!isCollapsed && <span>Present</span>}
               </div>
               {!isCollapsed && <ProBadge />}
@@ -312,13 +312,13 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-search"
               onClick={onSearchClick}
-              className={`flex items-center w-full rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer group ${
-                isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+              className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
               }`}
               title="Search Canvas Sessions via Vector RAG"
             >
-              <div className="flex items-center gap-3">
-                <Search className="w-5 h-5 text-cyan-400 opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+              <div className="flex items-center gap-3.5">
+                <Search className="w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)] transition-all shrink-0" />
                 {!isCollapsed && <span>Search</span>}
               </div>
               {!isCollapsed && <ProBadge />}
@@ -330,13 +330,13 @@ export function LeftSidebar({
               id="sidebar-btn-board-brain"
               onClick={onBoardBrainClick}
               disabled={isSummarising}
-              className={`flex items-center w-full rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50 group ${
-                isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+              className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer disabled:opacity-50 group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
               }`}
               title="AI Board Brain: Meeting Action Items & Summaries"
             >
-              <div className="flex items-center gap-3">
-                <Brain className="w-5 h-5 text-cyan-400 opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+              <div className="flex items-center gap-3.5">
+                <Brain className="w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)] transition-all shrink-0" />
                 {!isCollapsed && (
                   <span>{isSummarising ? "Analysing…" : "Board Brain"}</span>
                 )}
@@ -351,16 +351,16 @@ export function LeftSidebar({
                 id="sidebar-btn-save-index"
                 onClick={onSaveAndIndex}
                 disabled={isIndexing}
-                className={`flex items-center w-full rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50 group ${
-                  isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+                className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer disabled:opacity-50 group ${
+                  isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
                 }`}
                 title="Save & Index Canvas Text for Vector Search"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3.5">
                   <Database
                     className={`w-5 h-5 ${
                       isIndexing ? "text-amber-400 animate-spin" : "text-emerald-400"
-                    } opacity-70 group-hover:opacity-100 transition-opacity shrink-0`}
+                    } opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(52,211,153,0.6)] transition-all shrink-0`}
                   />
                   {!isCollapsed && (
                     <span>{isIndexing ? "Indexing…" : "Save & Index"}</span>
@@ -374,13 +374,13 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-share"
               onClick={onShareClick}
-              className={`flex items-center w-full rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer group ${
-                isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+              className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
               }`}
               title="Live Multiplayer Collaboration"
             >
-              <div className="flex items-center gap-3">
-                <Share2 className="w-5 h-5 text-cyan-400 opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+              <div className="flex items-center gap-3.5">
+                <Share2 className="w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)] transition-all shrink-0" />
                 {!isCollapsed && <span>Share</span>}
               </div>
               {!isCollapsed && <ProBadge />}
@@ -391,17 +391,17 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-code"
               onClick={onCodeStudioClick}
-              className={`flex items-center w-full rounded-lg text-sm font-medium transition-colors cursor-pointer group ${
-                isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+              className={`flex items-center w-full rounded-xl text-sm font-medium transition-all cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
               } ${
                 isCodeOpen
-                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/40"
-                  : "text-gray-300 hover:text-white hover:bg-white/10"
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+                  : "text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5"
               }`}
               title="Multi-Language Code Studio (Python, C, C++, Java, JS, TS, SQL)"
             >
-              <div className="flex items-center gap-3">
-                <Code2 className="w-5 h-5 text-emerald-400 opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+              <div className="flex items-center gap-3.5">
+                <Code2 className="w-5 h-5 text-emerald-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(52,211,153,0.6)] transition-all shrink-0" />
                 {!isCollapsed && <span>Code Studio</span>}
               </div>
               {!isCollapsed && (
@@ -416,12 +416,12 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-voice-robot"
               onClick={onVoiceClick}
-              className={`flex items-center w-full rounded-lg text-sm font-medium transition-colors cursor-pointer group ${
-                isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+              className={`flex items-center w-full rounded-xl text-sm font-medium transition-all cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
               } ${
                 isVoiceListening
                   ? "bg-purple-900/50 text-purple-200 border border-purple-400/80 shadow-[0_0_16px_rgba(168,85,247,0.4)]"
-                  : "text-gray-300 hover:text-white hover:bg-white/10"
+                  : "text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5"
               }`}
               title={
                 isVoiceListening
@@ -429,12 +429,12 @@ export function LeftSidebar({
                   : "Voice AI (Speak meeting notes & drawing commands)"
               }
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3.5">
                 <Bot
                   className={`w-5 h-5 shrink-0 transition-opacity ${
                     isVoiceListening
-                      ? "text-purple-400 opacity-100 animate-pulse"
-                      : "text-cyan-400 opacity-70 group-hover:opacity-100"
+                      ? "text-purple-400 opacity-100 animate-pulse drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]"
+                      : "text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]"
                   }`}
                 />
                 {!isCollapsed && (
@@ -442,32 +442,32 @@ export function LeftSidebar({
                 )}
               </div>
               {isVoiceListening && !isCollapsed && (
-                <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping shrink-0 shadow-[0_0_6px_rgba(168,85,247,0.9)]" />
               )}
             </button>
           </div>
 
           {/* ── Divider ── */}
-          <div className="w-full h-px bg-white/10 my-2 shrink-0" />
+          <div className="w-full h-px bg-white/5 my-1.5 shrink-0" />
 
           {/* ── Secondary Tools (Project Files to Settings) ── */}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             {/* Project Files Explorer */}
             <button
               type="button"
               id="sidebar-btn-files"
               onClick={onToggleExplorer}
-              className={`flex items-center w-full rounded-lg text-sm font-medium transition-colors cursor-pointer group ${
-                isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+              className={`flex items-center w-full rounded-xl text-sm font-medium transition-all cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
               } ${
                 isExplorerOpen
-                  ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30"
-                  : "text-gray-300 hover:text-white hover:bg-white/10"
+                  ? "bg-cyan-500/15 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]"
+                  : "text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5"
               }`}
               title="Project Files (VS Code Tree)"
             >
-              <div className="flex items-center gap-3">
-                <FolderClosed className="w-5 h-5 text-amber-400 opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+              <div className="flex items-center gap-3.5">
+                <FolderClosed className="w-5 h-5 text-amber-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.6)] transition-all shrink-0" />
                 {!isCollapsed && <span>Project Files</span>}
               </div>
             </button>
@@ -477,13 +477,13 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-screenshot"
               onClick={onTakeScreenshot}
-              className={`flex items-center w-full rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer group ${
-                isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+              className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
               }`}
               title={isProUser ? "Take Screenshot (Clean 4K)" : "Take Screenshot (Free Watermark)"}
             >
-              <div className="flex items-center gap-3">
-                <Camera className="w-5 h-5 text-gray-300 opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+              <div className="flex items-center gap-3.5">
+                <Camera className="w-5 h-5 text-gray-300 opacity-80 group-hover:opacity-100 transition-opacity shrink-0" />
                 {!isCollapsed && <span>Screenshot</span>}
               </div>
             </button>
@@ -492,14 +492,14 @@ export function LeftSidebar({
             {isAdmin && (
               <Link
                 href="/admin"
-                className={`flex items-center w-full rounded-lg text-sm font-medium text-neon-cyan hover:bg-neon-cyan/20 border border-neon-cyan/30 transition-colors cursor-pointer group ${
-                  isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+                className={`flex items-center w-full rounded-xl text-sm font-semibold text-cyan-300 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 shadow-[0_0_14px_rgba(6,182,212,0.35)] hover:shadow-[0_0_22px_rgba(6,182,212,0.6)] transition-all cursor-pointer group ${
+                  isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
                 }`}
                 title="Admin Control Center"
               >
-                <div className="flex items-center gap-3">
-                  <ShieldCheck className="w-5 h-5 text-neon-cyan opacity-90 group-hover:opacity-100 shrink-0" />
-                  {!isCollapsed && <span className="font-bold">Admin Panel</span>}
+                <div className="flex items-center gap-3.5">
+                  <ShieldCheck className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)] shrink-0" />
+                  {!isCollapsed && <span className="font-bold tracking-tight">Admin Panel</span>}
                 </div>
               </Link>
             )}
@@ -509,13 +509,13 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-settings"
               onClick={onOpenSettings}
-              className={`flex items-center w-full rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer group ${
-                isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+              className={`flex items-center w-full rounded-xl text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/5 transition-all cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
               }`}
               title="Canvas Settings"
             >
-              <div className="flex items-center gap-3">
-                <Settings className="w-5 h-5 text-gray-400 opacity-70 group-hover:opacity-100 group-hover:rotate-45 transition-all shrink-0" />
+              <div className="flex items-center gap-3.5">
+                <Settings className="w-5 h-5 text-gray-400 opacity-80 group-hover:opacity-100 group-hover:rotate-45 transition-all shrink-0" />
                 {!isCollapsed && <span>Settings</span>}
               </div>
             </button>
@@ -525,13 +525,13 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-toggle-exec"
               onClick={onToggleExecutiveMode}
-              className={`flex items-center w-full rounded-lg text-sm font-medium text-amber-300 hover:text-white hover:bg-amber-500/20 transition-colors cursor-pointer group ${
-                isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5"
+              className={`flex items-center w-full rounded-xl text-sm font-medium text-amber-300 hover:text-white hover:bg-amber-500/15 border border-transparent hover:border-amber-500/30 transition-all cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
               }`}
               title="Executive Focus Mode (Distraction-free Pen, Sticky Notes & Laser)"
             >
-              <div className="flex items-center gap-3">
-                <Briefcase className="w-5 h-5 text-amber-400 opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+              <div className="flex items-center gap-3.5">
+                <Briefcase className="w-5 h-5 text-amber-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.5)] transition-all shrink-0" />
                 {!isCollapsed && <span>Executive Focus</span>}
               </div>
               {!isCollapsed && (
@@ -548,13 +548,13 @@ export function LeftSidebar({
       <div className="mt-auto pt-2 shrink-0">
         {isProUser ? (
           <div
-            className={`flex items-center w-full rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm font-semibold select-none ${
-              isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
+            className={`flex items-center w-full rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm font-semibold select-none ${
+              isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
             }`}
             title="MasmSpace PRO Subscriber Active"
           >
-            <div className="flex items-center gap-3">
-              <Crown className="w-5 h-5 fill-amber-400 text-amber-400 shrink-0" />
+            <div className="flex items-center gap-3.5">
+              <Crown className="w-5 h-5 fill-amber-400 text-amber-400 shrink-0 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
               {!isCollapsed && <span>PRO ACTIVE</span>}
             </div>
           </div>
@@ -563,13 +563,13 @@ export function LeftSidebar({
             type="button"
             id="sidebar-btn-upgrade-pro"
             onClick={onOpenProModal}
-            className={`flex items-center w-full rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 border border-cyan-400/40 text-cyan-300 text-sm font-bold shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all cursor-pointer group ${
-              isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
+            className={`flex items-center w-full rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 border border-cyan-400/40 text-cyan-300 text-sm font-bold shadow-[0_0_14px_rgba(6,182,212,0.3)] hover:shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-all cursor-pointer group ${
+              isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
             }`}
             title="Upgrade to MasmSpace PRO"
           >
-            <div className="flex items-center gap-3">
-              <Crown className="w-5 h-5 fill-cyan-400 text-cyan-400 opacity-80 group-hover:opacity-100 transition-opacity shrink-0" />
+            <div className="flex items-center gap-3.5">
+              <Crown className="w-5 h-5 fill-cyan-400 text-cyan-400 opacity-90 group-hover:opacity-100 transition-opacity shrink-0 drop-shadow-[0_0_6px_rgba(6,182,212,0.6)]" />
               {!isCollapsed && <span>GET PRO</span>}
             </div>
             {!isCollapsed && (
@@ -583,7 +583,7 @@ export function LeftSidebar({
       </aside>
 
       {/* ── Mobile Top Bar with Hamburger Menu (flex md:hidden) ── */}
-      <header className="flex md:hidden fixed top-0 left-0 right-0 z-40 h-12 items-center justify-between px-3 bg-black/80 backdrop-blur-xl border-b border-white/10 select-none">
+      <header className="flex md:hidden fixed top-0 left-0 right-0 z-40 h-12 items-center justify-between px-3 bg-[#09090b]/80 backdrop-blur-xl border-b border-white/5 select-none">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-1.5" title="MasmSpace">
             <Image
@@ -591,7 +591,7 @@ export function LeftSidebar({
               alt="MasmSpace Logo"
               width={24}
               height={24}
-              className="w-6 h-6 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]"
+              className="w-6 h-6 object-contain drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]"
             />
             <span className="font-bold text-white tracking-tight text-xs">MasmSpace</span>
           </Link>
@@ -601,7 +601,7 @@ export function LeftSidebar({
             onChange={(e) => onBoardTitleChange(e.target.value)}
             placeholder="Untitled"
             maxLength={30}
-            className="w-24 xs:w-32 bg-white/5 border border-white/10 rounded px-2 py-0.5 text-xs text-zinc-200 truncate outline-none focus:border-cyan-400/60"
+            className="w-24 xs:w-32 bg-white/5 border border-white/5 rounded-lg px-2 py-0.5 text-xs text-zinc-200 truncate outline-none focus:border-cyan-400/60"
             title="Rename Session"
           />
         </div>
@@ -631,7 +631,7 @@ export function LeftSidebar({
           <button
             type="button"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
-            className="p-1.5 rounded-lg text-zinc-300 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-zinc-300 hover:bg-white/10 border border-white/5 transition-colors cursor-pointer"
             title="Menu"
             aria-label="Toggle menu"
           >
@@ -640,10 +640,10 @@ export function LeftSidebar({
         </div>
       </header>
 
-      {/* ── Mobile Bottom Navigation Bar (flex md:hidden) ── */}
+      {/* ── Mobile Floating Glass Bottom Navigation Bar (flex md:hidden) ── */}
       <nav
         aria-label="Mobile Navigation"
-        className="flex md:hidden fixed bottom-0 left-0 right-0 z-50 h-16 items-center justify-around px-2 bg-black/90 backdrop-blur-xl border-t border-white/10 select-none"
+        className="flex md:hidden fixed bottom-3 left-3 right-3 z-50 h-14 items-center justify-around px-2 bg-[#09090b]/60 backdrop-blur-xl border border-white/5 rounded-2xl shadow-[0_0_24px_rgba(0,0,0,0.6)] select-none"
       >
         {/* Code Studio */}
         <button
@@ -654,7 +654,7 @@ export function LeftSidebar({
           }`}
           title="Code Studio"
         >
-          <Code2 className="w-5 h-5" />
+          <Code2 className="w-4 h-4" />
           <span className="text-[10px] leading-none">Code</span>
         </button>
 
@@ -667,7 +667,7 @@ export function LeftSidebar({
           }`}
           title="Voice AI"
         >
-          <Bot className="w-5 h-5" />
+          <Bot className="w-4 h-4" />
           <span className="text-[10px] leading-none">Voice</span>
         </button>
 
@@ -679,7 +679,7 @@ export function LeftSidebar({
           className="flex flex-col items-center justify-center gap-1 py-1 px-2.5 rounded-xl text-zinc-400 hover:text-cyan-400 transition-colors cursor-pointer disabled:opacity-50"
           title="Board Brain"
         >
-          <Brain className="w-5 h-5 text-cyan-400" />
+          <Brain className="w-4 h-4 text-cyan-400" />
           <span className="text-[10px] leading-none">Brain</span>
         </button>
 
@@ -690,7 +690,7 @@ export function LeftSidebar({
           className="flex flex-col items-center justify-center gap-1 py-1 px-2.5 rounded-xl text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
           title="Settings"
         >
-          <Settings className="w-5 h-5" />
+          <Settings className="w-4 h-4" />
           <span className="text-[10px] leading-none">Settings</span>
         </button>
 
@@ -704,7 +704,7 @@ export function LeftSidebar({
           title="Tools Menu"
           aria-label="Toggle mobile menu"
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="w-4 h-4" />
           <span className="text-[10px] leading-none">Menu</span>
         </button>
       </nav>
@@ -717,7 +717,7 @@ export function LeftSidebar({
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />
-          <div className="relative w-4/5 max-w-xs h-full bg-[#0a0d14] border-r border-white/15 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar shadow-2xl z-10 text-zinc-200">
+          <div className="relative w-4/5 max-w-xs h-full bg-[#09090b]/90 backdrop-blur-xl border-r border-white/5 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar shadow-2xl z-10 text-zinc-200">
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <Image

@@ -170,18 +170,18 @@ export default function PresentationModeHUD({
         </div>
       )}
 
-      {/* ── Distraction-Free Presentation HUD (Bottom Center) ──────────── */}
+      {/* ── Distraction-Free Presentation HUD (Floating Island Detached from Bottom) ──────────── */}
       <motion.div
         initial={{ y: 80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 80, opacity: 0 }}
         transition={{ type: "spring", stiffness: 350, damping: 28 }}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 shadow-2xl text-white select-none transition-all duration-300 ease-in-out"
+        className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-[#09090b]/60 backdrop-blur-xl border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.6)] text-white select-none transition-all duration-300 ease-in-out"
       >
         {/* Presenting Indicator */}
-        <div className="flex items-center gap-2 pr-3 border-r border-white/15">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
-          <span className="text-xs font-mono font-semibold tracking-wider text-cyan-400 uppercase">
+        <div className="flex items-center gap-2 pr-3 border-r border-white/10">
+          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_rgba(6,182,212,0.8)]" />
+          <span className="text-xs font-mono font-semibold tracking-wider text-cyan-400 uppercase drop-shadow-[0_0_6px_rgba(6,182,212,0.5)]">
             Present Mode
           </span>
         </div>
@@ -190,7 +190,7 @@ export default function PresentationModeHUD({
         <div className="flex items-center gap-1.5 px-2">
           <button
             onClick={handlePrevSlide}
-            className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 text-zinc-300 hover:text-white transition-all text-xs"
+            className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 text-zinc-300 hover:text-white transition-all text-xs cursor-pointer"
             title="Previous Frame (Left Arrow)"
           >
             ◀
@@ -200,21 +200,21 @@ export default function PresentationModeHUD({
           </span>
           <button
             onClick={handleNextSlide}
-            className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 text-zinc-300 hover:text-white transition-all text-xs"
+            className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 text-zinc-300 hover:text-white transition-all text-xs cursor-pointer"
             title="Next Frame (Right Arrow / Space)"
           >
             ▶
           </button>
         </div>
 
-        <div className="w-[1px] h-4 bg-white/15" />
+        <div className="w-[1px] h-4 bg-white/10" />
 
         {/* Laser Pointer Toggle */}
         <button
           onClick={() => setLaserActive(!laserActive)}
-          className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all ${
+          className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
             laserActive
-              ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/40 shadow-[0_0_10px_rgba(0,245,255,0.3)]"
+              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.35)]"
               : "text-zinc-400 hover:text-white hover:bg-white/10"
           }`}
           title="Toggle Presenter Laser Pointer"
@@ -226,18 +226,18 @@ export default function PresentationModeHUD({
         {/* Fullscreen Toggle */}
         <button
           onClick={toggleFullscreen}
-          className="p-1.5 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-all text-xs"
+          className="p-1.5 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-all text-xs cursor-pointer"
           title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
         >
           {isFullscreen ? "🗗" : "⛶"}
         </button>
 
-        <div className="w-[1px] h-4 bg-white/15" />
+        <div className="w-[1px] h-4 bg-white/10" />
 
         {/* Exit Presentation */}
         <button
           onClick={onExit}
-          className="px-3 py-1 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_0_12px_rgba(239,68,68,0.2)]"
+          className="px-3 py-1 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_0_12px_rgba(239,68,68,0.2)] cursor-pointer"
           title="Exit Present Mode (Esc)"
         >
           <span>✕</span>

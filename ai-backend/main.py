@@ -181,6 +181,11 @@ class AdminGrantSubscriptionRequest(BaseModel):
     admin_email: str | None = None
 
 
+class AdminRevokeAccessRequest(BaseModel):
+    email: str
+    admin_email: str | None = None
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Helper — extract text & call Hugging Face
 # ─────────────────────────────────────────────────────────────────────────────
@@ -520,22 +525,67 @@ async def admin_grant_subscription(req: AdminGrantSubscriptionRequest):
             )
 
         logger.info("Admin manual override for %s (tier: %s)", clean_email, req.plan)
+        is_free = req.plan.lower() == "free"
+        effective_role = "free" if is_free else (req.role or "pro")
+        effective_status = "free" if is_free else "active"
+
         profile = await update_profile_subscription(
             email=clean_email,
-            status="active",
-            role=req.role or "pro",
+            status=effective_status,
+            role=effective_role,
         )
 
         return JSONResponse(
             status_code=200,
             content={
                 "success": True,
-                "message": f"Successfully granted {req.plan.upper()} subscription to {clean_email}.",
+                "message": f"Successfully updated subscription to {req.plan.upper()} for {clean_email}.",
                 "user": profile,
             },
         )
     except Exception as exc:
         logger.exception("Failed to grant subscription for %s: %s", req.email, exc)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(exc),
+                "detail": "Failed to update profile in Supabase.",
+            },
+        )
+
+
+@app.post("/admin/revoke-access", tags=["admin"])
+@app.post("/api/admin/revoke-access", tags=["admin"])
+async def admin_revoke_access(req: AdminRevokeAccessRequest):
+    """
+    Admin Override: Revokes pro access, resetting user's role to 'free' and status to 'free'.
+    """
+    try:
+        clean_email = req.email.strip().lower()
+        if not clean_email or "@" not in clean_email:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "Please provide a valid email address."},
+            )
+
+        logger.info("Admin manual revocation for %s", clean_email)
+        profile = await update_profile_subscription(
+            email=clean_email,
+            status="free",
+            role="free",
+        )
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "message": f"Successfully revoked access for {clean_email}. Role reset to 'free'.",
+                "user": profile,
+            },
+        )
+    except Exception as exc:
+        logger.exception("Failed to revoke access for %s: %s", req.email, exc)
         return JSONResponse(
             status_code=500,
             content={

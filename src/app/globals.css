@@ -238,42 +238,93 @@ body {
   overflow: hidden;
 }
 
-/* ── Excalidraw Dark Mode & Glassmorphism Theme Overrides ────────────────── */
+/* ── Excalidraw Dark Mode & Cyberpunk Glassmorphism Theme Overrides ──────── */
 .excalidraw.theme--dark {
-  --default-bg-color: #06070a !important;
-  --island-bg-color: rgba(14, 18, 28, 0.88) !important;
-  --popup-secondary-bg-color: #0b0e17 !important;
-  --color-primary: #00f5ff !important;
-  --color-primary-darker: #00d2dc !important;
-  --color-primary-darkest: #00939a !important;
-  --color-primary-light: #38bdf8 !important;
-  --color-selection: #a855f7 !important;
-  --focus-highlight-color: #00f5ff !important;
-  --color-surface-high: #151928 !important;
-  --color-surface-mid: #0e121d !important;
-  --color-surface-low: #080a10 !important;
+  --default-bg-color: #030407 !important;
+  --island-bg-color: rgba(9, 9, 11, 0.6) !important;
+  --popup-secondary-bg-color: rgba(9, 9, 11, 0.85) !important;
+  --color-primary: #06b6d4 !important;
+  --color-primary-darker: #0891b2 !important;
+  --color-primary-darkest: #0e7490 !important;
+  --color-primary-light: #22d3ee !important;
+  --color-selection: #06b6d4 !important;
+  --focus-highlight-color: #06b6d4 !important;
+  --color-surface-high: #18181b !important;
+  --color-surface-mid: #121215 !important;
+  --color-surface-low: #09090b !important;
 }
 
-/* Push Excalidraw's top shape toolbar down so it never collides with our floating MasmSpace header */
+/* 1. Cyberpunk Dotted Grid Canvas Pattern & Deep Slate Radial Gradient */
+.excalidraw .excalidraw-container {
+  background-color: #030407 !important;
+  background-image: 
+    radial-gradient(ellipse at 50% 0%, rgba(15, 23, 42, 0.5) 0%, rgba(3, 4, 7, 0.98) 75%),
+    radial-gradient(rgba(6, 182, 212, 0.14) 1px, transparent 1px) !important;
+  background-size: 100% 100%, 28px 28px !important;
+}
+
+/* 2. Floating Glass Panels for all Excalidraw Containers */
+.excalidraw .Island {
+  background-color: rgba(9, 9, 11, 0.6) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 1rem !important; /* rounded-2xl */
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* 3. Floating Top Canvas Toolbar (Detached with margins) */
 .excalidraw .App-toolbar-container {
-  top: 74px !important;
+  top: 20px !important;
   z-index: 30 !important;
 }
 
-/* Hide default Excalidraw hamburger menu trigger (since we have the custom VS Code Sidebar) */
+.excalidraw .App-toolbar {
+  background-color: rgba(9, 9, 11, 0.6) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.6) !important;
+  padding: 4px 8px !important;
+}
+
+/* 4. Neon Cyberpunk Accents on Active Tool Icons */
+.excalidraw .ToolIcon_type_radio:checked + label,
+.excalidraw .ToolIcon_type_button.active,
+.excalidraw .ToolIcon_type_button:active {
+  background-color: rgba(6, 182, 212, 0.2) !important;
+  border: 1px solid rgba(6, 182, 212, 0.5) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.35) !important;
+  color: #22d3ee !important;
+}
+
+.excalidraw .ToolIcon:hover {
+  border-radius: 0.75rem !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Hide default Excalidraw hamburger menu trigger (using custom MasmSpace Sidebar) */
 .excalidraw .main-menu-trigger {
   display: none !important;
 }
 
-/* Hide Excalidraw default welcome center card for a clean, professional canvas experience */
+/* Hide Excalidraw default welcome center card for a clean workspace */
 .excalidraw .welcome-screen-center,
 .excalidraw .WelcomeScreen-center {
   display: none !important;
 }
 
-/* Keep Excalidraw bottom zoom/undo controls neatly offset from our left activity bar */
+/* 5. Bottom Action Bars & Controls Detached from screen edges */
 .excalidraw .layer-ui__wrapper__footer-left {
-  left: 68px !important;
+  left: 20px !important;
+  bottom: 24px !important;
+  z-index: 30 !important;
+}
+
+.excalidraw .layer-ui__wrapper__footer-right {
+  right: 24px !important;
   bottom: 24px !important;
   z-index: 30 !important;
 }

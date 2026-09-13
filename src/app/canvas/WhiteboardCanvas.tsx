@@ -2431,7 +2431,19 @@ export default function WhiteboardCanvas() {
   } = useVoiceControl(voiceEvents);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#050505]">
+    <div className="relative flex h-screen w-screen overflow-hidden bg-[#030407]">
+      {/* ── Cyberpunk Canvas Background: Dark Slate to Obsidian Radial Gradient + Dotted Grid ── */}
+      <div 
+        className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#06070a] to-[#020305]"
+      />
+      <div 
+        className="pointer-events-none absolute inset-0 z-0 opacity-20"
+        style={{
+          backgroundImage: "radial-gradient(rgba(0, 245, 255, 0.2) 1px, transparent 1px)",
+          backgroundSize: "28px 28px",
+        }}
+      />
+
       {/* ── 1. Custom Left Navigation Sidebar (Strict flex-shrink-0, no canvas overlap) ── */}
       {!isPresentMode && (
         <LeftSidebar
@@ -2475,7 +2487,7 @@ export default function WhiteboardCanvas() {
       )}
 
       {/* ── 2. Excalidraw Canvas Wrapper (Flex-1 remaining space) ── */}
-      <div className="flex-1 relative h-full w-full overflow-hidden">
+      <div className="flex-1 relative h-full w-full overflow-hidden z-10">
         <Excalidraw
           excalidrawAPI={(api) => {
             excalidrawAPIRef.current = api;
@@ -2497,21 +2509,21 @@ export default function WhiteboardCanvas() {
 
         {/* ── Custom UI Overlays inside Canvas Area (pointer-events-none absolute inset-0 z-40) ── */}
         <div className="pointer-events-none absolute inset-0 z-40 overflow-hidden">
-          {/* ── Enterprise Live Transcription HUD (Top-Center) ── */}
+          {/* ── Enterprise Live Transcription HUD (Floating Island Detached from Top) ── */}
           <AnimatePresence>
             {isListening && (
               <motion.div
                 initial={{ opacity: 0, y: -20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                className="pointer-events-auto select-none absolute top-16 left-1/2 transform -translate-x-1/2 z-50 w-[90%] max-w-2xl lg:max-w-3xl flex items-start gap-3 bg-[#0a0a0a]/90 backdrop-blur-md border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.15)] rounded-xl p-3"
+                className="pointer-events-auto select-none absolute top-6 left-1/2 transform -translate-x-1/2 z-50 w-[90%] max-w-2xl lg:max-w-3xl flex items-start gap-3.5 bg-[#09090b]/60 backdrop-blur-xl border border-white/5 shadow-[0_0_24px_rgba(6,182,212,0.25)] rounded-2xl p-3.5"
               >
                 <div className="flex items-center gap-2 shrink-0 pt-0.5">
                   <span className="relative flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-neon-cyan"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></span>
                   </span>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/15 px-1.5 py-0.5 rounded border border-cyan-500/30">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/15 px-1.5 py-0.5 rounded border border-cyan-500/30 shadow-[0_0_8px_rgba(6,182,212,0.2)]">
                     Live Meeting Sync
                   </span>
                 </div>
@@ -2525,7 +2537,7 @@ export default function WhiteboardCanvas() {
 
                 <button
                   onClick={toggleListening}
-                  className="shrink-0 text-[10px] text-zinc-400 hover:text-white px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer mt-0.5"
+                  className="shrink-0 text-[10px] text-zinc-400 hover:text-white px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-cyan-400/30 transition-all cursor-pointer mt-0.5 shadow-sm"
                   title="Mute Live Transcription"
                 >
                   Mute
@@ -2681,14 +2693,14 @@ export default function WhiteboardCanvas() {
         {/* ── AI Canvas Assistant: Floating Action Button (FAB) & Glassmorphism Chatbot ── */}
         {!isPresentMode && !isExecutiveMode && (
           <>
-            {/* Glowing FAB Button at bottom-right (bottom-20 on mobile to not block touch controls) */}
+            {/* Glowing Cyberpunk FAB Button at bottom-right (detached floating island) */}
             <button
               id="ai-chatbot-fab"
               onClick={() => setIsChatOpen((prev) => !prev)}
-              className={`fixed bottom-20 md:bottom-6 right-4 md:right-8 z-40 p-3 md:p-3.5 rounded-full backdrop-blur-xl border transition-all duration-300 shadow-xl flex items-center justify-center pointer-events-auto group ${
+              className={`fixed bottom-20 md:bottom-6 right-4 md:right-8 z-40 p-3.5 rounded-2xl backdrop-blur-xl border transition-all duration-300 shadow-2xl flex items-center justify-center pointer-events-auto group ${
                 isChatOpen
-                  ? "bg-neon-cyan/25 border-neon-cyan text-neon-cyan shadow-[0_0_25px_rgba(0,245,255,0.5)] scale-105"
-                  : "bg-black/60 border-white/20 text-zinc-300 hover:text-neon-cyan hover:border-neon-cyan/60 hover:shadow-[0_0_20px_rgba(0,245,255,0.4)] hover:scale-105"
+                  ? "bg-[#09090b]/80 border-cyan-400/60 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.45)] scale-105"
+                  : "bg-[#09090b]/60 border-white/5 text-zinc-300 hover:text-cyan-300 hover:border-cyan-400/50 hover:shadow-[0_0_16px_rgba(6,182,212,0.35)] hover:scale-105"
               }`}
               aria-label="Toggle AI Chatbot"
               title="AI Whiteboard Assistant"
@@ -2696,11 +2708,11 @@ export default function WhiteboardCanvas() {
               <Bot className="w-6 h-6 transition-transform duration-300 group-hover:rotate-12" />
               <span className="absolute -top-1 -right-1 flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-neon-cyan"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></span>
               </span>
             </button>
 
-            {/* Slide-in Sleek Glassmorphism Chat Panel & Quick Commands */}
+            {/* Slide-in Sleek Cyberpunk Glassmorphism Chat Panel & Quick Commands */}
             <AnimatePresence>
               {isChatOpen && (
                 <motion.div
@@ -2708,18 +2720,18 @@ export default function WhiteboardCanvas() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 20, scale: 0.95 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="fixed bottom-20 right-4 sm:right-8 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-3 sm:p-4 z-40 flex flex-col gap-3 sm:gap-4 shadow-2xl pointer-events-auto"
+                  className="fixed bottom-24 right-4 sm:right-8 w-[calc(100vw-2rem)] sm:w-88 max-w-sm bg-[#09090b]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4 z-40 flex flex-col gap-3.5 shadow-[0_0_40px_rgba(0,0,0,0.7)] pointer-events-auto"
                 >
                   {/* Header */}
-                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-neon-cyan/15 border border-neon-cyan/30 flex items-center justify-center text-neon-cyan shadow-[0_0_12px_rgba(0,245,255,0.2)]">
+                      <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-400/30 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)]">
                         <Bot className="w-4 h-4" />
                       </div>
                       <div>
                         <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
                           MasmSpace AI Agent
-                          <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/30">
+                          <span className="px-1.5 py-0.5 rounded-md text-[9px] bg-cyan-500/15 text-cyan-300 border border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.3)] font-mono font-bold">
                             PRO
                           </span>
                         </h3>
@@ -2728,7 +2740,7 @@ export default function WhiteboardCanvas() {
                     </div>
                     <button
                       onClick={() => setIsChatOpen(false)}
-                      className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
                       aria-label="Close Chat"
                     >
                       <X className="w-4 h-4" />

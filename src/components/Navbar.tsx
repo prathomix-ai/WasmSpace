@@ -80,8 +80,8 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-black/5 dark:border-white/10 bg-white/70 dark:bg-[#06070a]/75 backdrop-blur-xl transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+    <header className="sticky top-3 z-50 mx-4 sm:mx-6 lg:mx-auto max-w-7xl rounded-2xl bg-white/75 dark:bg-[#09090b]/60 backdrop-blur-xl border border-black/5 dark:border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.5)] transition-all duration-300">
+      <div className="px-6 h-16 flex items-center justify-between">
         
         {/* Left: Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
@@ -91,30 +91,30 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
               alt="MasmSpace Logo"
               width={36}
               height={36}
-              className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(168,85,247,0.55)]"
+              className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.5)]"
               priority
             />
           </div>
           <span className="font-mono font-extrabold text-xl tracking-tight text-zinc-900 dark:text-white">
             MasmSpace
           </span>
-          <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-mono font-semibold rounded-full bg-cyan-500/10 dark:bg-neon-cyan/10 border border-cyan-500/30 dark:border-neon-cyan/30 text-cyan-600 dark:text-neon-cyan">
+          <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-mono font-semibold rounded-full bg-cyan-500/10 dark:bg-cyan-500/15 border border-cyan-500/30 dark:border-cyan-400/40 text-cyan-600 dark:text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.25)]">
             v2.0 OS
           </span>
         </Link>
 
         {/* Center: Navigation Links */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600 dark:text-zinc-300 font-sans">
-          <a href="#features" className="hover:text-cyan-600 dark:hover:text-neon-cyan transition-colors">
+          <a href="#features" className="hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors">
             Features
           </a>
-          <a href="#use-cases" className="hover:text-cyan-600 dark:hover:text-neon-cyan transition-colors">
+          <a href="#use-cases" className="hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors">
             Use Cases
           </a>
-          <a href="#pricing" className="hover:text-cyan-600 dark:hover:text-neon-cyan transition-colors">
+          <a href="#pricing" className="hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors">
             Pricing
           </a>
-          <a href="#contact" className="hover:text-cyan-600 dark:hover:text-neon-cyan transition-colors">
+          <a href="#contact" className="hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors">
             Contact
           </a>
         </nav>
@@ -135,7 +135,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
               <Link
                 href="/admin"
                 id="navbar-admin-btn"
-                className="relative px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-mono font-bold text-black bg-neon-cyan hover:bg-neon-cyan/90 border border-neon-cyan shadow-[0_0_20px_rgba(0,245,255,0.4)] hover:shadow-[0_0_30px_rgba(0,245,255,0.7)] transition-all flex items-center gap-1.5 cursor-pointer"
+                className="relative px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-mono font-bold text-black bg-cyan-400 hover:bg-cyan-300 border border-cyan-300 shadow-[0_0_16px_rgba(6,182,212,0.45)] hover:shadow-[0_0_24px_rgba(6,182,212,0.7)] transition-all flex items-center gap-1.5 cursor-pointer"
                 title="Admin Control Center"
               >
                 <ShieldCheck className="w-4 h-4 text-black" />
@@ -169,7 +169,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
               type="button"
               id="user-profile-avatar-btn"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-8 h-8 rounded-full bg-cyan-500/15 dark:bg-neon-cyan/20 border border-cyan-500/30 dark:border-neon-cyan/40 flex items-center justify-center text-cyan-700 dark:text-neon-cyan text-xs font-mono font-bold shadow-sm select-none hover:ring-2 hover:ring-cyan-500/40 transition-all cursor-pointer focus:outline-none"
+              className="w-8 h-8 rounded-full bg-cyan-500/15 dark:bg-cyan-500/20 border border-cyan-500/30 dark:border-cyan-400/40 flex items-center justify-center text-cyan-700 dark:text-cyan-300 text-xs font-mono font-bold shadow-[0_0_10px_rgba(6,182,212,0.25)] select-none hover:ring-2 hover:ring-cyan-400/40 transition-all cursor-pointer focus:outline-none"
               title={currentUser ? `Logged in as ${currentUser.email}` : "Account Menu"}
               aria-label="Toggle user profile menu"
               aria-expanded={isDropdownOpen}
@@ -183,9 +183,9 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
 
             {/* Dropdown Menu (Absolute Positioning) */}
             {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-[#0a0a0a] border border-gray-800/60 rounded-xl shadow-2xl z-50 overflow-hidden backdrop-blur-md">
+              <div className="absolute right-0 mt-2 w-48 bg-[#09090b]/90 border border-white/5 rounded-2xl shadow-2xl z-50 overflow-hidden backdrop-blur-xl">
                 {currentUser ? (
-                  <div className="py-1 divide-y divide-gray-800/60">
+                  <div className="py-1 divide-y divide-white/5">
                     <div className="px-4 py-2 text-xs font-mono text-gray-400 truncate">
                       {currentUser.email}
                     </div>
@@ -194,7 +194,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
                         <Link
                           href="/admin"
                           onClick={() => setIsDropdownOpen(false)}
-                          className="block w-full text-left px-4 py-2.5 text-sm text-neon-cyan font-bold hover:bg-gray-800/50 transition-colors flex items-center gap-2"
+                          className="block w-full text-left px-4 py-2.5 text-sm text-cyan-300 font-bold hover:bg-white/5 transition-colors flex items-center gap-2"
                         >
                           <ShieldCheck className="w-4 h-4" />
                           <span>Admin Panel</span>
@@ -203,14 +203,14 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
                       <Link
                         href="/canvas"
                         onClick={() => setIsDropdownOpen(false)}
-                        className="block w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800/50 hover:text-white transition-colors"
+                        className="block w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
                       >
                         Profile Settings
                       </Link>
                       <button
                         type="button"
                         onClick={handleSignOut}
-                        className="block w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-gray-800/50 hover:text-red-400 transition-colors cursor-pointer"
+                        className="block w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 hover:text-red-300 transition-colors cursor-pointer"
                       >
                         Sign Out
                       </button>
@@ -224,7 +224,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
                         setIsDropdownOpen(false);
                         if (onOpenAuth) onOpenAuth();
                       }}
-                      className="block w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800/50 hover:text-white transition-colors"
+                      className="block w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
                     >
                       Sign In
                     </Link>
@@ -234,7 +234,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
                         setIsDropdownOpen(false);
                         if (onOpenAuth) onOpenAuth();
                       }}
-                      className="block w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800/50 hover:text-white transition-colors"
+                      className="block w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
                     >
                       Create Account
                     </Link>
@@ -248,12 +248,12 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
           <motion.div whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }}>
             <Link
               href="/canvas"
-              className="relative group px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-mono font-bold text-white bg-zinc-900 dark:bg-zinc-950 border border-cyan-500/40 dark:border-neon-cyan/40 hover:border-cyan-400 dark:hover:border-neon-cyan shadow-[0_0_16px_rgba(0,245,255,0.25)] hover:shadow-[0_0_24px_rgba(0,245,255,0.5)] backdrop-blur-xl transition-all duration-300 flex items-center gap-2 whitespace-nowrap"
+              className="relative group px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-mono font-bold text-white bg-zinc-900 dark:bg-[#09090b]/80 border border-cyan-500/40 dark:border-cyan-400/40 hover:border-cyan-400 dark:hover:border-cyan-300 shadow-[0_0_14px_rgba(6,182,212,0.3)] hover:shadow-[0_0_24px_rgba(6,182,212,0.55)] backdrop-blur-xl transition-all duration-300 flex items-center gap-2 whitespace-nowrap"
             >
               <span className="relative z-10">
                 {currentUser ? "Go to Canvas" : "Launch Canvas"}
               </span>
-              <ArrowRight className="w-3.5 h-3.5 text-cyan-400 dark:text-neon-cyan group-hover:translate-x-0.5 transition-transform" />
+              <ArrowRight className="w-3.5 h-3.5 text-cyan-400 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </motion.div>
 
@@ -275,7 +275,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-b border-black/5 dark:border-white/10 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl px-6 py-4 space-y-3 font-mono text-sm overflow-hidden"
+            className="md:hidden border-t border-black/5 dark:border-white/5 bg-white/95 dark:bg-[#09090b]/95 backdrop-blur-xl px-6 py-4 space-y-3 font-mono text-sm overflow-hidden rounded-b-2xl"
           >
             <a
               href="#features"

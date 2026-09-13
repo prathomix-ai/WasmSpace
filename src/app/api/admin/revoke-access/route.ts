@@ -14,7 +14,7 @@ const ALLOWED_ADMIN_EMAILS = [
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { email, plan = "pro", admin_email } = body;
+    const { email, admin_email } = body;
 
     if (!email || !email.includes("@")) {
       return NextResponse.json(
@@ -26,7 +26,6 @@ export async function POST(req: NextRequest) {
     const cleanEmail = email.trim().toLowerCase();
 
     // ── 1. Admin Verification ──────────────────────────────────────────────
-    // Allow if admin_email is in ALLOWED_ADMIN_EMAILS or no explicit admin restricted mode
     if (admin_email && !ALLOWED_ADMIN_EMAILS.includes(admin_email.trim().toLowerCase())) {
       return NextResponse.json(
         { success: false, error: "Unauthorized: Admin privileges required." },
@@ -36,17 +35,37 @@ export async function POST(req: NextRequest) {
 
     let updatedUser: any = null;
 
-    // ── 2. Call FastAPI Backend Endpoint ──────────────────────────────────
+    // ── 2. Direct Supabase Admin Client Update (Service Role Key) ───────────
+    try {
+      const supabase = createAdminClient();
+      const { data, error } = await supabase
+        .from("profiles")
+        .update({
+          role: "free",
+          subscription_status: "free",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("email", cleanEmail)
+        .select();
+
+      if (error) {
+        console.warn("[revoke-access] Supabase update warning:", error.message);
+      } else if (data && data.length > 0) {
+        updatedUser = data[0];
+      }
+    } catch (dbErr: any) {
+      console.warn("[revoke-access] Supabase error:", dbErr?.message);
+    }
+
+    // ── 3. Sync with FastAPI Backend if Available ──────────────────────────
     try {
       const fastApiResponse = await fetch(
-        `${AI_BACKEND_URL}/admin/grant-subscription`,
+        `${AI_BACKEND_URL}/admin/revoke-access`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             email: cleanEmail,
-            plan,
-            role: "pro",
             admin_email,
           }),
           signal: AbortSignal.timeout(3000),
@@ -55,57 +74,29 @@ export async function POST(req: NextRequest) {
 
       if (fastApiResponse.ok) {
         const fastApiData = await fastApiResponse.json().catch(() => null);
-        if (fastApiData?.success) {
+        if (fastApiData?.user && !updatedUser) {
           updatedUser = fastApiData.user;
         }
       }
     } catch {
-      // Non-blocking fallback to direct Supabase update
-    }
-
-    // ── 3. Direct Supabase Admin Client Update ────────────────────────────
-    if (!updatedUser) {
-      try {
-        const supabase = createAdminClient();
-        const isFree = plan.toLowerCase() === "free";
-        const role = isFree ? "free" : "pro";
-        const status = isFree ? "free" : plan === "enterprise" ? "enterprise" : "pro";
-
-        const { data, error } = await supabase
-          .from("profiles")
-          .update({
-            subscription_status: status,
-            role,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("email", cleanEmail)
-          .select();
-
-        if (error) {
-          console.warn("[grant-subscription] Supabase update warning:", error.message);
-        } else if (data && data.length > 0) {
-          updatedUser = data[0];
-        }
-      } catch (dbErr: any) {
-        console.warn("[grant-subscription] Supabase error:", dbErr?.message);
-      }
+      // Non-blocking fallback
     }
 
     return NextResponse.json({
       success: true,
-      message: `Successfully granted ${plan.toUpperCase()} subscription to ${cleanEmail}.`,
+      message: `Successfully revoked access for ${cleanEmail}. Role reset to 'free'.`,
       user: updatedUser || {
         email: cleanEmail,
-        subscription_status: "pro",
-        role: "pro",
+        subscription_status: "free",
+        role: "free",
       },
     });
   } catch (error: any) {
-    console.error("Admin grant subscription error:", error);
+    console.error("Admin revoke access error:", error);
     return NextResponse.json(
       {
         success: false,
-        error: error?.message || "Failed to grant subscription",
+        error: error?.message || "Internal server error revoking access",
       },
       { status: 500 }
     );

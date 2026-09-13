@@ -6,6 +6,7 @@ import {
   ShieldCheck,
   Sparkles,
   UserCheck,
+  UserX,
   Zap,
   Mail,
   CheckCircle2,
@@ -28,8 +29,9 @@ export default function AdminPage() {
 
   // Form State
   const [targetEmail, setTargetEmail] = useState("");
-  const [selectedPlan, setSelectedPlan] = useState<"pro" | "enterprise">("pro");
+  const [selectedPlan, setSelectedPlan] = useState<"free" | "pro" | "enterprise">("pro");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRevoking, setIsRevoking] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     message: string;
@@ -170,7 +172,87 @@ export default function AdminPage() {
     }
   };
 
-  // ── 3. Quick Bypass Login for Local Dev/Demo ──────────────────────────────
+  // ── 3. Handle Manual Access Revocation ─────────────────────────────────────
+  const handleRevokeAccess = async () => {
+    const cleanEmail = targetEmail.trim().toLowerCase();
+
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      setFeedback({
+        type: "error",
+        message: "Please enter a valid target user email address to revoke access.",
+      });
+      return;
+    }
+
+    setIsRevoking(true);
+    setFeedback(null);
+
+    try {
+      const res = await fetch("/api/admin/revoke-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: cleanEmail,
+          admin_email: currentAdmin?.email,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data?.success) {
+        setFeedback({
+          type: "success",
+          message: data.message || `Access revoked! ${cleanEmail} role reset to 'free'.`,
+          details: data.user || { role: "free", subscription_status: "free" },
+        });
+
+        // Sync local cache if current browser is simulating or using this revoked user
+        try {
+          const stored =
+            localStorage.getItem("masmspace_current_user") ||
+            localStorage.getItem("wasmspace_current_user");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed?.email?.toLowerCase() === cleanEmail) {
+              parsed.role = "free";
+              parsed.subscription_status = "free";
+              localStorage.setItem("masmspace_current_user", JSON.stringify(parsed));
+            }
+          }
+        } catch {}
+
+        // Add action to Recent Overrides audit log
+        const newEntry = {
+          email: cleanEmail,
+          plan: "Free",
+          grantedAt: new Date().toLocaleTimeString(),
+          status: "revoked",
+        };
+        const updated = [newEntry, ...recentGrants.slice(0, 9)];
+        setRecentGrants(updated);
+        try {
+          localStorage.setItem("masmspace_admin_grants", JSON.stringify(updated));
+        } catch {}
+
+        setTargetEmail("");
+      } else {
+        setFeedback({
+          type: "error",
+          message:
+            data?.error || data?.detail || "Failed to revoke access. Check server logs.",
+        });
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: "error",
+        message: err?.message || "Network error connecting to backend.",
+      });
+    } finally {
+      setIsRevoking(false);
+    }
+  };
+
+  // ── 4. Quick Bypass Login for Local Dev/Demo ──────────────────────────────
   const handleDemoAdminLogin = () => {
     const demoAdmin = {
       email: "admin@prathomix.tech",
@@ -332,22 +414,23 @@ export default function AdminPage() {
                 <select
                   value={selectedPlan}
                   onChange={(e) =>
-                    setSelectedPlan(e.target.value as "pro" | "enterprise")
+                    setSelectedPlan(e.target.value as "free" | "pro" | "enterprise")
                   }
                   className="w-full px-4 py-3 rounded-xl bg-zinc-950/80 border border-zinc-800 focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan text-xs text-zinc-200 outline-none transition-all cursor-pointer"
                 >
+                  <option value="free">Free Plan (Default / Reset)</option>
                   <option value="pro">Pro Plan (Unlimited AI)</option>
                   <option value="enterprise">Enterprise (Dedicated)</option>
                 </select>
               </div>
             </div>
 
-            {/* Submit Button */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+            {/* Action Buttons: Grant & Revoke */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-neon-cyan via-cyan-500 to-violet-600 hover:opacity-90 text-zinc-950 transition-all shadow-[0_0_25px_rgba(0,245,255,0.25)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                disabled={isSubmitting || isRevoking}
+                className="w-full sm:w-auto px-7 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-neon-cyan via-cyan-500 to-violet-600 hover:opacity-90 text-zinc-950 transition-all shadow-[0_0_25px_rgba(0,245,255,0.25)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
@@ -362,8 +445,28 @@ export default function AdminPage() {
                 )}
               </button>
 
-              <span className="text-[11px] text-zinc-500">
-                ⚡ Directly updates Supabase <code className="text-zinc-400">public.profiles</code> table.
+              <button
+                type="button"
+                onClick={handleRevokeAccess}
+                disabled={isSubmitting || isRevoking}
+                className="w-full sm:w-auto px-7 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-400 hover:text-red-300 transition-all shadow-[0_0_20px_rgba(239,68,68,0.2)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                title="Instantly reset user role to 'free' and revoke all Pro features"
+              >
+                {isRevoking ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-red-400" />
+                    <span>Revoking Access...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserX className="w-4 h-4 text-red-400" />
+                    <span>Revoke Access</span>
+                  </>
+                )}
+              </button>
+
+              <span className="text-[11px] text-zinc-500 hidden sm:inline">
+                ⚡ Direct Supabase <code className="text-zinc-400">public.profiles</code> override.
               </span>
             </div>
           </form>
@@ -432,10 +535,22 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          entry.plan.toLowerCase() === "free"
+                            ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                            : "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
+                        }`}
+                      >
                         {entry.plan}
                       </span>
-                      <span className="px-2 py-1 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                      <span
+                        className={`px-2 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+                          entry.status === "revoked"
+                            ? "bg-red-500/10 text-red-400 border border-red-500/30"
+                            : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                        }`}
+                      >
                         {entry.status}
                       </span>
                     </div>
