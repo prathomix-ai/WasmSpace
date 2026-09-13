@@ -359,16 +359,11 @@ async def create_razorpay_order(req: CreateOrderRequest):
     try:
         client = get_razorpay_client()
         is_yearly = req.plan.lower() == "yearly"
-        currency = (req.currency or "USD").upper()
 
-        if req.amount is not None and req.amount >= 100:
-            amount_subunits = int(round(req.amount))
-        elif currency == "INR":
-            inr_rupees = 4100 if is_yearly else 420
-            amount_subunits = inr_rupees * 100
-        else:
-            usd_dollars = 49 if is_yearly else 5
-            amount_subunits = usd_dollars * 100
+        # TODO: REVERT TO $5 PRICING AFTER TESTING
+        # Temporarily hardcoded for live verification testing: 1 INR = 100 paise
+        amount_subunits = 100
+        currency = "INR"
 
         receipt_id = req.receipt or f"rcpt_{req.plan}_{int(time.time())}"
 

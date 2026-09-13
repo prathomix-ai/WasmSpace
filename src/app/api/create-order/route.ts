@@ -13,44 +13,14 @@ export async function POST(req: NextRequest) {
     const key_secret = process.env.RAZORPAY_KEY_SECRET;
 
     const body = await req.json().catch(() => ({}));
-    const { plan = "monthly", currency = "USD", receipt, user_email } = body;
+    const { plan = "monthly", currency: _currency = "USD", receipt, user_email } = body;
     const isYearly = plan === "yearly";
 
     // ── 1. Calculate Amount in Currency Lowest Subunits (* 100) ─────────────
-    const rawCurrency = (currency || "USD").toUpperCase();
-    let amountInSubunits: number;
-
-    if (rawCurrency === "INR") {
-      if (body.amount !== undefined && Number(body.amount) >= 100) {
-        amountInSubunits = Math.round(Number(body.amount));
-      } else {
-        const inrRupees = isYearly ? 4100 : 420;
-        amountInSubunits = inrRupees * 100;
-      }
-    } else {
-      if (body.amount !== undefined && Number(body.amount) >= 100) {
-        amountInSubunits = Math.round(Number(body.amount));
-      } else if (
-        body.amount !== undefined &&
-        Number(body.amount) > 0 &&
-        Number(body.amount) < 100
-      ) {
-        amountInSubunits = Math.round(Number(body.amount) * 100);
-      } else {
-        amountInSubunits = isYearly ? 4900 : 500;
-      }
-    }
-
-    // Minimum 100 subunits validation
-    if (isNaN(amountInSubunits) || amountInSubunits < 100) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Amount must be at least 100 subunits (100 cents / 100 paise)",
-        },
-        { status: 400 }
-      );
-    }
+    // TODO: REVERT TO $5 PRICING AFTER TESTING
+    // Temporarily hardcoded for live verification testing: 1 INR = 100 paise
+    const amountInSubunits = 100;
+    const rawCurrency = "INR";
 
     // ── 2. Attempt Order Creation via FastAPI Backend (Primary) ─────────────
     try {
