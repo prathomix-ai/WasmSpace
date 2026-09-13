@@ -129,3 +129,75 @@ def _raise_for_status(resp: httpx.Response, op: str) -> None:
         raise RuntimeError(
             f"Supabase {op} returned {resp.status_code}: {resp.text[:200]}"
         )
+
+
+async def get_profile_by_email(email: str) -> dict[str, Any] | None:
+    """Fetch user profile by email address from public.profiles."""
+    clean_email = email.strip().lower()
+    url = f"{SUPABASE_URL}/rest/v1/profiles?email=eq.{clean_email}&select=*"
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.get(url, headers=_headers())
+        if resp.status_code == 200:
+            rows: list[dict[str, Any]] = resp.json()
+            return rows[0] if rows else None
+        return None
+    except Exception as exc:
+        logger.warning("Error fetching profile for %s: %s", clean_email, exc)
+        return None
+
+
+async def update_profile_subscription(
+    email: str,
+    status: str = "active",
+    role: str = "pro",
+) -> dict[str, Any]:
+    """
+    Update or create a user profile with the new subscription status and tier.
+    Falls back gracefully to 'pro' if database check constraint requires ('free', 'pro', 'enterprise').
+    """
+    clean_email = email.strip().lower()
+    existing = await get_profile_by_email(clean_email)
+    headers = {**_headers(), "Prefer": "return=representation"}
+
+    # Acceptable status fallback if database has check (subscription_status in ('free', 'pro', 'enterprise'))
+    effective_status = status
+    if status == "active":
+        effective_status = "pro"
+
+    payload: dict[str, Any] = {
+        "email": clean_email,
+        "subscription_status": effective_status,
+        "role": role,
+    }
+
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+        if existing and existing.get("id"):
+            # Update existing profile
+            user_id = existing["id"]
+            url = f"{SUPABASE_URL}/rest/v1/profiles?id=eq.{user_id}"
+            resp = await client.patch(url, json=payload, headers=headers)
+            _raise_for_status(resp, f"update subscription for {clean_email}")
+            updated_rows = resp.json()
+            return updated_rows[0] if updated_rows else {**existing, **payload}
+        else:
+            # Check or insert profile
+            import uuid
+            new_id = str(uuid.uuid4())
+            url = f"{SUPABASE_URL}/rest/v1/profiles"
+            insert_payload = {
+                "id": new_id,
+                **payload,
+            }
+            resp = await client.post(url, json=insert_payload, headers=headers)
+            if resp.status_code in (200, 201):
+                rows = resp.json()
+                return rows[0] if rows else insert_payload
+            else:
+                # If foreign key fails because id not in auth.users, try update without id
+                patch_url = f"{SUPABASE_URL}/rest/v1/profiles?email=eq.{clean_email}"
+                patch_resp = await client.patch(patch_url, json=payload, headers=headers)
+                if patch_resp.status_code in (200, 204):
+                    return {"email": clean_email, **payload}
+                _raise_for_status(resp, f"create profile for {clean_email}")
+                return {"email": clean_email, **payload}

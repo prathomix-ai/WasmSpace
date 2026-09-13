@@ -1,145 +1,451 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import UserManagementModule from "@/components/admin/UserManagementModule";
-import SubscriptionModule from "@/components/admin/SubscriptionModule";
-import SiteSettingsModule from "@/components/admin/SiteSettingsModule";
+import {
+  ShieldCheck,
+  Sparkles,
+  UserCheck,
+  Zap,
+  Mail,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Lock,
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
-type AdminTab = "users" | "subscriptions" | "settings";
+// Authorized admin emails
+const DEFAULT_ADMIN_EMAILS = ["admin@prathomix.tech"];
 
-export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState<AdminTab>("users");
+export default function AdminPage() {
+  const [currentAdmin, setCurrentAdmin] = useState<{
+    email: string;
+    role?: string;
+  } | null>(null);
+  const [isVerifyingAuth, setIsVerifyingAuth] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
+  // Form State
+  const [targetEmail, setTargetEmail] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState<"pro" | "enterprise">("pro");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+    details?: any;
+  } | null>(null);
+
+  // Recent Manual Overrides (Local audit log)
+  const [recentGrants, setRecentGrants] = useState<
+    Array<{
+      email: string;
+      plan: string;
+      grantedAt: string;
+      status: string;
+    }>
+  >([]);
+
+  // ── 1. Check Admin Authorization ──────────────────────────────────────────
+  useEffect(() => {
+    async function checkAdminAuth() {
+      setIsVerifyingAuth(true);
+
+      try {
+        // First check Supabase Auth Session
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        let email = user?.email?.toLowerCase();
+        let role = (user?.user_metadata as any)?.role;
+
+        // Fallback to local user session
+        if (!email && typeof window !== "undefined") {
+          const stored =
+            localStorage.getItem("masmspace_current_user") ||
+            localStorage.getItem("wasmspace_current_user");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            email = parsed.email?.toLowerCase();
+            role = parsed.role;
+          }
+        }
+
+        if (email) {
+          setCurrentAdmin({ email, role });
+          // Check if admin email or admin role
+          const hasAccess =
+            DEFAULT_ADMIN_EMAILS.includes(email) ||
+            role === "admin" ||
+            email.endsWith("@prathomix.tech");
+          setIsAuthorized(Boolean(hasAccess));
+        } else {
+          setIsAuthorized(false);
+        }
+      } catch (err) {
+        console.error("Admin auth check error:", err);
+        setIsAuthorized(false);
+      } finally {
+        setIsVerifyingAuth(false);
+      }
+    }
+
+    checkAdminAuth();
+
+    // Load local overrides history if available
+    try {
+      const storedHistory = localStorage.getItem("masmspace_admin_grants");
+      if (storedHistory) {
+        setRecentGrants(JSON.parse(storedHistory));
+      }
+    } catch {}
+  }, []);
+
+  // ── 2. Handle Manual Subscription Grant ────────────────────────────────────
+  const handleGrantSubscription = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = targetEmail.trim().toLowerCase();
+
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      setFeedback({
+        type: "error",
+        message: "Please enter a valid target user email address.",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFeedback(null);
+
+    try {
+      const res = await fetch("/api/admin/grant-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: cleanEmail,
+          plan: selectedPlan,
+          admin_email: currentAdmin?.email,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data?.success) {
+        setFeedback({
+          type: "success",
+          message: data.message || `Successfully granted ${selectedPlan.toUpperCase()} tier to ${cleanEmail}`,
+          details: data.user,
+        });
+
+        // Add to audit log
+        const newEntry = {
+          email: cleanEmail,
+          plan: selectedPlan,
+          grantedAt: new Date().toLocaleTimeString(),
+          status: "active",
+        };
+        const updated = [newEntry, ...recentGrants.slice(0, 9)];
+        setRecentGrants(updated);
+        try {
+          localStorage.setItem("masmspace_admin_grants", JSON.stringify(updated));
+        } catch {}
+
+        setTargetEmail("");
+      } else {
+        setFeedback({
+          type: "error",
+          message:
+            data?.error || data?.detail || "Failed to grant subscription. Check server logs.",
+        });
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: "error",
+        message: err?.message || "Network error connecting to backend.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ── 3. Quick Bypass Login for Local Dev/Demo ──────────────────────────────
+  const handleDemoAdminLogin = () => {
+    const demoAdmin = {
+      email: "admin@prathomix.tech",
+      role: "admin",
+      name: "Prathomix Lead Admin",
+    };
+    localStorage.setItem("masmspace_current_user", JSON.stringify(demoAdmin));
+    setCurrentAdmin(demoAdmin);
+    setIsAuthorized(true);
+  };
+
+  // ── 4. Loading State ───────────────────────────────────────────────────────
+  if (isVerifyingAuth) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-zinc-100 font-mono">
+        <div className="flex items-center gap-3 p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 backdrop-blur-xl">
+          <Loader2 className="w-5 h-5 animate-spin text-neon-cyan" />
+          <span>Verifying Admin Permissions...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 5. Unauthorized Gate ───────────────────────────────────────────────────
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center px-6 relative overflow-hidden text-zinc-100 font-mono">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-red-500/5 rounded-full blur-[140px] pointer-events-none" />
+
+        <div className="max-w-md w-full p-8 rounded-3xl bg-zinc-900/80 border border-red-500/30 backdrop-blur-2xl text-center space-y-6 shadow-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-xl font-bold tracking-tight text-white">
+              Restricted Admin Console
+            </h1>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              This route is restricted to verified administrators (
+              <span className="text-neon-cyan">admin@prathomix.tech</span>).
+            </p>
+          </div>
+
+          {currentAdmin?.email && (
+            <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-400">
+              Authenticated as:{" "}
+              <span className="text-zinc-200 font-bold">{currentAdmin.email}</span>
+            </div>
+          )}
+
+          <div className="space-y-3 pt-2">
+            <button
+              onClick={handleDemoAdminLogin}
+              className="w-full py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-wider bg-neon-cyan/15 hover:bg-neon-cyan/25 text-neon-cyan border border-neon-cyan/40 transition-all shadow-[0_0_15px_rgba(0,245,255,0.15)] flex items-center justify-center gap-2"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Simulate Admin Access (admin@prathomix.tech)</span>
+            </button>
+
+            <Link
+              href="/login"
+              className="block w-full py-2.5 px-4 rounded-xl text-xs text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700 transition-all"
+            >
+              ← Sign In with Another Account
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 6. Authorized Cyber-Glassmorphism Admin UI ─────────────────────────────
   return (
-    <div className="min-h-screen bg-canvas-dark text-zinc-100 font-sans selection:bg-neon-cyan/20 selection:text-neon-cyan">
-      {/* Background Ambience */}
+    <div className="min-h-screen bg-slate-950 text-zinc-100 font-mono relative selection:bg-neon-cyan/20 selection:text-neon-cyan">
+      {/* Cyber Ambient Neon Background */}
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-neon-cyan/5 rounded-full blur-[140px]" />
-        <div className="absolute bottom-10 right-10 w-[500px] h-[500px] bg-neon-purple/5 rounded-full blur-[160px]" />
+        <div className="absolute -top-32 left-1/4 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[160px]" />
+        <div className="absolute top-1/2 right-10 w-[500px] h-[500px] bg-violet-500/10 rounded-full blur-[180px]" />
       </div>
 
-      {/* ── Top Header Bar ─────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      {/* Top Bar */}
+      <header className="border-b border-white/10 bg-zinc-950/70 backdrop-blur-xl sticky top-0 z-30">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="font-bold text-lg text-white font-mono flex items-center gap-2 group"
+              className="font-bold text-base text-white tracking-tight flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
-              <span className="text-neon-cyan group-hover:scale-110 transition-transform">✦</span>
+              <span className="text-neon-cyan text-lg">✦</span>
               <span>MasmSpace</span>
             </Link>
-            <span className="text-zinc-600">/</span>
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan">
-              <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-pulse" />
-              <span>ADMIN OS</span>
+            <span className="text-zinc-700">/</span>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              <span>ADMIN OVERRIDE</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 text-xs">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-400">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Admin: {currentAdmin?.email}</span>
+            </div>
             <Link
               href="/canvas"
-              className="text-xs font-mono px-3.5 py-1.5 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:border-neon-cyan/40 text-zinc-300 hover:text-white transition-all flex items-center gap-2"
+              className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white transition-all"
             >
-              <span>✍️</span>
-              <span>Canvas Studio</span>
+              Go to Canvas →
             </Link>
-            <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-zinc-800 text-xs font-mono text-zinc-400">
-              <span className="w-2 h-2 rounded-full bg-neon-green" />
-              <span>Supabase RBAC: Enforced</span>
-            </div>
           </div>
         </div>
       </header>
 
-      {/* ── Main Dashboard Body ────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          {/* ── Sidebar (Tabs Navigation) ───────────────────────────── */}
-          <aside className="md:col-span-3 space-y-6">
-            <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 backdrop-blur-xl space-y-2">
-              <div className="text-xs font-mono uppercase tracking-wider text-zinc-500 px-3 py-1">
-                Admin Controls
-              </div>
-
-              {/* Tab: Users */}
-              <button
-                onClick={() => setActiveTab("users")}
-                className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-mono transition-all text-left ${
-                  activeTab === "users"
-                    ? "bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/40 shadow-[0_0_16px_rgba(0,245,255,0.15)] font-bold"
-                    : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 border border-transparent"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-base">👥</span>
-                  <div>
-                    <div>Users</div>
-                    <div className="text-[10px] text-zinc-500 font-normal">Roles &amp; Pro Access</div>
-                  </div>
-                </div>
-                {activeTab === "users" && <span className="text-neon-cyan">→</span>}
-              </button>
-
-              {/* Tab: Subscriptions */}
-              <button
-                onClick={() => setActiveTab("subscriptions")}
-                className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-mono transition-all text-left ${
-                  activeTab === "subscriptions"
-                    ? "bg-neon-purple/15 text-neon-purple border border-neon-purple/40 shadow-[0_0_16px_rgba(168,85,247,0.15)] font-bold"
-                    : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 border border-transparent"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-base">⚡</span>
-                  <div>
-                    <div>Subscriptions</div>
-                    <div className="text-[10px] text-zinc-500 font-normal">MRR, Seats &amp; Plans</div>
-                  </div>
-                </div>
-                {activeTab === "subscriptions" && <span className="text-neon-purple">→</span>}
-              </button>
-
-              {/* Tab: Site Settings */}
-              <button
-                onClick={() => setActiveTab("settings")}
-                className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-mono transition-all text-left ${
-                  activeTab === "settings"
-                    ? "bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/40 shadow-[0_0_16px_rgba(0,245,255,0.15)] font-bold"
-                    : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 border border-transparent"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-base">⚙️</span>
-                  <div>
-                    <div>Site Settings</div>
-                    <div className="text-[10px] text-zinc-500 font-normal">Dynamic CMS &amp; Pricing</div>
-                  </div>
-                </div>
-                {activeTab === "settings" && <span className="text-neon-cyan">→</span>}
-              </button>
-            </div>
-
-            {/* Quick Admin Security Info Box */}
-            <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800 text-xs font-mono space-y-2">
-              <div className="text-zinc-400 font-bold flex items-center gap-1.5">
-                <span>🛡️</span> Security Context
-              </div>
-              <p className="text-[11px] text-zinc-500 leading-relaxed">
-                Protected by Next.js Server Middleware + Supabase Row Level Security (RLS). Mutations are restricted to verified <code className="text-neon-cyan">admin</code> roles.
-              </p>
-            </div>
-          </aside>
-
-          {/* ── Main Tab Content (Right 9 Cols) ────────────────────── */}
-          <main className="md:col-span-9">
-            {activeTab === "users" && <UserManagementModule />}
-            {activeTab === "subscriptions" && <SubscriptionModule />}
-            {activeTab === "settings" && <SiteSettingsModule />}
-          </main>
+      {/* Main Admin Console */}
+      <main className="max-w-4xl mx-auto px-6 py-12 space-y-10">
+        {/* Header Title */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
+            <Zap className="w-7 h-7 text-neon-cyan" />
+            <span>Manual Subscription Override</span>
+          </h1>
+          <p className="text-xs text-zinc-400 leading-relaxed">
+            Instantly grant lifetime or promotional Pro/Enterprise access to users in
+            Supabase without requiring a Razorpay checkout transaction.
+          </p>
         </div>
-      </div>
+
+        {/* Cyber-Glassmorphism Form Card */}
+        <div className="p-8 rounded-3xl bg-zinc-900/60 border border-white/10 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.4)] relative overflow-hidden">
+          {/* Subtle top glow line */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-neon-cyan to-transparent opacity-80" />
+
+          <form onSubmit={handleGrantSubscription} className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* User Email Input */}
+              <div className="sm:col-span-2 space-y-2">
+                <label className="block text-xs uppercase tracking-wider text-zinc-400 font-bold">
+                  User Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    required
+                    value={targetEmail}
+                    onChange={(e) => setTargetEmail(e.target.value)}
+                    placeholder="e.g. developer@company.com"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-zinc-950/80 border border-zinc-800 focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan text-xs text-white placeholder-zinc-600 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Tier Selection */}
+              <div className="space-y-2">
+                <label className="block text-xs uppercase tracking-wider text-zinc-400 font-bold">
+                  Subscription Tier
+                </label>
+                <select
+                  value={selectedPlan}
+                  onChange={(e) =>
+                    setSelectedPlan(e.target.value as "pro" | "enterprise")
+                  }
+                  className="w-full px-4 py-3 rounded-xl bg-zinc-950/80 border border-zinc-800 focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan text-xs text-zinc-200 outline-none transition-all cursor-pointer"
+                >
+                  <option value="pro">Pro Plan (Unlimited AI)</option>
+                  <option value="enterprise">Enterprise (Dedicated)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-neon-cyan via-cyan-500 to-violet-600 hover:opacity-90 text-zinc-950 transition-all shadow-[0_0_25px_rgba(0,245,255,0.25)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Upgrading Database...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="w-4 h-4 text-zinc-950" />
+                    <span>Grant Subscription</span>
+                  </>
+                )}
+              </button>
+
+              <span className="text-[11px] text-zinc-500">
+                ⚡ Directly updates Supabase <code className="text-zinc-400">public.profiles</code> table.
+              </span>
+            </div>
+          </form>
+
+          {/* Feedback Alert */}
+          {feedback && (
+            <div
+              className={`mt-6 p-4 rounded-2xl border flex items-start gap-3 text-xs transition-all ${
+                feedback.type === "success"
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                  : "bg-red-500/10 border-red-500/30 text-red-400"
+              }`}
+            >
+              {feedback.type === "success" ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+              )}
+              <div className="space-y-1">
+                <p className="font-bold">{feedback.message}</p>
+                {feedback.details && (
+                  <p className="text-[11px] opacity-80">
+                    Status: {feedback.details.subscription_status || "active"} |
+                    Role: {feedback.details.role || "pro"}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Audit Log / Recent Overrides */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm uppercase tracking-wider text-zinc-400 font-bold flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-neon-cyan" />
+              <span>Recent Manual Overrides</span>
+            </h2>
+            <button
+              onClick={() => {
+                setRecentGrants([]);
+                localStorage.removeItem("masmspace_admin_grants");
+              }}
+              className="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              Clear Log
+            </button>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 backdrop-blur-xl overflow-hidden">
+            {recentGrants.length === 0 ? (
+              <div className="p-8 text-center text-xs text-zinc-500">
+                No manual subscription grants performed in this session.
+              </div>
+            ) : (
+              <div className="divide-y divide-zinc-800/60 text-xs">
+                {recentGrants.map((entry, idx) => (
+                  <div
+                    key={idx}
+                    className="p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+                  >
+                    <div className="space-y-0.5">
+                      <div className="font-bold text-white">{entry.email}</div>
+                      <div className="text-[11px] text-zinc-500">
+                        Granted at {entry.grantedAt}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                        {entry.plan}
+                      </span>
+                      <span className="px-2 py-1 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                        {entry.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

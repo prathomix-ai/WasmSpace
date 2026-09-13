@@ -1,31 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
 
+const AI_BACKEND_URL =
+  process.env.NEXT_PUBLIC_AI_BACKEND_URL ||
+  process.env.AI_BACKEND_URL ||
+  "http://localhost:8000";
+
 export async function POST(req: NextRequest) {
   try {
-    const key_id = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+    const key_id =
+      process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     const key_secret = process.env.RAZORPAY_KEY_SECRET;
 
-    if (!key_id || !key_secret) {
-      return NextResponse.json(
-        { error: "Razorpay credentials not configured in environment" },
-        { status: 401 }
-      );
-    }
-
     const body = await req.json().catch(() => ({}));
-    const { plan = "monthly", currency = "USD", receipt } = body;
+    const { plan = "monthly", currency = "USD", receipt, user_email } = body;
     const isYearly = plan === "yearly";
 
-    // ── Razorpay Subunit (Smallest Unit) Amount Calculation ─────────────────
-    // Razorpay strictly requires amounts in lowest currency subunit (cents for USD, paise for INR)
-    // Monthly: $5.00  -> 500 cents (or 42,000 paise)
-    // Yearly:  $49.00 -> 4900 cents (or 410,000 paise)
+    // ── 1. Calculate Amount in Currency Lowest Subunits (* 100) ─────────────
     const rawCurrency = (currency || "USD").toUpperCase();
     let amountInSubunits: number;
 
     if (rawCurrency === "INR") {
-      // INR: ₹420 (≈ $5) = 42,000 paise, ₹4,100 (≈ $49) = 410,000 paise
       if (body.amount !== undefined && Number(body.amount) >= 100) {
         amountInSubunits = Math.round(Number(body.amount));
       } else {
@@ -33,22 +28,72 @@ export async function POST(req: NextRequest) {
         amountInSubunits = inrRupees * 100;
       }
     } else {
-      // USD / International:
-      // Critical Fix: prevent $5 from being treated as 5 cents/paise
       if (body.amount !== undefined && Number(body.amount) >= 100) {
         amountInSubunits = Math.round(Number(body.amount));
-      } else if (body.amount !== undefined && Number(body.amount) > 0 && Number(body.amount) < 100) {
+      } else if (
+        body.amount !== undefined &&
+        Number(body.amount) > 0 &&
+        Number(body.amount) < 100
+      ) {
         amountInSubunits = Math.round(Number(body.amount) * 100);
       } else {
         amountInSubunits = isYearly ? 4900 : 500;
       }
     }
 
-    // Minimum 100 subunits validation (Razorpay requirement)
+    // Minimum 100 subunits validation
     if (isNaN(amountInSubunits) || amountInSubunits < 100) {
       return NextResponse.json(
-        { error: "Amount must be at least 100 subunits (100 cents / 100 paise)" },
+        {
+          success: false,
+          error: "Amount must be at least 100 subunits (100 cents / 100 paise)",
+        },
         { status: 400 }
+      );
+    }
+
+    // ── 2. Attempt Order Creation via FastAPI Backend (Primary) ─────────────
+    try {
+      const fastApiResponse = await fetch(
+        `${AI_BACKEND_URL}/create-razorpay-order`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            plan,
+            amount: amountInSubunits,
+            currency: rawCurrency,
+            receipt,
+            user_email,
+          }),
+          signal: AbortSignal.timeout(4000),
+        }
+      );
+
+      if (fastApiResponse.ok) {
+        const fastApiData = await fastApiResponse.json().catch(() => null);
+        if (fastApiData && fastApiData.order_id) {
+          return NextResponse.json({
+            success: true,
+            order_id: fastApiData.order_id,
+            amount: fastApiData.amount,
+            currency: fastApiData.currency,
+            key_id: fastApiData.key_id || key_id,
+          });
+        }
+      }
+    } catch {
+      // FastAPI unreachable or timed out; fall through to direct Node Razorpay SDK
+    }
+
+    // ── 3. Node SDK Fallback ───────────────────────────────────────────────
+    if (!key_id || !key_secret) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Razorpay credentials not configured in environment (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET)",
+        },
+        { status: 500 }
       );
     }
 
@@ -58,15 +103,17 @@ export async function POST(req: NextRequest) {
     });
 
     const receiptId =
-      receipt || `rcpt_${plan}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      receipt ||
+      `rcpt_${plan}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     const options = {
       amount: amountInSubunits,
-      currency: currency.toUpperCase(),
+      currency: rawCurrency,
       receipt: receiptId,
       notes: {
         plan,
         base_price: isYearly ? 49 : 5,
+        user_email: user_email || "",
         service: "PRATHOMIX MasmSpace Pro",
       },
     };
@@ -74,6 +121,7 @@ export async function POST(req: NextRequest) {
     const order = await razorpay.orders.create(options);
 
     return NextResponse.json({
+      success: true,
       order_id: order.id,
       amount: order.amount,
       currency: order.currency,
@@ -82,27 +130,13 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("Razorpay Create Order Error:", error);
 
-    // Specific currency unsupported warning
-    if (error?.statusCode === 400 && error?.error?.description?.includes("currency")) {
-      return NextResponse.json(
-        {
-          error: `${error.error.description}. Try fallback currency: 'INR'.`,
-          code: "CURRENCY_NOT_SUPPORTED",
-        },
-        { status: 400 }
-      );
-    }
-
-    if (error?.statusCode === 401 || error?.error?.code === "BAD_REQUEST_ERROR") {
-      return NextResponse.json(
-        { error: error?.error?.description || "Razorpay authentication or validation failure" },
-        { status: error?.statusCode || 401 }
-      );
-    }
-
     return NextResponse.json(
-      { error: error?.error?.description || error?.message || "Failed to create Razorpay order" },
-      { status: 500 }
+      {
+        success: false,
+        error: error?.message || "Internal server error during order creation",
+        detail: error?.description || null,
+      },
+      { status: error?.statusCode || 500 }
     );
   }
 }

@@ -13,3 +13,6 @@ pydantic
 
 # Environment variables
 python-dotenv
+
+# Payment Gateway
+razorpay
