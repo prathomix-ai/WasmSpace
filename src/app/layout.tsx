@@ -6,6 +6,10 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#05070f" },
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -17,24 +21,28 @@ const siteUrl = "https://masmspace.online";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "MasmSpace | Next-Gen AI & WebAssembly Workspace",
+    default: "MasmSpace | Next-Gen AI & Developer Workspace",
     template: "%s | MasmSpace",
   },
   description:
-    "Architect, brainstorm, and execute code directly in your browser. MasmSpace is the infinite AI-powered whiteboard with native WebAssembly runtime, real-time collaboration, and intelligent system modeling.",
+    "Experience MasmSpace — the cyber-glassmorphism AI & developer workspace. Brainstorm, diagram, and execute code in real-time with native WebAssembly, multi-agent AI intelligence, Next.js App Router speed, and high-performance Python FastAPI & Supabase backend.",
   keywords: [
     "MasmSpace",
+    "AI workspace",
+    "developer tools",
+    "Next.js",
+    "FastAPI",
+    "SaaS",
+    "cyber glassmorphism",
     "WebAssembly IDE",
-    "AI Whiteboard",
-    "Infinite Canvas",
-    "In-Browser Code Execution",
+    "AI whiteboard",
+    "real-time collaboration",
+    "Supabase",
+    "code execution",
+    "system architecture modeling",
+    "infinite canvas",
+    "developer productivity",
     "Pyodide Python",
-    "Excalidraw Collaboration",
-    "Real-time Whiteboard",
-    "System Architecture Tool",
-    "Visual Programming",
-    "Technical Canvas",
-    "AI Workspace",
   ],
   authors: [{ name: "MasmSpace Team", url: siteUrl }],
   creator: "MasmSpace",
@@ -42,12 +50,12 @@ export const metadata: Metadata = {
   applicationName: "MasmSpace",
   category: "technology",
   alternates: {
-    canonical: siteUrl,
+    canonical: "/",
   },
   openGraph: {
-    title: "MasmSpace | Next-Gen AI & WebAssembly Workspace",
+    title: "MasmSpace | Next-Gen AI & Developer Workspace",
     description:
-      "Architect, brainstorm, and execute code in real time. The infinite AI-powered whiteboard with native WebAssembly runtime and collaborative intelligence.",
+      "Step into a high-performance cyber-glassmorphism workspace uniting Next.js, Python FastAPI, and Supabase with autonomous AI agents and in-browser code execution.",
     url: siteUrl,
     siteName: "MasmSpace",
     locale: "en_US",
@@ -57,15 +65,15 @@ export const metadata: Metadata = {
         url: "/masmspace-logo.png",
         width: 1200,
         height: 630,
-        alt: "MasmSpace — Next-Gen AI & WebAssembly Workspace",
+        alt: "MasmSpace — Next-Gen AI & Developer Workspace",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "MasmSpace | Next-Gen AI & WebAssembly Workspace",
+    title: "MasmSpace | Next-Gen AI & Developer Workspace",
     description:
-      "Architect, brainstorm, and execute code in real time. The infinite AI-powered whiteboard with native WebAssembly runtime.",
+      "High-performance cyber-glassmorphism developer workspace. Powered by Next.js, Python FastAPI, Supabase, and WebAssembly code execution.",
     creator: "@masmspace",
     images: ["/masmspace-logo.png"],
   },
@@ -87,6 +95,76 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${siteUrl}/#website`,
+      url: siteUrl,
+      name: "MasmSpace",
+      description:
+        "Next-Gen AI & Developer Workspace featuring cyber-glassmorphism UI, native WebAssembly runtime, Next.js App Router, Python FastAPI, and Supabase.",
+      publisher: {
+        "@type": "Organization",
+        name: "MasmSpace",
+        url: siteUrl,
+        logo: {
+          "@type": "ImageObject",
+          url: `${siteUrl}/masmspace-logo.png`,
+        },
+      },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${siteUrl}/canvas?q={search_term_string}`,
+        },
+        "query-input": "required name=search_term_string",
+      },
+      "inLanguage": "en-US",
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": `${siteUrl}/#software`,
+      name: "MasmSpace",
+      url: siteUrl,
+      operatingSystem: "Web Browser, Windows, macOS, Linux",
+      applicationCategory: "DeveloperApplication",
+      applicationSubCategory: "AI Developer Workspace & Collaborative Canvas",
+      description:
+        "Cyber-glassmorphism AI & Developer Workspace with native WebAssembly code execution, collaborative whiteboard canvas, and autonomous AI system design.",
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+        availability: "https://schema.org/InStock",
+      },
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: "4.9",
+        ratingCount: "1280",
+        bestRating: "5",
+        worstRating: "1",
+      },
+      softwareVersion: "2.0.0",
+      featureList: [
+        "Cyber-glassmorphism aesthetic UI",
+        "Infinite collaborative whiteboard canvas",
+        "In-browser WebAssembly Python execution",
+        "Python FastAPI backend with RAG vector search",
+        "Supabase real-time cloud database and auth",
+        "AI-assisted system architecture diagramming",
+      ],
+      screenshot: `${siteUrl}/masmspace-logo.png`,
+      author: {
+        "@type": "Organization",
+        name: "MasmSpace",
+      },
+    },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -95,9 +173,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
       <body

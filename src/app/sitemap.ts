@@ -1,45 +1,57 @@
 import { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://masmspace.online";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://masmspace.online";
   const currentDate = new Date();
 
-  return [
+  // Dynamic public route definitions with SEO priority and indexing frequency
+  const routes = [
     {
-      url: baseUrl,
-      lastModified: currentDate,
-      changeFrequency: "daily",
+      path: "",
+      changeFrequency: "daily" as const,
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/canvas`,
-      lastModified: currentDate,
-      changeFrequency: "always",
+      path: "/canvas",
+      changeFrequency: "daily" as const,
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/login`,
-      lastModified: currentDate,
-      changeFrequency: "monthly",
+      path: "/features",
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    },
+    {
+      path: "/pricing",
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    },
+    {
+      path: "/login",
+      changeFrequency: "monthly" as const,
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/terms`,
-      lastModified: currentDate,
-      changeFrequency: "yearly",
-      priority: 0.3,
+      path: "/terms",
+      changeFrequency: "monthly" as const,
+      priority: 0.4,
     },
     {
-      url: `${baseUrl}/privacy`,
-      lastModified: currentDate,
-      changeFrequency: "yearly",
-      priority: 0.3,
+      path: "/privacy",
+      changeFrequency: "monthly" as const,
+      priority: 0.4,
     },
     {
-      url: `${baseUrl}/cookies`,
-      lastModified: currentDate,
-      changeFrequency: "yearly",
+      path: "/cookies",
+      changeFrequency: "monthly" as const,
       priority: 0.3,
     },
   ];
+
+  return routes.map((route) => ({
+    url: `${baseUrl}${route.path}`,
+    lastModified: currentDate,
+    changeFrequency: route.changeFrequency,
+    priority: route.priority,
+  }));
 }
