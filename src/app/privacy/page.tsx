@@ -2,8 +2,8 @@ import React from "react";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy Policy | WasmSpace AI Whiteboard",
-  description: "Privacy Policy governing data processing, local execution, and third-party storage on WasmSpace.",
+  title: "Privacy Policy | MasmSpace AI Whiteboard",
+  description: "Privacy Policy governing data processing, local execution, and third-party storage on MasmSpace.",
 };
 
 export default function PrivacyPage() {
@@ -22,7 +22,7 @@ export default function PrivacyPage() {
             href="/"
             className="flex items-center gap-2 text-sm text-zinc-400 hover:text-neon-cyan transition-colors"
           >
-            ← Back to WasmSpace Home
+            ← Back to MasmSpace Home
           </Link>
           <div className="font-mono text-xs text-zinc-500">
             PRIVACY DISCLOSURE // PRIV-2026
@@ -40,7 +40,7 @@ export default function PrivacyPage() {
             PRIVACY &amp; DATA PROCESSING POLICY
           </h1>
           <p className="text-sm text-zinc-400 leading-relaxed">
-            This Privacy Policy describes how PRATHOMIX (&ldquo;Company&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;) handles information across the WasmSpace AI SaaS platform, specifically highlighting local browser sandboxing and third-party infrastructure boundaries.
+            This Privacy Policy describes how PRATHOMIX (&ldquo;Company&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;) handles information across the MasmSpace AI SaaS platform, specifically highlighting local browser sandboxing and third-party infrastructure boundaries.
           </p>
         </div>
 
@@ -48,7 +48,7 @@ export default function PrivacyPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-bold text-white font-mono">1. Local Execution Philosophy (Zero Server Retention)</h2>
           <p className="text-sm text-zinc-300 leading-relaxed">
-            Unlike legacy collaborative suites, WasmSpace processes core code execution locally inside your browser via <strong>WebAssembly (Pyodide WASM)</strong>. Your local Python calculations, scripts, and runtime outputs are executed purely within your device&apos;s memory sandbox without transmission to or retention on our application servers.
+            Unlike legacy collaborative suites, MasmSpace processes core code execution locally inside your browser via <strong>WebAssembly (Pyodide WASM)</strong>. Your local Python calculations, scripts, and runtime outputs are executed purely within your device&apos;s memory sandbox without transmission to or retention on our application servers.
           </p>
         </section>
 
@@ -56,7 +56,7 @@ export default function PrivacyPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-bold text-white font-mono">2. Third-Party Cloud Infrastructure &amp; Breach Immunity</h2>
           <p className="text-sm text-zinc-300 leading-relaxed">
-            To provide enterprise-grade scale, database persistence, and AI inference, WasmSpace interfaces with select third-party infrastructure providers:
+            To provide enterprise-grade scale, database persistence, and AI inference, MasmSpace interfaces with select third-party infrastructure providers:
           </p>
           <ul className="list-disc pl-6 space-y-1 text-xs sm:text-sm text-zinc-400">
             <li><strong>Supabase Inc.</strong> for PostgreSQL database, vector embeddings storage, and real-time WebSockets;</li>
@@ -108,7 +108,7 @@ export default function PrivacyPage() {
         <section className="space-y-3 border-t border-zinc-800 pt-8">
           <h2 className="text-xl font-bold text-white font-mono">4. Corporate Privacy Contact</h2>
           <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-400 space-y-1">
-            <div>Privacy Desk: PRATHOMIX SOLUTION (WasmSpace Division)</div>
+            <div>Privacy Desk: PRATHOMIX SOLUTION (MasmSpace Division)</div>
             <div>Official Portal: <a href="https://prathomix.tech" className="text-neon-cyan hover:underline">https://prathomix.tech</a></div>
             <div>Inquiries: <a href="mailto:support@prathomix.tech" className="text-neon-cyan hover:underline">support@prathomix.tech</a></div>
           </div>
@@ -117,7 +117,7 @@ export default function PrivacyPage() {
 
       {/* Footer */}
       <footer className="border-t border-zinc-800/80 bg-zinc-950 py-8 text-center text-xs text-zinc-500 font-mono">
-        WasmSpace AI OS • Powered by{" "}
+        MasmSpace AI OS • Powered by{" "}
         <a href="https://prathomix.tech" className="text-zinc-300 hover:text-neon-cyan transition-colors font-bold">
           PRATHOMIX
         </a>

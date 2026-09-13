@@ -1,6 +1,6 @@
-# WasmSpace AI Backend
+# MasmSpace AI Backend
 
-FastAPI server that provides AI-powered meeting summarisation for the WasmSpace collaborative whiteboard.
+FastAPI server that provides AI-powered meeting summarisation for the MasmSpace collaborative whiteboard.
 
 ## Stack
 
@@ -40,7 +40,7 @@ Interactive docs at `http://localhost:8000/docs`
 ## Getting a Hugging Face Token
 
 1. Go to https://huggingface.co/settings/tokens
-2. Click **New token** → Name it "wasmspace-ai" → Role: **Read**
+2. Click **New token** → Name it "masmspace-ai" → Role: **Read**
 3. Copy the token and paste it as `HF_TOKEN` in your `.env` file
 
 The free tier of the Serverless Inference API supports Qwen2.5-72B-Instruct.  

@@ -64,11 +64,11 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           error.message.includes("Invalid API key")
         ) {
           const mockUser = {
-            email: "google.user@wasmspace.ai",
+            email: "google.user@masmspace.ai",
             name: "Google Explorer",
             role: "user" as const,
           };
-          localStorage.setItem("wasmspace_current_user", JSON.stringify(mockUser));
+          localStorage.setItem("masmspace_current_user", JSON.stringify(mockUser));
           onAuthSuccess?.({ email: mockUser.email, role: mockUser.role });
           onClose();
           return;
@@ -129,7 +129,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
               phone: phoneNumber,
               role,
             });
-            localStorage.setItem("wasmspace_current_user", payload);
+            localStorage.setItem("masmspace_current_user", payload);
             onAuthSuccess?.({ email, role });
             onClose();
             return;
@@ -157,7 +157,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
               ? "admin"
               : "user";
             const payload = JSON.stringify({ email, role });
-            localStorage.setItem("wasmspace_current_user", payload);
+            localStorage.setItem("masmspace_current_user", payload);
             onAuthSuccess?.({ email, role });
             onClose();
             return;
@@ -183,7 +183,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           name: data?.user?.user_metadata?.full_name || email.split("@")[0],
           role: userRole,
         });
-        localStorage.setItem("wasmspace_current_user", sessionData);
+        localStorage.setItem("masmspace_current_user", sessionData);
         onAuthSuccess?.({ email, role: userRole });
         onClose();
       }
@@ -227,8 +227,8 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-white/[0.04] border border-white/15 p-1.5 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.2)]">
               <Image
-                src="/wasmspace-logo.png"
-                alt="WasmSpace Logo"
+                src="/masmspace-logo.png"
+                alt="MasmSpace Logo"
                 width={32}
                 height={32}
                 className="object-contain"
@@ -238,14 +238,14 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold tracking-tight text-white">
-                  WasmSpace
+                  MasmSpace
                 </span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
                   Auth OS
                 </span>
               </div>
               <h2 className="text-xl font-bold tracking-tight text-white mt-0.5">
-                {isSignUp ? "Create Your Account" : "Sign In to WasmSpace"}
+                {isSignUp ? "Create Your Account" : "Sign In to MasmSpace"}
               </h2>
             </div>
           </div>
@@ -363,7 +363,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="alex@wasmspace.ai"
+                placeholder="alex@masmspace.ai"
                 className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/30 transition-all font-sans"
               />
             </div>
@@ -467,7 +467,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                 </>
               ) : (
                 <>
-                  <span>{isSignUp ? "Create Free Account" : "Sign In to WasmSpace"}</span>
+                  <span>{isSignUp ? "Create Free Account" : "Sign In to MasmSpace"}</span>
                   <ArrowRight className="w-4 h-4 text-white" />
                 </>
               )}

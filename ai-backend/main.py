@@ -1,7 +1,7 @@
 """
-WasmSpace AI Backend — FastAPI Server
+MasmSpace AI Backend — FastAPI Server
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Intelligence layer for the WasmSpace collaborative whiteboard.
+Intelligence layer for the MasmSpace collaborative whiteboard.
 
 Endpoints:
   POST /api/summarize     -- AI summary + action items from canvas (Qwen2.5-72B)
@@ -34,16 +34,16 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
 )
-logger = logging.getLogger("wasmspace-ai")
+logger = logging.getLogger("masmspace-ai")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # App
 # ─────────────────────────────────────────────────────────────────────────────
 app = FastAPI(
-    title="WasmSpace AI Backend",
+    title="MasmSpace AI Backend",
     description=(
         "Summarisation, action-item extraction, and vector RAG search "
-        "for the WasmSpace collaborative whiteboard."
+        "for the MasmSpace collaborative whiteboard."
     ),
     version="2.0.0",
 )
@@ -163,7 +163,7 @@ def _build_canvas_content(req: SummarizeRequest) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 # Helper — call Hugging Face Serverless Inference (OpenAI-compatible)
 # ─────────────────────────────────────────────────────────────────────────────
-SYSTEM_PROMPT = """You are WasmSpace AI, an expert meeting analyst and productivity assistant.
+SYSTEM_PROMPT = """You are MasmSpace AI, an expert meeting analyst and productivity assistant.
 You will receive raw whiteboard content from a collaborative session and must produce a structured,
 actionable JSON summary.
 
@@ -273,7 +273,7 @@ app.include_router(rag_router)
 @app.get("/", tags=["health"])
 async def root():
     return {
-        "service": "WasmSpace AI Backend",
+        "service": "MasmSpace AI Backend",
         "status": "online",
         "model": HF_MODEL,
         "version": "2.0.0",

@@ -30,11 +30,11 @@ export function PricingModal({
       setIsProcessing(false);
       // Store local pro status for seamless demo
       try {
-        const currentUser = localStorage.getItem("wasmspace_current_user");
+        const currentUser = localStorage.getItem("masmspace_current_user") || localStorage.getItem("wasmspace_current_user");
         if (currentUser) {
           const parsed = JSON.parse(currentUser);
           parsed.role = "pro";
-          localStorage.setItem("wasmspace_current_user", JSON.stringify(parsed));
+          localStorage.setItem("masmspace_current_user", JSON.stringify(parsed));
         }
       } catch {
         // ignore

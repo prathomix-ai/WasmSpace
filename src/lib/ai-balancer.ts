@@ -1,6 +1,6 @@
 /**
  * ─────────────────────────────────────────────────────────────────────────────
- * WasmSpace — Elite AI Load Balancer & Key Rotator
+ * MasmSpace — Elite AI Load Balancer & Key Rotator
  * ─────────────────────────────────────────────────────────────────────────────
  * Features:
  * 1. Round-Robin Key Cycling across multiple free-tier keys (GEMINI_KEY_1..5, GROQ_KEY_1..5).

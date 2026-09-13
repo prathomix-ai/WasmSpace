@@ -73,11 +73,11 @@ function LoginForm() {
           error.message.includes("Invalid API key")
         ) {
           const mockUser = {
-            email: "google.user@wasmspace.ai",
+            email: "google.user@masmspace.ai",
             name: "Google Explorer",
             role: "user" as const,
           };
-          localStorage.setItem("wasmspace_current_user", JSON.stringify(mockUser));
+          localStorage.setItem("masmspace_current_user", JSON.stringify(mockUser));
           setSuccessMsg("Logged in with Google! Redirecting...");
           setTimeout(() => router.push("/canvas"), 800);
           return;
@@ -140,7 +140,7 @@ function LoginForm() {
               phone: phoneNumber,
               role,
             });
-            localStorage.setItem("wasmspace_current_user", sessionData);
+            localStorage.setItem("masmspace_current_user", sessionData);
             setSuccessMsg("Account created locally! Redirecting...");
             setTimeout(() => router.push("/canvas"), 800);
             return;
@@ -175,7 +175,7 @@ function LoginForm() {
               name: email.split("@")[0],
               role,
             });
-            localStorage.setItem("wasmspace_current_user", sessionData);
+            localStorage.setItem("masmspace_current_user", sessionData);
 
             setSuccessMsg("Logged in successfully! Redirecting...");
             setTimeout(() => router.push("/canvas"), 800);
@@ -204,7 +204,7 @@ function LoginForm() {
           name: data?.user?.user_metadata?.full_name || email.split("@")[0],
           role: userRole,
         });
-        localStorage.setItem("wasmspace_current_user", sessionData);
+        localStorage.setItem("masmspace_current_user", sessionData);
 
         setSuccessMsg("Logged in successfully! Redirecting...");
         setTimeout(() => router.push("/canvas"), 800);
@@ -234,8 +234,8 @@ function LoginForm() {
         >
           <div className="w-10 h-10 rounded-2xl bg-white/[0.04] border border-white/15 p-1.5 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.2)] group-hover:scale-105 transition-transform">
             <Image
-              src="/wasmspace-logo.png"
-              alt="WasmSpace Logo"
+              src="/masmspace-logo.png"
+              alt="MasmSpace Logo"
               width={36}
               height={36}
               className="object-contain"
@@ -243,15 +243,15 @@ function LoginForm() {
             />
           </div>
           <span className="group-hover:text-cyan-300 transition-colors">
-            WasmSpace
+            MasmSpace
           </span>
         </Link>
         <h1 className="text-2xl font-bold tracking-tight text-white">
-          {isSignUp ? "Create Your Account" : "Sign In to WasmSpace"}
+          {isSignUp ? "Create Your Account" : "Sign In to MasmSpace"}
         </h1>
         <p className="text-xs sm:text-sm text-zinc-400">
           {isSignUp
-            ? "Join thousands of builders architecting systems with WasmSpace AI."
+            ? "Join thousands of builders architecting systems with MasmSpace AI."
             : "Sign in to access your technical canvases & AI intelligence."}
         </p>
       </div>
@@ -353,7 +353,7 @@ function LoginForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="alex@wasmspace.ai"
+              placeholder="alex@masmspace.ai"
               className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/30 transition-all font-sans"
             />
           </div>
@@ -457,7 +457,7 @@ function LoginForm() {
               </>
             ) : (
               <>
-                <span>{isSignUp ? "Create Free Account" : "Sign In to WasmSpace"}</span>
+                <span>{isSignUp ? "Create Free Account" : "Sign In to MasmSpace"}</span>
                 <ArrowRight className="w-4 h-4 text-white" />
               </>
             )}
@@ -510,7 +510,7 @@ export default function LoginPage() {
         fallback={
           <div className="w-full max-w-lg p-8 rounded-3xl bg-[#09090b]/80 backdrop-blur-2xl border border-white/15 text-center font-mono text-xs text-zinc-400">
             <Loader2 className="w-6 h-6 animate-spin mx-auto text-cyan-400 mb-2" />
-            <span>Loading WasmSpace Auth...</span>
+            <span>Loading MasmSpace Auth...</span>
           </div>
         }
       >

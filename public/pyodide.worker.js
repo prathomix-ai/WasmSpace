@@ -1,5 +1,5 @@
 /**
- * WasmSpace — Dedicated Pyodide WebAssembly Web Worker
+ * MasmSpace — Dedicated Pyodide WebAssembly Web Worker
  * 
  * Runs all Pyodide loading and Python code execution completely off the main UI thread.
  * Prevents UI freezes on low-end hardware (4GB RAM laptops) and releases memory when terminated.

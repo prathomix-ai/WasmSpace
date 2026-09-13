@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   WasmSpace — Global Design Tokens & Tailwind Base
+   MasmSpace — Global Design Tokens & Tailwind Base
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
@@ -254,7 +254,7 @@ body {
   --color-surface-low: #080a10 !important;
 }
 
-/* Push Excalidraw's top shape toolbar down so it never collides with our floating WasmSpace header */
+/* Push Excalidraw's top shape toolbar down so it never collides with our floating MasmSpace header */
 .excalidraw .App-toolbar-container {
   top: 74px !important;
   z-index: 30 !important;
@@ -285,7 +285,7 @@ body {
 }
 
 /* ── Toolbar overlay ───────────────────────────────────────────────────────── */
-.wasmspace-toolbar {
+.masmspace-toolbar {
   position: fixed;
   top: 16px;
   left: 50%;

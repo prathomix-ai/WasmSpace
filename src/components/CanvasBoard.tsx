@@ -9,7 +9,7 @@ export function CanvasSkeletonLoader() {
     <div className="flex h-full w-full min-h-[400px] items-center justify-center bg-[#06070a] text-zinc-400 font-mono text-sm">
       <div className="flex flex-col items-center gap-3">
         <div className="w-8 h-8 rounded-full border-2 border-neon-cyan border-t-transparent animate-spin" />
-        <span className="text-zinc-300">Loading WasmSpace Canvas…</span>
+        <span className="text-zinc-300">Loading MasmSpace Canvas…</span>
       </div>
     </div>
   );

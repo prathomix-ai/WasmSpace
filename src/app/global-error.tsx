@@ -16,7 +16,7 @@ export default function GlobalError({
             <div style={{ fontSize: "36px", marginBottom: "16px" }}>⚡</div>
             <h2 style={{ fontSize: "20px", fontWeight: "bold", margin: "0 0 12px 0" }}>Critical Kernel Exception</h2>
             <p style={{ fontSize: "13px", color: "#94a3b8", lineHeight: "1.6", marginBottom: "24px" }}>
-              WasmSpace global isolation intercepted an unexpected runtime failure. Click below to reboot the canvas kernel.
+              MasmSpace global isolation intercepted an unexpected runtime failure. Click below to reboot the canvas kernel.
             </p>
             <button
               onClick={() => reset()}
@@ -31,7 +31,7 @@ export default function GlobalError({
                 fontSize: "13px",
               }}
             >
-              Reboot WasmSpace
+              Reboot MasmSpace
             </button>
           </div>
         </div>

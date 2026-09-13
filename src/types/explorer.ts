@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// WasmSpace — File & Folder Tree Types (VS Code-style Explorer)
+// MasmSpace — File & Folder Tree Types (VS Code-style Explorer)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface BoardFileNode {

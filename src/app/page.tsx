@@ -122,15 +122,15 @@ print("[Pyodide WASM] Tensor layer converged.")`,
   // ── FAQ Data ───────────────────────────────────────────────────────────────
   const faqs = [
     {
-      q: "Does WasmSpace really run smoothly on 4GB RAM or low-end PCs?",
+      q: "Does MasmSpace really run smoothly on 4GB RAM or low-end PCs?",
       a: "Yes, absolutely. The Pyodide WebAssembly compiler and canvas computation engine execute inside isolated Web Workers on background threads. The main rendering loop is strictly decoupled, guaranteeing a fluid 60 FPS without memory leaks or UI freeze even on budget hardware.",
     },
     {
       q: "Where does my code and whiteboard data live? Is it private?",
-      a: "By default, WasmSpace adheres to a local-first philosophy. Code execution and diagram state happen client-side in your browser sandboxed via WebAssembly. With Pro Cloud Sync, state is stored in high-security encrypted Supabase tables, and your diagrams are never used to train third-party AI models.",
+      a: "By default, MasmSpace adheres to a local-first philosophy. Code execution and diagram state happen client-side in your browser sandboxed via WebAssembly. With Pro Cloud Sync, state is stored in high-security encrypted Supabase tables, and your diagrams are never used to train third-party AI models.",
     },
     {
-      q: "Can I use WasmSpace offline without an internet connection?",
+      q: "Can I use MasmSpace offline without an internet connection?",
       a: "Yes. Once the Pyodide WebAssembly runtime is cached in your browser's CacheStorage, core whiteboard drawing and local Python code execution work completely offline with zero dependency on external cloud servers.",
     },
     {
@@ -139,7 +139,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
     },
     {
       q: "Can I export my canvases to external tools?",
-      a: "Yes. You can export your full canvas or selected elements as clean vector SVGs, high-resolution PNGs, or portable `.wasmspace` JSON files with zero platform lock-in.",
+      a: "Yes. You can export your full canvas or selected elements as clean vector SVGs, high-resolution PNGs, or portable `.masmspace` JSON files with zero platform lock-in.",
     },
   ];
 
@@ -169,8 +169,8 @@ print("[Pyodide WASM] Tensor layer converged.")`,
           <Link href="/" className="group flex items-center gap-3.5 focus:outline-none">
             <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-white/[0.03] border border-white/10 p-1 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.15)] group-hover:border-cyan-500/40 transition-colors">
               <Image
-                src="/wasmspace-logo.png"
-                alt="WasmSpace Logo"
+                src="/masmspace-logo.png"
+                alt="MasmSpace Logo"
                 width={32}
                 height={32}
                 className="object-contain"
@@ -179,7 +179,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
             </div>
             <div className="flex items-center gap-2">
               <span className="text-lg font-semibold tracking-tight text-white group-hover:text-cyan-300 transition-colors">
-                WasmSpace
+                MasmSpace
               </span>
               <span className="hidden sm:inline-block text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
                 v2.4 Live
@@ -189,7 +189,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
 
           <nav className="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
             <a href="#problems" className="hover:text-white transition-colors">
-              Why WasmSpace
+              Why MasmSpace
             </a>
             <a href="#features" className="hover:text-white transition-colors">
               Features
@@ -298,7 +298,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
                 <div className="w-3 h-3 rounded-full bg-yellow-500/70 border border-yellow-500" />
                 <div className="w-3 h-3 rounded-full bg-green-500/70 border border-green-500" />
                 <span className="ml-3 text-xs font-mono text-gray-400">
-                  wasmspace://workspace/neural-cluster.wasmspace
+                  masmspace://workspace/neural-cluster.masmspace
                 </span>
               </div>
               <div className="flex items-center gap-3 text-xs text-gray-400">
@@ -339,7 +339,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
                       Entry Gateway
                     </div>
                     <div className="text-sm font-semibold text-white mt-1">
-                      WasmSpace Client
+                      MasmSpace Client
                     </div>
                     <div className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
                       <Zap className="w-3 h-3 text-cyan-400" /> Low Latency
@@ -510,7 +510,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
         >
           <div className="max-w-3xl mx-auto text-center mb-16 sm:mb-20">
             <span className="text-xs uppercase font-mono tracking-widest text-cyan-400 mb-3 block">
-              The WasmSpace Solution
+              The MasmSpace Solution
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
               Engineered for Pure Velocity.
@@ -690,7 +690,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
                 <div className="lg:col-span-5 rounded-xl bg-black/70 border border-white/10 p-5 font-mono text-xs overflow-x-auto shadow-inner">
                   <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/[0.08] text-gray-400 text-[11px]">
                     <span className="text-cyan-400">spec_execution.preview</span>
-                    <span>WasmSpace Runtime</span>
+                    <span>MasmSpace Runtime</span>
                   </div>
                   <pre className="text-gray-300 whitespace-pre leading-relaxed font-mono">
                     {segments[activeSegment].codeSnippet}
@@ -944,13 +944,13 @@ print("[Pyodide WASM] Tensor layer converged.")`,
             </h2>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
               Join thousands of software architects, developers, and AI
-              researchers crafting the future on WasmSpace.
+              researchers crafting the future on MasmSpace.
             </p>
             <Link
               href="/canvas"
               className="inline-flex items-center gap-3 px-10 py-4 rounded-xl text-base font-semibold text-black bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-400 hover:brightness-110 shadow-[0_0_35px_rgba(6,182,212,0.45)] hover:shadow-[0_0_50px_rgba(6,182,212,0.7)] transition-all duration-300 active:scale-[0.98]"
             >
-              <span>Launch WasmSpace Now</span>
+              <span>Launch MasmSpace Now</span>
               <ArrowRight className="w-5 h-5 text-black" />
             </Link>
           </div>
@@ -965,7 +965,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
             <div className="flex flex-col items-center md:items-start gap-2 text-center md:text-left">
               <div className="flex items-center gap-2.5">
                 <span className="text-base font-semibold text-white tracking-tight">
-                  WasmSpace
+                  MasmSpace
                 </span>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-gray-400 font-mono">
                   by PRATHOMIX SOLUTION

@@ -4,7 +4,7 @@ const AI_BACKEND_URL =
   process.env.NEXT_PUBLIC_AI_BACKEND_URL ?? "http://localhost:8000";
 
 /**
- * Calls the WasmSpace FastAPI AI backend to generate a structured
+ * Calls the MasmSpace FastAPI AI backend to generate a structured
  * meeting summary from the current whiteboard canvas state.
  *
  * @param request - Canvas content + optional metadata

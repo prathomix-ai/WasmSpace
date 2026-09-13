@@ -11,7 +11,7 @@ interface ErrorProps {
 export default function ErrorBoundary({ error, reset }: ErrorProps) {
   useEffect(() => {
     // Log exception safely to diagnostics
-    console.error("[WasmSpace Runtime Boundary Caught Error]:", error);
+    console.error("[MasmSpace Runtime Boundary Caught Error]:", error);
   }, [error]);
 
   return (
@@ -28,7 +28,7 @@ export default function ErrorBoundary({ error, reset }: ErrorProps) {
         <div className="space-y-2">
           <h2 className="text-xl font-bold text-white font-mono">Application Restored from Hiccup</h2>
           <p className="text-xs text-zinc-400 leading-relaxed font-mono">
-            A runtime exception was safely intercepted by the WasmSpace error boundary. Your canvas session data remains preserved in local storage.
+            A runtime exception was safely intercepted by the MasmSpace error boundary. Your canvas session data remains preserved in local storage.
           </p>
         </div>
 

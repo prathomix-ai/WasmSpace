@@ -105,19 +105,19 @@ export function LeftSidebar({
             <Link
               href="/"
               className="flex items-center gap-2.5 group hover:opacity-90 transition-opacity"
-              title="WasmSpace Whiteboard OS"
+              title="MasmSpace Whiteboard OS"
             >
               <div className="w-8 h-8 flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 duration-300">
                 <Image
-                  src="/wasmspace-logo.png"
-                  alt="WasmSpace Logo"
+                  src="/masmspace-logo.png"
+                  alt="MasmSpace Logo"
                   width={32}
                   height={32}
                   className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]"
                 />
               </div>
               <span className="font-bold text-white tracking-tight font-sans text-base">
-                WasmSpace
+                MasmSpace
               </span>
             </Link>
 
@@ -136,12 +136,12 @@ export function LeftSidebar({
             <Link
               href="/"
               className="p-1 rounded-xl hover:bg-white/5 transition-colors group"
-              title="WasmSpace Whiteboard OS"
+              title="MasmSpace Whiteboard OS"
             >
               <div className="w-8 h-8 flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 duration-300">
                 <Image
-                  src="/wasmspace-logo.png"
-                  alt="WasmSpace Logo"
+                  src="/masmspace-logo.png"
+                  alt="MasmSpace Logo"
                   width={32}
                   height={32}
                   className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]"
@@ -489,7 +489,7 @@ export function LeftSidebar({
             className={`flex items-center w-full rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm font-semibold select-none ${
               isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
             }`}
-            title="WasmSpace PRO Subscriber Active"
+            title="MasmSpace PRO Subscriber Active"
           >
             <div className="flex items-center gap-3">
               <Crown className="w-5 h-5 fill-amber-400 text-amber-400 shrink-0" />
@@ -504,7 +504,7 @@ export function LeftSidebar({
             className={`flex items-center w-full rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 border border-cyan-400/40 text-cyan-300 text-sm font-bold shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all cursor-pointer group ${
               isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
             }`}
-            title="Upgrade to WasmSpace PRO"
+            title="Upgrade to MasmSpace PRO"
           >
             <div className="flex items-center gap-3">
               <Crown className="w-5 h-5 fill-cyan-400 text-cyan-400 opacity-80 group-hover:opacity-100 transition-opacity shrink-0" />
@@ -523,15 +523,15 @@ export function LeftSidebar({
       {/* ── Mobile Top Bar with Hamburger Menu (flex md:hidden) ── */}
       <header className="flex md:hidden fixed top-0 left-0 right-0 z-40 h-12 items-center justify-between px-3 bg-black/80 backdrop-blur-xl border-b border-white/10 select-none">
         <div className="flex items-center gap-2">
-          <Link href="/" className="flex items-center gap-1.5" title="WasmSpace">
+          <Link href="/" className="flex items-center gap-1.5" title="MasmSpace">
             <Image
-              src="/wasmspace-logo.png"
-              alt="WasmSpace Logo"
+              src="/masmspace-logo.png"
+              alt="MasmSpace Logo"
               width={24}
               height={24}
               className="w-6 h-6 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]"
             />
-            <span className="font-bold text-white tracking-tight text-xs">WasmSpace</span>
+            <span className="font-bold text-white tracking-tight text-xs">MasmSpace</span>
           </Link>
           <input
             type="text"
@@ -659,13 +659,13 @@ export function LeftSidebar({
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <Image
-                  src="/wasmspace-logo.png"
-                  alt="WasmSpace"
+                  src="/masmspace-logo.png"
+                  alt="MasmSpace"
                   width={28}
                   height={28}
                   className="w-7 h-7 object-contain"
                 />
-                <span className="font-bold text-white text-sm">WasmSpace Menu</span>
+                <span className="font-bold text-white text-sm">MasmSpace Menu</span>
               </div>
               <button
                 type="button"

@@ -57,7 +57,7 @@ export function ProUpgradeModal({
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-cyan-400">
-                  WasmSpace PRO
+                  MasmSpace PRO
                 </span>
                 <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold uppercase">
                   Locked
@@ -71,7 +71,7 @@ export function ProUpgradeModal({
 
           {/* Compelling Value Proposition */}
           <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed mb-4">
-            Upgrade to <strong className="text-cyan-400">WasmSpace PRO</strong> to get unlimited access to advanced AI intelligence, real-time cloud sync, and clean watermark-free exports.
+            Upgrade to <strong className="text-cyan-400">MasmSpace PRO</strong> to get unlimited access to advanced AI intelligence, real-time cloud sync, and clean watermark-free exports.
           </p>
 
           {/* Feature List */}

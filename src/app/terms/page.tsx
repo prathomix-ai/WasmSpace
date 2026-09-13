@@ -2,8 +2,8 @@ import React from "react";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Terms and Conditions | WasmSpace AI Whiteboard",
-  description: "Terms and Conditions governing the use of WasmSpace AI SaaS platform by PRATHOMIX.",
+  title: "Terms and Conditions | MasmSpace AI Whiteboard",
+  description: "Terms and Conditions governing the use of MasmSpace AI SaaS platform by PRATHOMIX.",
 };
 
 export default function TermsPage() {
@@ -22,7 +22,7 @@ export default function TermsPage() {
             href="/"
             className="flex items-center gap-2 text-sm text-zinc-400 hover:text-neon-cyan transition-colors"
           >
-            ← Back to WasmSpace Home
+            ← Back to MasmSpace Home
           </Link>
           <div className="font-mono text-xs text-zinc-500">
             LEGAL MASTER AGREEMENT // TERMS-2026
@@ -40,7 +40,7 @@ export default function TermsPage() {
             TERMS &amp; CONDITIONS OF SERVICE
           </h1>
           <p className="text-sm text-zinc-400 leading-relaxed">
-            These Terms and Conditions (&ldquo;Terms&rdquo;) constitute a legally binding agreement between you (&ldquo;User&rdquo;, &ldquo;Client&rdquo;, or &ldquo;Subscriber&rdquo;) and PRATHOMIX SOLUTION (&ldquo;Company&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;), governing access to and usage of the WasmSpace AI Smart Whiteboard platform (&ldquo;Platform&rdquo;, &ldquo;Service&rdquo;).
+            These Terms and Conditions (&ldquo;Terms&rdquo;) constitute a legally binding agreement between you (&ldquo;User&rdquo;, &ldquo;Client&rdquo;, or &ldquo;Subscriber&rdquo;) and PRATHOMIX SOLUTION (&ldquo;Company&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;), governing access to and usage of the MasmSpace AI Smart Whiteboard platform (&ldquo;Platform&rdquo;, &ldquo;Service&rdquo;).
           </p>
         </div>
 
@@ -48,7 +48,7 @@ export default function TermsPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-bold text-white font-mono">1. Acceptance of Terms</h2>
           <p className="text-sm text-zinc-300 leading-relaxed">
-            By creating an account, accessing, drawing upon, or authenticating into the WasmSpace platform, you unconditionally accept and agree to be bound by all provisions within this Master Agreement. If you do not agree to these terms in their entirety, you must terminate use immediately.
+            By creating an account, accessing, drawing upon, or authenticating into the MasmSpace platform, you unconditionally accept and agree to be bound by all provisions within this Master Agreement. If you do not agree to these terms in their entirety, you must terminate use immediately.
           </p>
         </section>
 
@@ -64,7 +64,7 @@ export default function TermsPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-bold text-white font-mono">3. Artificial Intelligence Disclaimer (Zero Liability for Hallucinations)</h2>
           <p className="text-sm text-zinc-300 leading-relaxed">
-            WasmSpace incorporates cutting-edge Large Language Models (LLMs), neural semantic search, and WebAssembly Python compilers. You expressly recognize and acknowledge:
+            MasmSpace incorporates cutting-edge Large Language Models (LLMs), neural semantic search, and WebAssembly Python compilers. You expressly recognize and acknowledge:
           </p>
           <ul className="list-disc pl-6 space-y-2 text-xs sm:text-sm text-zinc-400">
             <li><strong>AI Hallucinations &amp; Inaccuracies:</strong> Generative models may output mathematically false, architecturally flawed, non-compiling, or factually inaccurate diagrams, code blocks, or meeting summaries.</li>
@@ -110,7 +110,7 @@ export default function TermsPage() {
             These Terms shall be interpreted and enforced under the laws of the jurisdiction governing PRATHOMIX SOLUTION platform operations.
           </p>
           <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-400 space-y-1">
-            <div>Operating Body: PRATHOMIX SOLUTION (WasmSpace Platform)</div>
+            <div>Operating Body: PRATHOMIX SOLUTION (MasmSpace Platform)</div>
             <div>Web Portal: <a href="https://prathomix.tech" className="text-neon-cyan hover:underline">https://prathomix.tech</a></div>
             <div>Legal Inquiries: <a href="mailto:support@prathomix.tech" className="text-neon-cyan hover:underline">support@prathomix.tech</a></div>
           </div>
@@ -119,7 +119,7 @@ export default function TermsPage() {
 
       {/* Footer */}
       <footer className="border-t border-zinc-800/80 bg-zinc-950 py-8 text-center text-xs text-zinc-500 font-mono">
-        WasmSpace AI OS • Powered by{" "}
+        MasmSpace AI OS • Powered by{" "}
         <a href="https://prathomix.tech" className="text-zinc-300 hover:text-neon-cyan transition-colors font-bold">
           PRATHOMIX
         </a>

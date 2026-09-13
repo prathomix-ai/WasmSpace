@@ -31,7 +31,7 @@ export default function NotFound() {
             href="/"
             className="px-4 py-2.5 rounded-xl font-mono text-xs font-semibold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 transition-all flex items-center justify-center"
           >
-            WasmSpace Home
+            MasmSpace Home
           </Link>
         </div>
       </div>

@@ -22,9 +22,9 @@ export function ContactSalesModal({ isOpen, onClose }: ContactSalesModalProps) {
   const [copied, setCopied] = useState(false);
   const salesEmail = "sales@prathomix.tech";
 
-  const emailSubject = encodeURIComponent("WasmSpace Enterprise Plan Inquiry");
+  const emailSubject = encodeURIComponent("MasmSpace Enterprise Plan Inquiry");
   const emailBody = encodeURIComponent(
-    "Hi Prathomix Sales Team,\n\nI am interested in custom Enterprise licensing for WasmSpace Whiteboard OS.\n\nCompany Name:\nTeam Size:\nSpecific Requirements (e.g. Custom LLM, On-Premise/Dedicated Clusters, SSO):\n\nLooking forward to hearing from you!\n"
+    "Hi Prathomix Sales Team,\n\nI am interested in custom Enterprise licensing for MasmSpace Whiteboard OS.\n\nCompany Name:\nTeam Size:\nSpecific Requirements (e.g. Custom LLM, On-Premise/Dedicated Clusters, SSO):\n\nLooking forward to hearing from you!\n"
   );
 
   const mailtoUrl = `mailto:${salesEmail}?subject=${emailSubject}&body=${emailBody}`;

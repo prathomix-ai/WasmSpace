@@ -1,5 +1,5 @@
 """
-WasmSpace RAG -- Supabase Client
+MasmSpace RAG -- Supabase Client
 Thin async wrapper around the Supabase REST + RPC API using httpx.
 Uses the SERVICE ROLE key so it bypasses RLS for embedding writes.
 """
@@ -12,7 +12,7 @@ from typing import Any
 
 import httpx
 
-logger = logging.getLogger("wasmspace-ai.supabase")
+logger = logging.getLogger("masmspace-ai.supabase")
 
 SUPABASE_URL: str  = os.getenv("SUPABASE_URL", "")
 # Service role key -- never exposed to the browser

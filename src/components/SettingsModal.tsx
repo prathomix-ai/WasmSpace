@@ -115,7 +115,7 @@ export function SettingsModal({
       // Fallback to local storage if running in guest / local mode
       if (typeof window !== "undefined" && isMounted) {
         try {
-          const stored = localStorage.getItem("wasmspace_current_user");
+          const stored = localStorage.getItem("masmspace_current_user") || localStorage.getItem("wasmspace_current_user");
           if (stored) {
             const parsed = JSON.parse(stored);
             setName(parsed.name || (parsed.email ? parsed.email.split("@")[0] : ""));
@@ -164,10 +164,10 @@ export function SettingsModal({
 
     if (typeof window !== "undefined") {
       try {
-        const stored = localStorage.getItem("wasmspace_current_user");
+        const stored = localStorage.getItem("masmspace_current_user") || localStorage.getItem("wasmspace_current_user");
         const parsed = stored ? JSON.parse(stored) : {};
         const updated = JSON.stringify({ ...parsed, name, email });
-        localStorage.setItem("wasmspace_current_user", updated);
+        localStorage.setItem("masmspace_current_user", updated);
       } catch {}
     }
 
@@ -648,7 +648,7 @@ export function SettingsModal({
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2">
                         <h4 className="font-mono font-bold text-base text-zinc-900 dark:text-white">
-                          {tier === "pro" ? "WasmSpace Pro Plan" : "Starter Plan"}
+                          {tier === "pro" ? "MasmSpace Pro Plan" : "Starter Plan"}
                         </h4>
                         <span
                           className={`px-2 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-wider border ${

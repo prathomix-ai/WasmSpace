@@ -45,7 +45,7 @@ export function ProGateModal({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono font-bold uppercase tracking-widest text-neon-cyan">
-                  WasmSpace Pro Feature
+                  MasmSpace Pro Feature
                 </span>
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono font-black bg-neon-cyan text-black uppercase">
                   Locked
@@ -59,13 +59,13 @@ export function ProGateModal({
 
           {/* Description */}
           <p className="text-sm text-zinc-300 leading-relaxed">
-            <strong className="text-white">{featureName}</strong> is an exclusive superpower reserved for <strong className="text-neon-cyan">WasmSpace PRO</strong> subscribers. Upgrade now to empower your workflow with next-gen AI and team sync.
+            <strong className="text-white">{featureName}</strong> is an exclusive superpower reserved for <strong className="text-neon-cyan">MasmSpace PRO</strong> subscribers. Upgrade now to empower your workflow with next-gen AI and team sync.
           </p>
 
           {/* Pro Benefits List */}
           <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-2.5">
             <div className="text-xs font-mono font-semibold uppercase text-zinc-400 tracking-wider">
-              Included in WasmSpace Pro ($5/mo or $49/yr):
+              Included in MasmSpace Pro ($5/mo or $49/yr):
             </div>
             <ul className="space-y-2 text-xs sm:text-sm text-zinc-200 font-sans">
               <li className="flex items-center gap-2.5">

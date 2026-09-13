@@ -258,7 +258,7 @@ export function PricingSection({ onOpenAuth }: PricingSectionProps = {}) {
 
               <div className="text-center">
                 <a
-                  href="mailto:sales@prathomix.tech?subject=WasmSpace%20Enterprise%20Plan%20Inquiry"
+                  href="mailto:sales@prathomix.tech?subject=MasmSpace%20Enterprise%20Plan%20Inquiry"
                   className="text-[11px] font-mono text-zinc-500 hover:text-purple-400 transition-colors"
                 >
                   sales@prathomix.tech

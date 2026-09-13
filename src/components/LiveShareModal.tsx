@@ -23,7 +23,7 @@ export interface LiveShareModalProps {
 export function LiveShareModal({
   isOpen: externalIsOpen,
   onClose: externalOnClose,
-  shareUrl = "https://wasmspace.prathomix.tech/canvas/live-session?room=ws-9842f1&key=7x9ab",
+  shareUrl = "https://masmspace.prathomix.tech/canvas/live-session?room=ws-9842f1&key=7x9ab",
   boardTitle = "Untitled Canvas",
 }: LiveShareModalProps) {
   // If controlled externally via isOpen/onClose props

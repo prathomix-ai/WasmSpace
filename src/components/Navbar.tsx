@@ -35,6 +35,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
 
   const handleSignOut = async () => {
     try {
+      localStorage.removeItem("masmspace_current_user");
       localStorage.removeItem("wasmspace_current_user");
       const supabase = createClient();
       await supabase.auth.signOut();
@@ -49,7 +50,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
   useEffect(() => {
     // 1. Sync from localStorage
     try {
-      const savedUser = localStorage.getItem("wasmspace_current_user");
+      const savedUser = localStorage.getItem("masmspace_current_user") || localStorage.getItem("wasmspace_current_user");
       if (savedUser) {
         const parsed = JSON.parse(savedUser);
         if (parsed && parsed.email) {
@@ -86,8 +87,8 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="relative w-9 h-9 flex items-center justify-center shrink-0 transition-transform group-hover:scale-110">
             <Image
-              src="/wasmspace-logo.png"
-              alt="WasmSpace Logo"
+              src="/masmspace-logo.png"
+              alt="MasmSpace Logo"
               width={36}
               height={36}
               className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(168,85,247,0.55)]"
@@ -95,7 +96,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
             />
           </div>
           <span className="font-mono font-extrabold text-xl tracking-tight text-zinc-900 dark:text-white">
-            WasmSpace
+            MasmSpace
           </span>
           <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-mono font-semibold rounded-full bg-cyan-500/10 dark:bg-neon-cyan/10 border border-cyan-500/30 dark:border-neon-cyan/30 text-cyan-600 dark:text-neon-cyan">
             v2.0 OS
@@ -156,7 +157,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
                   : undefined
               }
               className="text-sm font-medium text-zinc-600 dark:text-gray-400 hover:text-zinc-900 dark:hover:text-white transition-colors duration-200 px-3 py-2 cursor-pointer"
-              title="Sign In to WasmSpace"
+              title="Sign In to MasmSpace"
             >
               Sign In
             </Link>

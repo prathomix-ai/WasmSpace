@@ -12,18 +12,18 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-const siteUrl = "https://wasmspace.online";
+const siteUrl = "https://masmspace.online";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "WasmSpace | Next-Gen AI & WebAssembly Workspace",
-    template: "%s | WasmSpace",
+    default: "MasmSpace | Next-Gen AI & WebAssembly Workspace",
+    template: "%s | MasmSpace",
   },
   description:
-    "Architect, brainstorm, and execute code directly in your browser. WasmSpace is the infinite AI-powered whiteboard with native WebAssembly runtime, real-time collaboration, and intelligent system modeling.",
+    "Architect, brainstorm, and execute code directly in your browser. MasmSpace is the infinite AI-powered whiteboard with native WebAssembly runtime, real-time collaboration, and intelligent system modeling.",
   keywords: [
-    "WasmSpace",
+    "MasmSpace",
     "WebAssembly IDE",
     "AI Whiteboard",
     "Infinite Canvas",
@@ -36,38 +36,38 @@ export const metadata: Metadata = {
     "Technical Canvas",
     "AI Workspace",
   ],
-  authors: [{ name: "WasmSpace Team", url: siteUrl }],
-  creator: "WasmSpace",
-  publisher: "WasmSpace",
-  applicationName: "WasmSpace",
+  authors: [{ name: "MasmSpace Team", url: siteUrl }],
+  creator: "MasmSpace",
+  publisher: "MasmSpace",
+  applicationName: "MasmSpace",
   category: "technology",
   alternates: {
     canonical: siteUrl,
   },
   openGraph: {
-    title: "WasmSpace | Next-Gen AI & WebAssembly Workspace",
+    title: "MasmSpace | Next-Gen AI & WebAssembly Workspace",
     description:
       "Architect, brainstorm, and execute code in real time. The infinite AI-powered whiteboard with native WebAssembly runtime and collaborative intelligence.",
     url: siteUrl,
-    siteName: "WasmSpace",
+    siteName: "MasmSpace",
     locale: "en_US",
     type: "website",
     images: [
       {
-        url: "/wasmspace-logo.png",
+        url: "/masmspace-logo.png",
         width: 1200,
         height: 630,
-        alt: "WasmSpace — Next-Gen AI & WebAssembly Workspace",
+        alt: "MasmSpace — Next-Gen AI & WebAssembly Workspace",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "WasmSpace | Next-Gen AI & WebAssembly Workspace",
+    title: "MasmSpace | Next-Gen AI & WebAssembly Workspace",
     description:
       "Architect, brainstorm, and execute code in real time. The infinite AI-powered whiteboard with native WebAssembly runtime.",
-    creator: "@wasmspace",
-    images: ["/wasmspace-logo.png"],
+    creator: "@masmspace",
+    images: ["/masmspace-logo.png"],
   },
   robots: {
     index: true,
@@ -81,9 +81,9 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/wasmspace-logo.png",
-    shortcut: "/wasmspace-logo.png",
-    apple: "/wasmspace-logo.png",
+    icon: "/masmspace-logo.png",
+    shortcut: "/masmspace-logo.png",
+    apple: "/masmspace-logo.png",
   },
 };
 

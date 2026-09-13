@@ -28,7 +28,7 @@ const localQuotaStore = new Map<
   { actions_used: number; action_limit: number; tier: string; reset_at: string }
 >([
   [
-    "exhausted@wasmspace.ai",
+    "exhausted@masmspace.ai",
     {
       actions_used: 15,
       action_limit: 15,
@@ -128,7 +128,7 @@ async function callGroq(apiKey: string, prompt: string): Promise<string> {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { prompt, commandType, userEmail = "guest@wasmspace.ai", userId } = body;
+    const { prompt, commandType, userEmail = "guest@masmspace.ai", userId } = body;
 
     if (!prompt && !commandType) {
       return NextResponse.json(
@@ -316,7 +316,7 @@ export async function POST(req: NextRequest) {
           fillStyle: "solid",
           strokeWidth: 2,
           roundness: { type: 3 },
-          text: prompt || commandType || "WasmSpace AI Component",
+          text: prompt || commandType || "MasmSpace AI Component",
         },
       ];
       providerUsed = "Deterministic Native Engine";

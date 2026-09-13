@@ -12,7 +12,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   cta_text: "Start Your Free Canvas",
   pro_price_monthly: 19,
   pro_price_yearly: 190,
-  announcement_banner: "⚡ WasmSpace 2.0 with WebAssembly Python & Excalidraw Engine is Live!",
+  announcement_banner: "⚡ MasmSpace 2.0 with WebAssembly Python & Excalidraw Engine is Live!",
 };
 
 export default function SiteSettingsModule() {
@@ -124,7 +124,7 @@ export default function SiteSettingsModule() {
               type="text"
               value={settings.announcement_banner || ""}
               onChange={(e) => setSettings({ ...settings, announcement_banner: e.target.value })}
-              placeholder="e.g., ⚡ WasmSpace v2.0 is live with Pyodide & Voice Control"
+              placeholder="e.g., ⚡ MasmSpace v2.0 is live with Pyodide & Voice Control"
               className="w-full px-4 py-2.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-neon-cyan transition-colors font-mono"
             />
           </div>

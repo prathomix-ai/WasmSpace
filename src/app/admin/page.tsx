@@ -28,7 +28,7 @@ export default function AdminDashboardPage() {
               className="font-bold text-lg text-white font-mono flex items-center gap-2 group"
             >
               <span className="text-neon-cyan group-hover:scale-110 transition-transform">✦</span>
-              <span>WasmSpace</span>
+              <span>MasmSpace</span>
             </Link>
             <span className="text-zinc-600">/</span>
             <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan">

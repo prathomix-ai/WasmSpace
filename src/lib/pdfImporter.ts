@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// WasmSpace — PDF & Document Importer Utility
+// MasmSpace — PDF & Document Importer Utility
 // Renders PDF pages into images in-browser via PDF.js WebAssembly / Canvas
 // ─────────────────────────────────────────────────────────────────────────────
 

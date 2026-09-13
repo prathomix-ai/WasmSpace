@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// WasmSpace — Pyodide WebAssembly Client
+// MasmSpace — Pyodide WebAssembly Client
 // Secure, 100% in-browser Python execution via WebAssembly
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -171,7 +171,7 @@ export const CODE_TEMPLATES: CodeTemplate[] = [
     name: "👋 Welcome & System Info",
     category: "Algorithm",
     description: "Inspect browser Python WebAssembly environment",
-    code: `# ✦ WasmSpace Code-on-Board ✦
+    code: `# ✦ MasmSpace Code-on-Board ✦
 # Local Python WebAssembly (Pyodide v0.26)
 import sys
 import platform
@@ -249,9 +249,9 @@ for k, count in buckets.items():
   {
     id: "canvas-shapes",
     name: "🎨 Whiteboard Shape Architect",
-    category: "WasmSpace Canvas",
+    category: "MasmSpace Canvas",
     description: "Generate structured diagram node coordinates for the canvas",
-    code: `# Generate WasmSpace diagram architecture specs
+    code: `# Generate MasmSpace diagram architecture specs
 import json
 
 nodes = [
@@ -266,7 +266,7 @@ for i, node in enumerate(nodes, 1):
     print(f"Node {i}: [{node['color'].upper()}] {node['label']} -> {node['role']}")
 
 output = {
-    "system": "WasmSpace Collaborative Canvas",
+    "system": "MasmSpace Collaborative Canvas",
     "total_nodes": len(nodes),
     "modules": nodes
 }

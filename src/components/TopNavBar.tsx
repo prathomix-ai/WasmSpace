@@ -63,12 +63,12 @@ export function TopNavBar({
         <Link
           href="/"
           className="flex items-center gap-2 group shrink-0 transition-all duration-300 ease-in-out hover:opacity-95"
-          title="WasmSpace Whiteboard OS"
+          title="MasmSpace Whiteboard OS"
         >
           <div className="relative w-7 h-7 flex items-center justify-center shrink-0 transition-transform duration-300 ease-in-out group-hover:scale-110">
             <Image
-              src="/wasmspace-logo.png"
-              alt="WasmSpace Logo"
+              src="/masmspace-logo.png"
+              alt="MasmSpace Logo"
               width={28}
               height={28}
               className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]"
@@ -76,7 +76,7 @@ export function TopNavBar({
             />
           </div>
           <span className="font-semibold text-white tracking-tight text-sm sm:text-base font-sans shrink-0">
-            WasmSpace
+            MasmSpace
           </span>
         </Link>
 

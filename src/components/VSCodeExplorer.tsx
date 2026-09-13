@@ -305,7 +305,7 @@ export default function VSCodeExplorer({
                 <span className="w-1.5 h-1.5 rounded-full bg-neon-green" />
                 <span>Local Sync</span>
               </div>
-              <span>v2.1 WasmSpace</span>
+              <span>v2.1 MasmSpace</span>
             </div>
           </motion.div>
         </div>

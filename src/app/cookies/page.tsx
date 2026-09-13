@@ -2,8 +2,8 @@ import React from "react";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Cookie Policy | WasmSpace AI Whiteboard",
-  description: "Pro-company Cookie Policy for WasmSpace AI Smart Whiteboard SaaS platform by PRATHOMIX.",
+  title: "Cookie Policy | MasmSpace AI Whiteboard",
+  description: "Pro-company Cookie Policy for MasmSpace AI Smart Whiteboard SaaS platform by PRATHOMIX.",
 };
 
 export default function CookiePolicyPage() {
@@ -25,7 +25,7 @@ export default function CookiePolicyPage() {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Back to WasmSpace Home
+            Back to MasmSpace Home
           </Link>
           <div className="flex items-center gap-2 font-mono text-xs text-zinc-500">
             <svg className="w-4 h-4 text-neon-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -44,10 +44,10 @@ export default function CookiePolicyPage() {
             Effective Date: September 9, 2026 • Version 2.4 (Enterprise Defense)
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-mono">
-            WASMSPACE COOKIE &amp; LOCAL STORAGE POLICY
+            MASMSPACE COOKIE &amp; LOCAL STORAGE POLICY
           </h1>
           <p className="text-sm text-zinc-400 leading-relaxed">
-            This Cookie Policy constitutes a binding legal agreement governing the operation of cookies, Web Storage (localStorage, sessionStorage), IndexedDB, and related telemetry on the WasmSpace SaaS platform (&ldquo;Platform&rdquo;, &ldquo;Service&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;), operated by PRATHOMIX (&ldquo;Company&rdquo;).
+            This Cookie Policy constitutes a binding legal agreement governing the operation of cookies, Web Storage (localStorage, sessionStorage), IndexedDB, and related telemetry on the MasmSpace SaaS platform (&ldquo;Platform&rdquo;, &ldquo;Service&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;), operated by PRATHOMIX (&ldquo;Company&rdquo;).
           </p>
         </div>
 
@@ -60,7 +60,7 @@ export default function CookiePolicyPage() {
             CRITICAL SERVICE WARNING: ZERO LIABILITY FOR COOKIE BLOCKING
           </div>
           <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
-            WasmSpace is an advanced, distributed, real-time AI operating system. <strong>Essential cookies and local web storage tokens are strictly indispensable for core operations</strong>, including WebSocket multiplayer canvas synchronization, Board Brain vector RAG retrieval, WebAssembly sandbox security, and encrypted authentication. If you or your enterprise IT policy disable, block, reject, flush, or modify cookies or browser storage, <strong>the application will suffer fatal degradation, data loss, or complete failure</strong>. The Company expressly disclaims any and all liability for unsaved drawings, deleted boards, session desynchronization, or consequential business damages resulting therefrom.
+            MasmSpace is an advanced, distributed, real-time AI operating system. <strong>Essential cookies and local web storage tokens are strictly indispensable for core operations</strong>, including WebSocket multiplayer canvas synchronization, Board Brain vector RAG retrieval, WebAssembly sandbox security, and encrypted authentication. If you or your enterprise IT policy disable, block, reject, flush, or modify cookies or browser storage, <strong>the application will suffer fatal degradation, data loss, or complete failure</strong>. The Company expressly disclaims any and all liability for unsaved drawings, deleted boards, session desynchronization, or consequential business damages resulting therefrom.
           </p>
         </div>
 
@@ -73,7 +73,7 @@ export default function CookiePolicyPage() {
             In this Policy, &ldquo;Cookies&rdquo; collectively refers to standard browser HTTP cookies, HTML5 LocalStorage, SessionStorage, IndexedDB records, WebSockets connection handshakes, and cryptographic session tokens utilized to maintain persistent connection states across our distributed web infrastructure.
           </p>
           <p className="text-sm text-zinc-300 leading-relaxed">
-            By accessing or using the WasmSpace platform, you expressly authorize and consent to the placement, reading, and transmission of Essential and Technical Storage Objects on your device as defined herein.
+            By accessing or using the MasmSpace platform, you expressly authorize and consent to the placement, reading, and transmission of Essential and Technical Storage Objects on your device as defined herein.
           </p>
         </section>
 
@@ -83,7 +83,7 @@ export default function CookiePolicyPage() {
             <span className="text-neon-cyan">02.</span> Mandatory Essential Cookies &amp; Platform Architecture
           </h2>
           <p className="text-sm text-zinc-300 leading-relaxed">
-            Unlike static promotional websites, WasmSpace operates an event-driven collaborative whiteboard engine. The following cookies and client-side storage objects are <strong>MANDATORY</strong> and cannot be opted out of without terminating the functionality of the Service:
+            Unlike static promotional websites, MasmSpace operates an event-driven collaborative whiteboard engine. The following cookies and client-side storage objects are <strong>MANDATORY</strong> and cannot be opted out of without terminating the functionality of the Service:
           </p>
 
           <div className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900/50">
@@ -140,7 +140,7 @@ export default function CookiePolicyPage() {
             <span className="text-neon-cyan">03.</span> Strict Disclaimer Regarding Third-Party Infrastructure Cookies
           </h2>
           <p className="text-sm text-zinc-300 leading-relaxed">
-            WasmSpace interfaces with premier third-party cloud service providers, vector databases, and AI inference networks (including, but not limited to, Supabase Inc., Hugging Face Inc., Cloudflare Inc., Amazon Web Services, and CDN delivery networks) to deliver scalable computational power.
+            MasmSpace interfaces with premier third-party cloud service providers, vector databases, and AI inference networks (including, but not limited to, Supabase Inc., Hugging Face Inc., Cloudflare Inc., Amazon Web Services, and CDN delivery networks) to deliver scalable computational power.
           </p>
           <div className="p-4 rounded-lg bg-zinc-900 border border-zinc-800 space-y-2 text-xs sm:text-sm text-zinc-300">
             <div className="font-bold text-zinc-100 flex items-center gap-2">
@@ -208,7 +208,7 @@ export default function CookiePolicyPage() {
             <span className="text-neon-cyan">05.</span> Browser Controls &amp; Management
           </h2>
           <p className="text-sm text-zinc-300 leading-relaxed">
-            Most modern web browsers allow users to inspect and manage cookies through their settings panel (e.g., Chrome Settings &gt; Privacy and Security &gt; Cookies; Mozilla Firefox &gt; Preferences &gt; Privacy &amp; Security). You may delete stored data at any time, subject to the explicit understanding that your active WasmSpace canvas session will be immediately severed and unsaved progress permanently forfeited.
+            Most modern web browsers allow users to inspect and manage cookies through their settings panel (e.g., Chrome Settings &gt; Privacy and Security &gt; Cookies; Mozilla Firefox &gt; Preferences &gt; Privacy &amp; Security). You may delete stored data at any time, subject to the explicit understanding that your active MasmSpace canvas session will be immediately severed and unsaved progress permanently forfeited.
           </p>
         </section>
 
@@ -223,7 +223,7 @@ export default function CookiePolicyPage() {
           <div className="p-5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-sm space-y-2">
             <p className="text-zinc-200 font-semibold font-mono">Corporate Legal &amp; Compliance Office:</p>
             <p className="text-zinc-400 text-xs">
-              Entity: PRATHOMIX SOLUTION (WasmSpace Division)<br />
+              Entity: PRATHOMIX SOLUTION (MasmSpace Division)<br />
               Digital Portal:{" "}
               <a
                 href="https://prathomix.tech"
@@ -249,7 +249,7 @@ export default function CookiePolicyPage() {
 
       {/* Footer */}
       <footer className="border-t border-zinc-800/80 bg-zinc-950 py-8 mt-16 text-center text-xs text-zinc-500 font-mono">
-        WasmSpace AI OS • Powered by{" "}
+        MasmSpace AI OS • Powered by{" "}
         <a
           href="https://prathomix.tech"
           target="_blank"

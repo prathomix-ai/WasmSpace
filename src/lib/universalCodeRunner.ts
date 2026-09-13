@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// WasmSpace — Universal Multi-Language Code Execution Engine
+// MasmSpace — Universal Multi-Language Code Execution Engine
 // Supports C, C++, Java, JavaScript, TypeScript, C#, Python, Rust, Go, PHP, SQL
 // With Real-time Auto-Iteration and Loop Trace Evaluation
 // ─────────────────────────────────────────────────────────────────────────────
@@ -176,7 +176,7 @@ SELECT * FROM students WHERE score >= 90;`,
     fileExt: "html",
     description: "HTML5 & CSS3 Live Preview",
     defaultCode: `<div style="font-family: sans-serif; padding: 20px; background: #111420; color: #00f5ff; border-radius: 12px; border: 1px solid rgba(0,245,255,0.3);">
-  <h2 style="margin: 0 0 10px 0;">✦ WasmSpace Live Code Component</h2>
+  <h2 style="margin: 0 0 10px 0;">✦ MasmSpace Live Code Component</h2>
   <p style="color: #cbd5e1; font-size: 14px;">Edit HTML and CSS to see live instant iteration updates!</p>
   <button style="padding: 8px 16px; background: #00f5ff; color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
     Explore Whiteboard
@@ -580,10 +580,10 @@ SELECT * FROM students WHERE score >= 90;`,
     {
       id: "html-card",
       name: "🌐 Live Glassmorphism Card",
-      category: "WasmSpace Canvas",
+      category: "MasmSpace Canvas",
       description: "Interactive HTML/CSS preview card",
       code: `<div style="font-family: sans-serif; padding: 24px; background: linear-gradient(135deg, #0d1117, #161b22); color: #00f5ff; border-radius: 16px; border: 1px solid rgba(0,245,255,0.25); box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
-  <h2 style="margin: 0 0 8px 0; font-size: 20px;">✦ WasmSpace Live Preview</h2>
+  <h2 style="margin: 0 0 8px 0; font-size: 20px;">✦ MasmSpace Live Preview</h2>
   <p style="color: #94a3b8; font-size: 14px; margin: 0 0 16px 0;">
     Any HTML/CSS you type iterates live in real-time right here!
   </p>
@@ -642,7 +642,7 @@ func main() {
       code: `<?php
 echo "=== PHP Loop Counter ===\\n";
 for ($i = 1; $i <= 6; $i++) {
-    echo "Iteration $i: Hello WasmSpace!\\n";
+    echo "Iteration $i: Hello MasmSpace!\\n";
 }
 ?>`,
     },

@@ -1,5 +1,5 @@
 """
-WasmSpace RAG -- Embedding Service
+MasmSpace RAG -- Embedding Service
 Generates dense vector embeddings using Hugging Face Inference API
 with the sentence-transformers/all-mpnet-base-v2 model (768 dims).
 
@@ -16,7 +16,7 @@ from typing import Any
 
 import httpx
 
-logger = logging.getLogger("wasmspace-ai.embeddings")
+logger = logging.getLogger("masmspace-ai.embeddings")
 
 # Default: all-mpnet-base-v2 gives best quality at 768 dims
 # all-MiniLM-L6-v2 is 2x faster at 384 dims (change SQL vector() size too)

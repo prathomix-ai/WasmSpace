@@ -1,6 +1,6 @@
-# WasmSpace — Collaborative Whiteboard with AI Workspace 🚀
+# MasmSpace — Collaborative Whiteboard with AI Workspace 🚀
 
-WasmSpace is a next-generation real-time collaborative whiteboard platform featuring infinite canvas drawing (tldraw & Excalidraw), AI-assisted meeting summarization, RAG canvas search, and voice control.
+MasmSpace is a next-generation real-time collaborative whiteboard platform featuring infinite canvas drawing (tldraw & Excalidraw), AI-assisted meeting summarization, RAG canvas search, and voice control.
 
 ---
 
