@@ -4,7 +4,15 @@ import React, { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { type UserProfile, type SubscriptionStatus, type UserRole } from "@/types/admin";
 
-export default function UserManagementModule() {
+interface UserManagementModuleProps {
+  adminEmail?: string;
+  onUserUpdated?: () => void;
+}
+
+export default function UserManagementModule({
+  adminEmail,
+  onUserUpdated,
+}: UserManagementModuleProps) {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -13,33 +21,42 @@ export default function UserManagementModule() {
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch real user profiles from Supabase
+  // Fetch real user profiles from Supabase via Admin API or direct client
   const fetchProfiles = useCallback(async () => {
     setIsLoading(true);
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const url = adminEmail
+        ? `/api/admin/users?admin_email=${encodeURIComponent(adminEmail)}`
+        : `/api/admin/users`;
+      const res = await fetch(url);
+      const data = await res.json().catch(() => null);
 
-      if (error) {
-        console.warn("[Admin] Supabase profiles query notice:", error.message);
-      } else if (data) {
-        setUsers(data as UserProfile[]);
+      if (res.ok && data?.success && Array.isArray(data.users)) {
+        setUsers(data.users);
+      } else {
+        // Direct client fallback
+        const supabase = createClient();
+        const { data: directProfiles } = await supabase
+          .from("profiles")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (directProfiles) {
+          setUsers(directProfiles as UserProfile[]);
+        }
       }
     } catch (err: any) {
       console.warn("[Admin] Error fetching profiles:", err?.message);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [adminEmail]);
 
   useEffect(() => {
     fetchProfiles();
   }, [fetchProfiles]);
 
-  // Grant Pro / Update subscription status handler
+  // Grant Pro / Update subscription status handler via backend API
   const handleGrantProStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetEmail.trim()) {
@@ -53,75 +70,40 @@ export default function UserManagementModule() {
     const cleanEmail = targetEmail.trim().toLowerCase();
 
     try {
-      const supabase = createClient();
-      
-      // Attempt update in Supabase
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          subscription_status: targetStatus,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("email", cleanEmail);
+      const endpoint =
+        targetStatus === "free"
+          ? "/api/admin/revoke-access"
+          : "/api/admin/grant-subscription";
 
-      if (error) {
-        throw error;
+      const payload =
+        targetStatus === "free"
+          ? { email: cleanEmail, admin_email: adminEmail }
+          : { email: cleanEmail, plan: targetStatus, admin_email: adminEmail };
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data?.success) {
+        setStatusMessage({
+          type: "success",
+          text: `Successfully updated ${cleanEmail} to ${targetStatus.toUpperCase()}! Pro status is now live in database.`,
+        });
+        setTargetEmail("");
+        await fetchProfiles();
+        onUserUpdated?.();
+      } else {
+        throw new Error(data?.error || "Failed to update subscription");
       }
-
-      // Optimistic update
-      setUsers((prev) => {
-        const exists = prev.some((u) => u.email.toLowerCase() === cleanEmail);
-        if (exists) {
-          return prev.map((u) =>
-            u.email.toLowerCase() === cleanEmail
-              ? { ...u, subscription_status: targetStatus, updated_at: new Date().toISOString() }
-              : u
-          );
-        } else {
-          // If user wasn't in list, add optimistic entry
-          const newUser: UserProfile = {
-            id: `usr_${Date.now().toString().slice(-6)}`,
-            email: cleanEmail,
-            role: "user",
-            subscription_status: targetStatus,
-            created_at: new Date().toISOString(),
-          };
-          return [newUser, ...prev];
-        }
-      });
-
+    } catch (err: any) {
       setStatusMessage({
-        type: "success",
-        text: `Successfully upgraded ${cleanEmail} to ${targetStatus.toUpperCase()} tier!`,
+        type: "error",
+        text: err?.message || "Failed to update subscription status.",
       });
-      setTargetEmail("");
-    } catch {
-      // Local fallback optimistic update for dev demonstration
-      setUsers((prev) => {
-        const exists = prev.some((u) => u.email.toLowerCase() === cleanEmail);
-        if (exists) {
-          return prev.map((u) =>
-            u.email.toLowerCase() === cleanEmail
-              ? { ...u, subscription_status: targetStatus, updated_at: new Date().toISOString() }
-              : u
-          );
-        } else {
-          const newUser: UserProfile = {
-            id: `usr_${Date.now().toString().slice(-6)}`,
-            email: cleanEmail,
-            role: "user",
-            subscription_status: targetStatus,
-            created_at: new Date().toISOString(),
-          };
-          return [newUser, ...prev];
-        }
-      });
-
-      setStatusMessage({
-        type: "success",
-        text: `[Local State Updated] Granted ${targetStatus.toUpperCase()} status to ${cleanEmail}. (Connect live Supabase for DB sync).`,
-      });
-      setTargetEmail("");
     } finally {
       setIsSubmitting(false);
     }
@@ -129,18 +111,41 @@ export default function UserManagementModule() {
 
   // Quick toggle role or status directly on a user row
   const handleQuickStatusChange = async (userId: string, newStatus: SubscriptionStatus) => {
+    const targetUser = users.find((u) => u.id === userId);
+    if (!targetUser) return;
+
+    // Optimistic UI update
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, subscription_status: newStatus } : u))
     );
 
     try {
-      const supabase = createClient();
-      await supabase
-        .from("profiles")
-        .update({ subscription_status: newStatus, updated_at: new Date().toISOString() })
-        .eq("id", userId);
-    } catch {
-      // Local state was already updated
+      const endpoint =
+        newStatus === "free"
+          ? "/api/admin/revoke-access"
+          : "/api/admin/grant-subscription";
+
+      const payload =
+        newStatus === "free"
+          ? { email: targetUser.email, admin_email: adminEmail }
+          : { email: targetUser.email, plan: newStatus, admin_email: adminEmail };
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || "Server failed to update status");
+      }
+      await fetchProfiles();
+      onUserUpdated?.();
+    } catch (err: any) {
+      console.error("[UserManagementModule] Status update error:", err);
+      // Revert on failure
+      fetchProfiles();
     }
   };
 
@@ -156,8 +161,10 @@ export default function UserManagementModule() {
         .from("profiles")
         .update({ role: newRole, updated_at: new Date().toISOString() })
         .eq("id", userId);
-    } catch {
-      // Local state was already updated
+      await fetchProfiles();
+    } catch (err) {
+      console.warn("[UserManagementModule] Toggle role error:", err);
+      fetchProfiles();
     }
   };
 
@@ -167,7 +174,9 @@ export default function UserManagementModule() {
   );
 
   const totalUsers = users.length;
-  const proUsers = users.filter((u) => u.subscription_status === "pro" || u.subscription_status === "enterprise").length;
+  const proUsers = users.filter(
+    (u) => u.subscription_status === "pro" || u.subscription_status === "enterprise"
+  ).length;
   const freeUsers = users.filter((u) => u.subscription_status === "free").length;
 
   return (
@@ -176,22 +185,22 @@ export default function UserManagementModule() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 backdrop-blur-xl">
           <div className="flex items-center justify-between text-zinc-400 text-xs font-mono uppercase tracking-wider mb-2">
-            <span>Total Subscribers</span>
+            <span>Total Registered Users</span>
             <span className="text-neon-cyan">👥</span>
           </div>
           <div className="text-3xl font-extrabold text-white font-mono">{totalUsers}</div>
-          <p className="text-xs text-zinc-500 mt-1">Across all workspace tenants</p>
+          <p className="text-xs text-zinc-500 mt-1">Across all workspace accounts</p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-zinc-900/60 border border-neon-cyan/20 backdrop-blur-xl relative overflow-hidden group">
+        <div className="p-5 rounded-2xl bg-zinc-900/60 border border-cyan-500/30 backdrop-blur-xl relative overflow-hidden group">
           <div className="absolute inset-0 bg-neon-cyan/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="flex items-center justify-between text-zinc-400 text-xs font-mono uppercase tracking-wider mb-2">
-            <span>Pro &amp; Enterprise Tier</span>
+            <span>Active Pro &amp; Enterprise</span>
             <span className="text-neon-cyan">⚡</span>
           </div>
           <div className="text-3xl font-extrabold text-neon-cyan font-mono">{proUsers}</div>
           <p className="text-xs text-zinc-400 mt-1">
-            {totalUsers > 0 ? Math.round((proUsers / totalUsers) * 100) : 0}% paid conversion rate
+            {totalUsers > 0 ? Math.round((proUsers / totalUsers) * 100) : 0}% active paid tier
           </p>
         </div>
 
@@ -201,22 +210,22 @@ export default function UserManagementModule() {
             <span className="text-zinc-400">🌱</span>
           </div>
           <div className="text-3xl font-extrabold text-zinc-300 font-mono">{freeUsers}</div>
-          <p className="text-xs text-zinc-500 mt-1">Eligible for manual upgrade</p>
+          <p className="text-xs text-zinc-500 mt-1">Ready for 1-click Pro upgrade</p>
         </div>
       </div>
 
       {/* ── Form: Manual Pro Access Grant ────────────────────────────── */}
-      <div className="p-6 rounded-2xl bg-zinc-900/70 border border-neon-cyan/30 shadow-[0_0_24px_rgba(0,245,255,0.06)] backdrop-blur-xl space-y-4">
+      <div className="p-6 rounded-2xl bg-zinc-900/70 border border-cyan-500/30 shadow-[0_0_24px_rgba(0,245,255,0.06)] backdrop-blur-xl space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-base font-bold text-white font-mono flex items-center gap-2">
-              <span className="text-neon-cyan">✦</span> Manual Pro Access Overrider
+              <span className="text-neon-cyan">✦</span> Quick Pro Subscription Grant
             </h3>
             <p className="text-xs text-zinc-400 mt-0.5">
               Instantly promote user email to Pro or Enterprise status in Supabase database.
             </p>
           </div>
-          <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hidden sm:inline-block">
+          <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hidden sm:inline-block">
             ADMIN BYPASS
           </span>
         </div>
@@ -241,7 +250,7 @@ export default function UserManagementModule() {
               onChange={(e) => setTargetStatus(e.target.value as SubscriptionStatus)}
               className="w-full px-3 py-2.5 rounded-xl bg-black/50 border border-zinc-700/80 text-sm text-zinc-200 focus:outline-none focus:border-neon-cyan transition-colors font-mono"
             >
-              <option value="pro">Tier: Pro ($5/mo)</option>
+              <option value="pro">Tier: Pro (Unlimited AI)</option>
               <option value="enterprise">Tier: Enterprise</option>
               <option value="free">Tier: Reset to Free</option>
             </select>
@@ -252,10 +261,10 @@ export default function UserManagementModule() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-full min-h-[42px] px-4 py-2 rounded-xl text-sm font-semibold font-mono text-black bg-neon-cyan hover:bg-neon-cyan/90 shadow-[0_0_16px_rgba(0,245,255,0.3)] hover:shadow-[0_0_24px_rgba(0,245,255,0.5)] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full h-full min-h-[42px] px-4 py-2 rounded-xl text-sm font-semibold font-mono text-black bg-neon-cyan hover:bg-neon-cyan/90 shadow-[0_0_16px_rgba(0,245,255,0.3)] hover:shadow-[0_0_24px_rgba(0,245,255,0.5)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
-                <span>Upgrading…</span>
+                <span>Upgrading Database…</span>
               ) : (
                 <>
                   <span>⚡</span>
@@ -286,7 +295,7 @@ export default function UserManagementModule() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-bold text-white font-mono">User Profiles Directory</h3>
-            <p className="text-xs text-zinc-400">Live records from public.profiles table</p>
+            <p className="text-xs text-zinc-400">Live records from Supabase public.profiles table</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -307,7 +316,7 @@ export default function UserManagementModule() {
               onClick={fetchProfiles}
               disabled={isLoading}
               title="Refresh users from Supabase"
-              className="p-2 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-neon-cyan transition-colors"
+              className="p-2 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-neon-cyan transition-colors cursor-pointer"
             >
               🔄
             </button>
@@ -327,7 +336,13 @@ export default function UserManagementModule() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60">
-              {filteredUsers.length === 0 ? (
+              {isLoading && users.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-zinc-500">
+                    Loading user directory from Supabase...
+                  </td>
+                </tr>
+              ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-8 text-center text-zinc-500">
                     No users matching &ldquo;{searchQuery}&rdquo;
@@ -352,7 +367,7 @@ export default function UserManagementModule() {
                         <span
                           className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                             isAdmin
-                              ? "bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/30"
+                              ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30"
                               : "bg-zinc-800 text-zinc-400 border border-zinc-700"
                           }`}
                         >
@@ -365,15 +380,15 @@ export default function UserManagementModule() {
                         <span
                           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
                             isEnterprise
-                              ? "bg-purple-900/30 text-neon-purple border border-neon-purple/50 shadow-[0_0_12px_rgba(168,85,247,0.2)]"
+                              ? "bg-purple-900/30 text-purple-300 border border-purple-500/50 shadow-[0_0_12px_rgba(168,85,247,0.2)]"
                               : isPro
-                              ? "bg-cyan-950/40 text-neon-cyan border border-neon-cyan/40 shadow-[0_0_12px_rgba(0,245,255,0.2)]"
+                              ? "bg-cyan-950/50 text-cyan-300 border border-cyan-500/40 shadow-[0_0_12px_rgba(0,245,255,0.2)]"
                               : "bg-zinc-800 text-zinc-400 border border-zinc-700"
                           }`}
                         >
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${
-                              isEnterprise ? "bg-neon-purple" : isPro ? "bg-neon-cyan" : "bg-zinc-500"
+                              isEnterprise ? "bg-purple-400" : isPro ? "bg-cyan-400 animate-pulse" : "bg-zinc-500"
                             }`}
                           />
                           {user.subscription_status}
@@ -395,14 +410,14 @@ export default function UserManagementModule() {
                           {user.subscription_status === "free" ? (
                             <button
                               onClick={() => handleQuickStatusChange(user.id, "pro")}
-                              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-neon-cyan/15 text-neon-cyan hover:bg-neon-cyan/25 border border-neon-cyan/40 transition-all"
+                              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/25 border border-cyan-500/40 transition-all cursor-pointer"
                             >
                               Upgrade Pro
                             </button>
                           ) : (
                             <button
                               onClick={() => handleQuickStatusChange(user.id, "free")}
-                              className="px-2.5 py-1 rounded-lg text-xs text-zinc-400 hover:text-red-400 hover:bg-red-950/30 border border-zinc-700 transition-all"
+                              className="px-2.5 py-1 rounded-lg text-xs text-zinc-400 hover:text-red-400 hover:bg-red-950/30 border border-zinc-700 transition-all cursor-pointer"
                             >
                               Downgrade
                             </button>
@@ -411,7 +426,7 @@ export default function UserManagementModule() {
                           <button
                             onClick={() => handleToggleRole(user.id, user.role)}
                             title={isAdmin ? "Revoke Admin" : "Make Admin"}
-                            className="px-2 py-1 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 border border-zinc-700 hover:bg-zinc-800 transition-all"
+                            className="px-2 py-1 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 border border-zinc-700 hover:bg-zinc-800 transition-all cursor-pointer"
                           >
                             {isAdmin ? "Demote" : "Admin"}
                           </button>

@@ -116,26 +116,35 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
         }
 
         let userRole: "user" | "admin" = "user";
+        let subStatus = "free";
         if (data.user) {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("role")
+            .select("role, subscription_status")
             .eq("id", data.user.id)
-            .single();
+            .maybeSingle();
 
           if (profile?.role === "admin" || email.toLowerCase().includes("admin")) {
             userRole = "admin";
           }
+          subStatus =
+            profile?.subscription_status ||
+            (data.user.user_metadata as any)?.subscription_status ||
+            "free";
         }
 
         const sessionData = JSON.stringify({
           email,
           name: data?.user?.user_metadata?.full_name || email.split("@")[0],
           role: userRole,
+          subscription_status: subStatus,
+          is_pro: subStatus === "pro" || subStatus === "enterprise" || userRole === "admin",
         });
         localStorage.setItem("masmspace_current_user", sessionData);
+        localStorage.setItem("wasmspace_current_user", sessionData);
         onAuthSuccess?.({ email, role: userRole });
         onClose();
+
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Authentication failed. Please check credentials.");

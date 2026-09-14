@@ -138,18 +138,23 @@ function LoginForm() {
           throw error;
         }
 
-        // Fetch user profile role if available
+        // Fetch user profile role and subscription status if available
         let userRole: "user" | "admin" = "user";
+        let subStatus = "free";
         if (data.user) {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("role")
+            .select("role, subscription_status")
             .eq("id", data.user.id)
-            .single();
+            .maybeSingle();
 
           if (profile?.role === "admin" || email.toLowerCase().includes("admin")) {
             userRole = "admin";
           }
+          subStatus =
+            profile?.subscription_status ||
+            (data.user.user_metadata as any)?.subscription_status ||
+            "free";
         }
 
         // Store local session fallback
@@ -157,8 +162,12 @@ function LoginForm() {
           email,
           name: data?.user?.user_metadata?.full_name || email.split("@")[0],
           role: userRole,
+          subscription_status: subStatus,
+          is_pro: subStatus === "pro" || subStatus === "enterprise" || userRole === "admin",
         });
         localStorage.setItem("masmspace_current_user", sessionData);
+        localStorage.setItem("wasmspace_current_user", sessionData);
+
 
         setSuccessMsg("Logged in successfully! Redirecting...");
         setTimeout(() => router.push(targetPath), 800);

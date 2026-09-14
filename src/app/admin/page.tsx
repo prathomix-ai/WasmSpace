@@ -13,8 +13,10 @@ import {
   AlertCircle,
   Loader2,
   Lock,
+  Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import UserManagementModule from "@/components/admin/UserManagementModule";
 
 // Authorized admin emails
 const DEFAULT_ADMIN_EMAILS = ["admin@prathomix.tech"];
@@ -26,6 +28,8 @@ export default function AdminPage() {
   } | null>(null);
   const [isVerifyingAuth, setIsVerifyingAuth] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [adminTab, setAdminTab] = useState<"directory" | "override">("directory");
+  const [directoryKey, setDirectoryKey] = useState(0);
 
   // Form State
   const [targetEmail, setTargetEmail] = useState("");
@@ -141,6 +145,24 @@ export default function AdminPage() {
           details: data.user,
         });
 
+        // Sync local cache if current browser is simulating or using this user
+        try {
+          const stored =
+            localStorage.getItem("masmspace_current_user") ||
+            localStorage.getItem("wasmspace_current_user");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed?.email?.toLowerCase() === cleanEmail) {
+              parsed.role = selectedPlan === "free" ? "user" : "pro";
+              parsed.subscription_status = selectedPlan;
+              parsed.is_pro = selectedPlan !== "free";
+              localStorage.setItem("masmspace_current_user", JSON.stringify(parsed));
+              localStorage.setItem("wasmspace_current_user", JSON.stringify(parsed));
+              window.dispatchEvent(new Event("storage"));
+            }
+          }
+        } catch {}
+
         // Add to audit log
         const newEntry = {
           email: cleanEmail,
@@ -154,6 +176,7 @@ export default function AdminPage() {
           localStorage.setItem("masmspace_admin_grants", JSON.stringify(updated));
         } catch {}
 
+        setDirectoryKey((k) => k + 1);
         setTargetEmail("");
       } else {
         setFeedback({
@@ -214,9 +237,12 @@ export default function AdminPage() {
           if (stored) {
             const parsed = JSON.parse(stored);
             if (parsed?.email?.toLowerCase() === cleanEmail) {
-              parsed.role = "free";
+              parsed.role = "user";
               parsed.subscription_status = "free";
+              parsed.is_pro = false;
               localStorage.setItem("masmspace_current_user", JSON.stringify(parsed));
+              localStorage.setItem("wasmspace_current_user", JSON.stringify(parsed));
+              window.dispatchEvent(new Event("storage"));
             }
           }
         } catch {}
@@ -234,6 +260,7 @@ export default function AdminPage() {
           localStorage.setItem("masmspace_admin_grants", JSON.stringify(updated));
         } catch {}
 
+        setDirectoryKey((k) => k + 1);
         setTargetEmail("");
       } else {
         setFeedback({
@@ -260,40 +287,38 @@ export default function AdminPage() {
       name: "Prathomix Lead Admin",
     };
     localStorage.setItem("masmspace_current_user", JSON.stringify(demoAdmin));
+    localStorage.setItem("wasmspace_current_user", JSON.stringify(demoAdmin));
     setCurrentAdmin(demoAdmin);
     setIsAuthorized(true);
   };
 
-  // ── 4. Loading State ───────────────────────────────────────────────────────
+  // ── 5. Render Loading or Unauthorized States ──────────────────────────────
   if (isVerifyingAuth) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-zinc-100 font-mono">
-        <div className="flex items-center gap-3 p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 backdrop-blur-xl">
-          <Loader2 className="w-5 h-5 animate-spin text-neon-cyan" />
-          <span>Verifying Admin Permissions...</span>
-        </div>
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-zinc-400 font-mono">
+        <Loader2 className="w-8 h-8 text-neon-cyan animate-spin mb-4" />
+        <p className="text-xs uppercase tracking-widest text-zinc-400">
+          Verifying Admin Credentials...
+        </p>
       </div>
     );
   }
 
-  // ── 5. Unauthorized Gate ───────────────────────────────────────────────────
   if (!isAuthorized) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center px-6 relative overflow-hidden text-zinc-100 font-mono">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-red-500/5 rounded-full blur-[140px] pointer-events-none" />
-
-        <div className="max-w-md w-full p-8 rounded-3xl bg-zinc-900/80 border border-red-500/30 backdrop-blur-2xl text-center space-y-6 shadow-2xl">
-          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto">
-            <Lock className="w-8 h-8" />
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 font-mono selection:bg-neon-cyan/20 selection:text-neon-cyan">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-zinc-900/80 border border-zinc-800 backdrop-blur-2xl text-center space-y-6 shadow-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto text-red-400">
+            <Lock className="w-7 h-7" />
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-xl font-bold tracking-tight text-white">
-              Restricted Admin Console
+            <h1 className="text-xl font-bold text-white tracking-tight">
+              Access Restricted
             </h1>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              This route is restricted to verified administrators (
-              <span className="text-neon-cyan">admin@prathomix.tech</span>).
+              This console requires elevated administrator privileges. Only authorized
+              staff accounts have access to manual subscription overrides.
             </p>
           </div>
 
@@ -307,7 +332,7 @@ export default function AdminPage() {
           <div className="space-y-3 pt-2">
             <button
               onClick={handleDemoAdminLogin}
-              className="w-full py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-wider bg-neon-cyan/15 hover:bg-neon-cyan/25 text-neon-cyan border border-neon-cyan/40 transition-all shadow-[0_0_15px_rgba(0,245,255,0.15)] flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-wider bg-neon-cyan/15 hover:bg-neon-cyan/25 text-neon-cyan border border-neon-cyan/40 transition-all shadow-[0_0_15px_rgba(0,245,255,0.15)] flex items-center justify-center gap-2 cursor-pointer"
             >
               <ShieldCheck className="w-4 h-4" />
               <span>Simulate Admin Access (admin@prathomix.tech)</span>
@@ -348,7 +373,7 @@ export default function AdminPage() {
             <span className="text-zinc-700">/</span>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              <span>ADMIN OVERRIDE</span>
+              <span>ADMIN CONTROL</span>
             </div>
           </div>
 
@@ -368,198 +393,237 @@ export default function AdminPage() {
       </header>
 
       {/* Main Admin Console */}
-      <main className="max-w-4xl mx-auto px-6 py-12 space-y-10">
-        {/* Header Title */}
-        <div className="space-y-2">
-          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
-            <Zap className="w-7 h-7 text-neon-cyan" />
-            <span>Manual Subscription Override</span>
-          </h1>
-          <p className="text-xs text-zinc-400 leading-relaxed">
-            Instantly grant lifetime or promotional Pro/Enterprise access to users in
-            Supabase without requiring a Razorpay checkout transaction.
-          </p>
-        </div>
+      <main className="max-w-5xl mx-auto px-6 py-10 space-y-8">
+        {/* Header Title & Subtitle */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
+              <Zap className="w-7 h-7 text-neon-cyan" />
+              <span>Admin Subscription &amp; User Control</span>
+            </h1>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Grant Pro or Enterprise tier directly to users in Supabase, manage accounts, and view live active subscribers.
+            </p>
+          </div>
 
-        {/* Cyber-Glassmorphism Form Card */}
-        <div className="p-8 rounded-3xl bg-zinc-900/60 border border-white/10 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.4)] relative overflow-hidden">
-          {/* Subtle top glow line */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-neon-cyan to-transparent opacity-80" />
-
-          <form onSubmit={handleGrantSubscription} className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* User Email Input */}
-              <div className="sm:col-span-2 space-y-2">
-                <label className="block text-xs uppercase tracking-wider text-zinc-400 font-bold">
-                  User Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="email"
-                    required
-                    value={targetEmail}
-                    onChange={(e) => setTargetEmail(e.target.value)}
-                    placeholder="e.g. developer@company.com"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-zinc-950/80 border border-zinc-800 focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan text-xs text-white placeholder-zinc-600 outline-none transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Tier Selection */}
-              <div className="space-y-2">
-                <label className="block text-xs uppercase tracking-wider text-zinc-400 font-bold">
-                  Subscription Tier
-                </label>
-                <select
-                  value={selectedPlan}
-                  onChange={(e) =>
-                    setSelectedPlan(e.target.value as "free" | "pro" | "enterprise")
-                  }
-                  className="w-full px-4 py-3 rounded-xl bg-zinc-950/80 border border-zinc-800 focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan text-xs text-zinc-200 outline-none transition-all cursor-pointer"
-                >
-                  <option value="free">Free Plan (Default / Reset)</option>
-                  <option value="pro">Pro Plan (Unlimited AI)</option>
-                  <option value="enterprise">Enterprise (Dedicated)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Action Buttons: Grant & Revoke */}
-            <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-              <button
-                type="submit"
-                disabled={isSubmitting || isRevoking}
-                className="w-full sm:w-auto px-7 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-neon-cyan via-cyan-500 to-violet-600 hover:opacity-90 text-zinc-950 transition-all shadow-[0_0_25px_rgba(0,245,255,0.25)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Upgrading Database...</span>
-                  </>
-                ) : (
-                  <>
-                    <UserCheck className="w-4 h-4 text-zinc-950" />
-                    <span>Grant Subscription</span>
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleRevokeAccess}
-                disabled={isSubmitting || isRevoking}
-                className="w-full sm:w-auto px-7 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-400 hover:text-red-300 transition-all shadow-[0_0_20px_rgba(239,68,68,0.2)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                title="Instantly reset user role to 'free' and revoke all Pro features"
-              >
-                {isRevoking ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin text-red-400" />
-                    <span>Revoking Access...</span>
-                  </>
-                ) : (
-                  <>
-                    <UserX className="w-4 h-4 text-red-400" />
-                    <span>Revoke Access</span>
-                  </>
-                )}
-              </button>
-
-              <span className="text-[11px] text-zinc-500 hidden sm:inline">
-                ⚡ Direct Supabase <code className="text-zinc-400">public.profiles</code> override.
-              </span>
-            </div>
-          </form>
-
-          {/* Feedback Alert */}
-          {feedback && (
-            <div
-              className={`mt-6 p-4 rounded-2xl border flex items-start gap-3 text-xs transition-all ${
-                feedback.type === "success"
-                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                  : "bg-red-500/10 border-red-500/30 text-red-400"
+          {/* Tab Navigation Controls */}
+          <div className="inline-flex p-1 rounded-2xl bg-zinc-900/80 border border-zinc-800 self-start sm:self-auto">
+            <button
+              onClick={() => setAdminTab("directory")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                adminTab === "directory"
+                  ? "bg-neon-cyan text-zinc-950 shadow-[0_0_15px_rgba(0,245,255,0.3)]"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
-              {feedback.type === "success" ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-              ) : (
-                <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+              <Users className="w-3.5 h-3.5" />
+              <span>User Directory</span>
+            </button>
+            <button
+              onClick={() => setAdminTab("override")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                adminTab === "override"
+                  ? "bg-neon-cyan text-zinc-950 shadow-[0_0_15px_rgba(0,245,255,0.3)]"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span>Manual Override</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Tab 1: Live User Directory & Management */}
+        {adminTab === "directory" && (
+          <UserManagementModule
+            key={directoryKey}
+            adminEmail={currentAdmin?.email}
+            onUserUpdated={() => setDirectoryKey((k) => k + 1)}
+          />
+        )}
+
+        {/* Tab 2: Manual Subscription Override Form */}
+        {adminTab === "override" && (
+          <div className="space-y-8">
+            <div className="p-8 rounded-3xl bg-zinc-900/60 border border-white/10 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.4)] relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-neon-cyan to-transparent opacity-80" />
+
+              <form onSubmit={handleGrantSubscription} className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* User Email Input */}
+                  <div className="sm:col-span-2 space-y-2">
+                    <label className="block text-xs uppercase tracking-wider text-zinc-400 font-bold">
+                      User Email Address
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="email"
+                        required
+                        value={targetEmail}
+                        onChange={(e) => setTargetEmail(e.target.value)}
+                        placeholder="e.g. developer@company.com"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-zinc-950/80 border border-zinc-800 focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan text-xs text-white placeholder-zinc-600 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Tier Selection */}
+                  <div className="space-y-2">
+                    <label className="block text-xs uppercase tracking-wider text-zinc-400 font-bold">
+                      Subscription Tier
+                    </label>
+                    <select
+                      value={selectedPlan}
+                      onChange={(e) =>
+                        setSelectedPlan(e.target.value as "free" | "pro" | "enterprise")
+                      }
+                      className="w-full px-4 py-3 rounded-xl bg-zinc-950/80 border border-zinc-800 focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan text-xs text-zinc-200 outline-none transition-all cursor-pointer"
+                    >
+                      <option value="free">Free Plan (Default / Reset)</option>
+                      <option value="pro">Pro Plan (Unlimited AI)</option>
+                      <option value="enterprise">Enterprise (Dedicated)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || isRevoking}
+                    className="w-full sm:w-auto px-7 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-neon-cyan via-cyan-500 to-violet-600 hover:opacity-90 text-zinc-950 transition-all shadow-[0_0_25px_rgba(0,245,255,0.25)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Upgrading Database...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserCheck className="w-4 h-4 text-zinc-950" />
+                        <span>Grant Subscription</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleRevokeAccess}
+                    disabled={isSubmitting || isRevoking}
+                    className="w-full sm:w-auto px-7 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-400 hover:text-red-300 transition-all shadow-[0_0_20px_rgba(239,68,68,0.2)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    title="Instantly reset user role to 'user' and tier to 'free'"
+                  >
+                    {isRevoking ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-red-400" />
+                        <span>Revoking Access...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserX className="w-4 h-4 text-red-400" />
+                        <span>Revoke Access</span>
+                      </>
+                    )}
+                  </button>
+
+                  <span className="text-[11px] text-zinc-500 hidden sm:inline">
+                    ⚡ Direct Supabase <code className="text-zinc-400">public.profiles</code> &amp; Auth metadata update.
+                  </span>
+                </div>
+              </form>
+
+              {/* Feedback Alert */}
+              {feedback && (
+                <div
+                  className={`mt-6 p-4 rounded-2xl border flex items-start gap-3 text-xs transition-all ${
+                    feedback.type === "success"
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                      : "bg-red-500/10 border-red-500/30 text-red-400"
+                  }`}
+                >
+                  {feedback.type === "success" ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                  )}
+                  <div className="space-y-1">
+                    <p className="font-bold">{feedback.message}</p>
+                    {feedback.details && (
+                      <p className="text-[11px] opacity-80">
+                        Status: {feedback.details.subscription_status || "active"} |
+                        Role: {feedback.details.role || "user"}
+                      </p>
+                    )}
+                  </div>
+                </div>
               )}
-              <div className="space-y-1">
-                <p className="font-bold">{feedback.message}</p>
-                {feedback.details && (
-                  <p className="text-[11px] opacity-80">
-                    Status: {feedback.details.subscription_status || "active"} |
-                    Role: {feedback.details.role || "pro"}
-                  </p>
+            </div>
+
+            {/* Audit Log / Recent Overrides */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm uppercase tracking-wider text-zinc-400 font-bold flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-neon-cyan" />
+                  <span>Recent Manual Overrides</span>
+                </h2>
+                <button
+                  onClick={() => {
+                    setRecentGrants([]);
+                    localStorage.removeItem("masmspace_admin_grants");
+                  }}
+                  className="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+                >
+                  Clear Log
+                </button>
+              </div>
+
+              <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 backdrop-blur-xl overflow-hidden">
+                {recentGrants.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-zinc-500">
+                    No manual subscription grants performed in this session.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-zinc-800/60 text-xs">
+                    {recentGrants.map((entry, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="font-bold text-white">{entry.email}</div>
+                          <div className="text-[11px] text-zinc-500">
+                            Granted at {entry.grantedAt}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              entry.plan.toLowerCase() === "free"
+                                ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                                : "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
+                            }`}
+                          >
+                            {entry.plan}
+                          </span>
+                          <span
+                            className={`px-2 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+                              entry.status === "revoked"
+                                ? "bg-red-500/10 text-red-400 border border-red-500/30"
+                                : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                            }`}
+                          >
+                            {entry.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
-          )}
-        </div>
-
-        {/* Audit Log / Recent Overrides */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm uppercase tracking-wider text-zinc-400 font-bold flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-neon-cyan" />
-              <span>Recent Manual Overrides</span>
-            </h2>
-            <button
-              onClick={() => {
-                setRecentGrants([]);
-                localStorage.removeItem("masmspace_admin_grants");
-              }}
-              className="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
-            >
-              Clear Log
-            </button>
           </div>
-
-          <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 backdrop-blur-xl overflow-hidden">
-            {recentGrants.length === 0 ? (
-              <div className="p-8 text-center text-xs text-zinc-500">
-                No manual subscription grants performed in this session.
-              </div>
-            ) : (
-              <div className="divide-y divide-zinc-800/60 text-xs">
-                {recentGrants.map((entry, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
-                  >
-                    <div className="space-y-0.5">
-                      <div className="font-bold text-white">{entry.email}</div>
-                      <div className="text-[11px] text-zinc-500">
-                        Granted at {entry.grantedAt}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          entry.plan.toLowerCase() === "free"
-                            ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
-                            : "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
-                        }`}
-                      >
-                        {entry.plan}
-                      </span>
-                      <span
-                        className={`px-2 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                          entry.status === "revoked"
-                            ? "bg-red-500/10 text-red-400 border border-red-500/30"
-                            : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                        }`}
-                      >
-                        {entry.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        )}
       </main>
     </div>
   );

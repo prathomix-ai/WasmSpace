@@ -69,7 +69,7 @@ export function CanvasSkeletonLoader() {
           <span className="text-zinc-200 font-semibold tracking-wide text-sm">
             MasmSpace Canvas Engine
           </span>
-          <span className="text-xs text-zinc-500 font-mono">
+          <span className="text-xs text-zinc-500 font-mono">``````````````````````````````````````````````````````````````````````````
             Streaming WebAssembly & Excalidraw assets…
           </span>
         </div>
