@@ -68,9 +68,9 @@ export async function POST(req: NextRequest) {
       amountInSubunits = Math.round(Number(amount));
     } else {
       // USD: $5/mo -> 500 cents, $49/yr -> 4900 cents
-      // INR: ₹420/mo -> 42000 paise, ₹4100/yr -> 410000 paise
+      // INR: ₹149/mo -> 14900 paise, ₹1499/yr -> 149900 paise
       if (normalizedCurrency === "INR") {
-        amountInSubunits = isYearly ? 410000 : 42000;
+        amountInSubunits = isYearly ? 149900 : 14900;
       } else {
         amountInSubunits = isYearly ? 4900 : 500;
       }
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
       notes: {
         plan,
         currency: normalizedCurrency,
-        base_price: normalizedCurrency === "INR" ? (isYearly ? 4100 : 420) : (isYearly ? 49 : 5),
+        base_price: normalizedCurrency === "INR" ? (isYearly ? 1499 : 149) : (isYearly ? 49 : 5),
         user_email: effectiveEmail,
         user_id: authenticatedUserId,
         service: "PRATHOMIX MasmSpace Pro",

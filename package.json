@@ -9,18 +9,24 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.70",
     "@excalidraw/excalidraw": "^0.18.1",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
     "@tldraw/tldraw": "^5.4.0",
+    "ai": "^7.0.101",
+    "driver.js": "^1.8.0",
     "framer-motion": "^13.2.0",
     "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^1.43.0",
     "next": "14.2.35",
     "next-themes": "^0.4.6",
     "razorpay": "^2.9.8",
     "react": "^18",
     "react-dom": "^18",
+    "react-draggable": "^4.7.1",
+    "react-parallax-tilt": "^1.7.342",
     "uuid": "^14.0.2"
   },
   "devDependencies": {

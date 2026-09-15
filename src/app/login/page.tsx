@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import {
   Lock,
@@ -17,6 +17,11 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
+  Sparkles,
+  Layers,
+  Cpu,
+  ShieldCheck,
+  Check,
 } from "lucide-react";
 
 function LoginForm() {
@@ -36,6 +41,9 @@ function LoginForm() {
   // Password visibility toggles
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Focus tracking for floating label animations
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   // Status states
   const [loading, setLoading] = useState(false);
@@ -63,7 +71,10 @@ function LoginForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: typeof window !== "undefined" ? `${window.location.origin}${redirectUrl.startsWith("/") ? redirectUrl : `/${redirectUrl}`}` : undefined,
+          redirectTo:
+            typeof window !== "undefined"
+              ? `${window.location.origin}${redirectUrl.startsWith("/") ? redirectUrl : `/${redirectUrl}`}`
+              : undefined,
         },
       });
 
@@ -97,17 +108,12 @@ function LoginForm() {
     const targetPath = redirectUrl.startsWith("/") ? redirectUrl : `/${redirectUrl}`;
 
     try {
+      setLoading(true);
       const supabase = createClient();
 
       if (isSignUp) {
-        if (password !== confirmPassword) {
-          setErrorMsg("Passwords do not match.");
-          setLoading(false);
-          return;
-        }
-
         // Supabase Auth Sign-Up
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -168,7 +174,6 @@ function LoginForm() {
         localStorage.setItem("masmspace_current_user", sessionData);
         localStorage.setItem("wasmspace_current_user", sessionData);
 
-
         setSuccessMsg("Logged in successfully! Redirecting...");
         setTimeout(() => router.push(targetPath), 800);
       }
@@ -181,72 +186,45 @@ function LoginForm() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="relative w-full max-w-lg mx-auto rounded-3xl bg-[#09090b]/80 backdrop-blur-2xl border border-white/15 shadow-[0_24px_80px_rgba(0,0,0,0.85),0_0_35px_rgba(6,182,212,0.1)] overflow-hidden z-10 text-white p-6 sm:p-10 space-y-6"
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="w-full max-w-md mx-auto"
     >
-      {/* Subtle top interior glow line */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent pointer-events-none" />
+      {/* Frosted Glass Card Container */}
+      <div className="relative rounded-3xl bg-[#09090b]/70 backdrop-blur-2xl border border-white/10 p-7 sm:p-9 shadow-[0_20px_70px_rgba(0,0,0,0.8),0_0_40px_rgba(6,182,212,0.08)] overflow-hidden">
+        {/* Subtle Top Accent Glow Line */}
+        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-80" />
 
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2.5 font-bold text-2xl tracking-tight text-white mb-2 group focus:outline-none"
-        >
-          <div className="w-10 h-10 rounded-2xl bg-white/[0.04] border border-white/15 p-1.5 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.2)] group-hover:scale-105 transition-transform">
-            <Image
-              src="/masmspace-logo.png"
-              alt="MasmSpace Logo"
-              width={36}
-              height={36}
-              className="object-contain"
-              priority
-            />
+        {/* Header inside Form Card */}
+        <div className="mb-6 text-left">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium tracking-wide uppercase bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+              <Sparkles className="w-3 h-3" />
+              {isSignUp ? "Get Started Free" : "Welcome Back"}
+            </span>
           </div>
-          <span className="group-hover:text-cyan-300 transition-colors">
-            MasmSpace
-          </span>
-        </Link>
-        <h1 className="text-2xl font-bold tracking-tight text-white">
-          {isSignUp ? "Create Your Account" : "Sign In to MasmSpace"}
-        </h1>
-        <p className="text-xs sm:text-sm text-zinc-400">
-          {isSignUp
-            ? "Join thousands of builders architecting systems with MasmSpace AI."
-            : "Sign in to access your technical canvases & AI intelligence."}
-        </p>
-      </div>
-
-      {/* Error Feedback */}
-      {errorMsg && (
-        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2.5 shadow-[0_0_15px_rgba(239,68,68,0.15)]">
-          <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
-          <span className="font-mono text-[11px] leading-snug">{errorMsg}</span>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            {isSignUp ? "Create your workspace" : "Sign in to your account"}
+          </h2>
+          <p className="mt-1.5 text-xs sm:text-sm text-zinc-400">
+            {isSignUp
+              ? "Join thousands of builders architecting systems in real-time."
+              : "Access your cloud canvases, AI diagrams, and workspaces."}
+          </p>
         </div>
-      )}
 
-      {/* Success Feedback */}
-      {successMsg && (
-        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
-          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-          <span className="font-mono text-[11px] leading-snug">{successMsg}</span>
-        </div>
-      )}
-
-      {/* ── Social Login: Continue with Google ──────────────────────────── */}
-      <div className="space-y-4">
+        {/* Social Authentication */}
         <button
           type="button"
           onClick={handleGoogleSignIn}
           disabled={googleLoading || loading}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-medium transition-all duration-300 hover:scale-[1.02] cursor-pointer disabled:opacity-50 disabled:hover:scale-100 shadow-sm"
+          className="w-full py-3 px-4 rounded-xl font-medium text-sm text-zinc-200 bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.1] border border-white/10 hover:border-white/20 transition-all duration-200 flex items-center justify-center gap-3 group relative cursor-pointer disabled:opacity-50"
         >
           {googleLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+            <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
           ) : (
-            <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -265,185 +243,249 @@ function LoginForm() {
               />
             </svg>
           )}
-          <span>Continue with Google</span>
+          <span>{isSignUp ? "Sign up with Google" : "Continue with Google"}</span>
         </button>
 
-        {/* ── Visual Divider ────────────────────────────────────────────── */}
-        <div className="flex items-center my-4">
-          <div className="flex-1 h-[1px] bg-white/10" />
-          <span className="text-xs text-gray-500 px-3 font-mono">OR CONTINUE WITH EMAIL</span>
-          <div className="flex-1 h-[1px] bg-white/10" />
-        </div>
-      </div>
-
-      {/* Authentication Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Full Name on Sign-Up */}
-        {isSignUp && (
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-zinc-300 flex items-center justify-between">
-              <span>Full Name</span>
-              <span className="text-red-400/80 text-xs font-mono font-normal">
-                *Required
-              </span>
-            </label>
-            <div className="relative">
-              <User className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Alex Morgan"
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/30 transition-all font-sans"
-              />
-            </div>
+        {/* Separator */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-white/[0.08]" />
           </div>
-        )}
-
-        {/* Email Address */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-zinc-300 flex items-center justify-between">
-            <span>Email Address</span>
-            <span className="text-red-400/80 text-xs font-mono font-normal">
-              *Required
+          <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
+            <span className="bg-[#0c0d12] px-3 text-zinc-500 font-mono">
+              or continue with email
             </span>
-          </label>
-          <div className="relative">
-            <Mail className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="alex@masmspace.ai"
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/30 transition-all font-sans"
-            />
           </div>
         </div>
 
-        {/* Contact Number on Sign-Up */}
-        {isSignUp && (
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-zinc-300 flex items-center justify-between">
-              <span>Contact Number (Phone)</span>
-              <span className="text-zinc-500 text-xs font-mono">Optional</span>
-            </label>
-            <div className="relative">
-              <Phone className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="+1 (555) 019-2834"
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/30 transition-all font-sans"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Password */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-zinc-300 flex items-center justify-between">
-            <span>Password</span>
-            <span className="text-red-400/80 text-xs font-mono font-normal">
-              *Required
-            </span>
-          </label>
-          <div className="relative">
-            <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type={showPassword ? "text" : "password"}
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full pl-10 pr-11 py-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/30 transition-all font-sans"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+        {/* Feedback Messages */}
+        <AnimatePresence mode="wait">
+          {errorMsg && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="mb-4 p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2.5 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
             >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-        </div>
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+              <span className="font-mono text-[11px] leading-snug">{errorMsg}</span>
+            </motion.div>
+          )}
 
-        {/* Confirm Password on Sign-Up */}
-        {isSignUp && (
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-zinc-300 flex items-center justify-between">
-              <span>Confirm Password</span>
-              <span className="text-red-400/80 text-xs font-mono font-normal">
-                *Required
-              </span>
-            </label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          {successMsg && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="mb-4 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
+            >
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span className="font-mono text-[11px] leading-snug">{successMsg}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Form Inputs with Modern Interactive Floating Labels */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {isSignUp && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-4"
+            >
+              {/* Full Name */}
+              <div className="relative group">
+                <div
+                  className={`relative flex items-center rounded-xl bg-white/[0.03] border transition-all duration-200 ${
+                    focusedField === "name"
+                      ? "border-cyan-400/80 bg-white/[0.06] shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+                      : "border-white/10 hover:border-white/20"
+                  }`}
+                >
+                  <div className="pl-3.5 text-zinc-400 group-focus-within:text-cyan-400 transition-colors">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    required={isSignUp}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    onFocus={() => setFocusedField("name")}
+                    onBlur={() => setFocusedField(null)}
+                    placeholder="Full Name (e.g. Alex Rivera)"
+                    className="w-full bg-transparent px-3 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Phone Number */}
+              <div className="relative group">
+                <div
+                  className={`relative flex items-center rounded-xl bg-white/[0.03] border transition-all duration-200 ${
+                    focusedField === "phone"
+                      ? "border-cyan-400/80 bg-white/[0.06] shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+                      : "border-white/10 hover:border-white/20"
+                  }`}
+                >
+                  <div className="pl-3.5 text-zinc-400 group-focus-within:text-cyan-400 transition-colors">
+                    <Phone className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    onFocus={() => setFocusedField("phone")}
+                    onBlur={() => setFocusedField(null)}
+                    placeholder="Phone Number (Optional)"
+                    className="w-full bg-transparent px-3 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Email Address */}
+          <div className="relative group">
+            <div
+              className={`relative flex items-center rounded-xl bg-white/[0.03] border transition-all duration-200 ${
+                focusedField === "email"
+                  ? "border-cyan-400/80 bg-white/[0.06] shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+                  : "border-white/10 hover:border-white/20"
+              }`}
+            >
+              <div className="pl-3.5 text-zinc-400 group-focus-within:text-cyan-400 transition-colors">
+                <Mail className="w-4 h-4" />
+              </div>
               <input
-                type={showConfirmPassword ? "text" : "password"}
+                type="email"
                 required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-10 pr-11 py-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/30 transition-all font-sans"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onFocus={() => setFocusedField("email")}
+                onBlur={() => setFocusedField(null)}
+                placeholder="name@company.com"
+                className="w-full bg-transparent px-3 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none font-mono text-[13px]"
+              />
+            </div>
+          </div>
+
+          {/* Password */}
+          <div className="relative group">
+            <div
+              className={`relative flex items-center rounded-xl bg-white/[0.03] border transition-all duration-200 ${
+                focusedField === "password"
+                  ? "border-cyan-400/80 bg-white/[0.06] shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+                  : "border-white/10 hover:border-white/20"
+              }`}
+            >
+              <div className="pl-3.5 text-zinc-400 group-focus-within:text-cyan-400 transition-colors">
+                <Lock className="w-4 h-4" />
+              </div>
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setFocusedField("password")}
+                onBlur={() => setFocusedField(null)}
+                placeholder="Password (minimum 6 characters)"
+                className="w-full bg-transparent px-3 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none font-mono text-[13px]"
               />
               <button
                 type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
-                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+                className="pr-3.5 text-zinc-500 hover:text-zinc-300 transition-colors"
               >
-                {showConfirmPassword ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
-        )}
 
-        {/* ── Action CTA Button (Cyan to Blue Gradient with Neon Glow) ─── */}
-        <div className="pt-2">
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3.5 px-6 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-cyan-500 to-blue-600 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:hover:scale-100"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
-                <span>Authenticating...</span>
-              </>
-            ) : (
-              <>
-                <span>{isSignUp ? "Create Free Account" : "Sign In to MasmSpace"}</span>
-                <ArrowRight className="w-4 h-4 text-white" />
-              </>
-            )}
-          </button>
+          {/* Confirm Password (Sign-Up only) */}
+          {isSignUp && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="relative group"
+            >
+              <div
+                className={`relative flex items-center rounded-xl bg-white/[0.03] border transition-all duration-200 ${
+                  focusedField === "confirmPassword"
+                    ? "border-cyan-400/80 bg-white/[0.06] shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+                    : "border-white/10 hover:border-white/20"
+                }`}
+              >
+                <div className="pl-3.5 text-zinc-400 group-focus-within:text-cyan-400 transition-colors">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  required={isSignUp}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onFocus={() => setFocusedField("confirmPassword")}
+                  onBlur={() => setFocusedField(null)}
+                  placeholder="Confirm password"
+                  className="w-full bg-transparent px-3 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none font-mono text-[13px]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  tabIndex={-1}
+                  className="pr-3.5 text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Vibrant Aurora Continue Button */}
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 px-6 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:via-blue-400 hover:to-indigo-500 shadow-[0_0_25px_rgba(6,182,212,0.35)] hover:shadow-[0_0_35px_rgba(6,182,212,0.55)] hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:hover:scale-100 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>Authenticating...</span>
+                </>
+              ) : (
+                <>
+                  <span>{isSignUp ? "Create Free Workspace" : "Continue to MasmSpace"}</span>
+                  <ArrowRight className="w-4 h-4 text-white" />
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+
+        {/* Switcher */}
+        <div className="text-center pt-5 mt-5 border-t border-white/[0.08]">
+          <p className="text-xs text-zinc-400">
+            {isSignUp ? "Already have an account?" : "New to MasmSpace?"}{" "}
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setErrorMsg(null);
+                setSuccessMsg(null);
+              }}
+              className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors cursor-pointer ml-1"
+            >
+              {isSignUp ? "Sign In" : "Create an account"}
+            </button>
+          </p>
         </div>
-      </form>
-
-      {/* ── Switcher: Sign In <-> Sign Up ─────────────────────────────────── */}
-      <div className="text-center pt-3 border-t border-white/[0.08]">
-        <p className="text-xs text-zinc-400">
-          {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setErrorMsg(null);
-              setSuccessMsg(null);
-            }}
-            className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors cursor-pointer ml-1"
-          >
-            {isSignUp ? "Sign In" : "Create Account"}
-          </button>
-        </p>
       </div>
     </motion.div>
   );
@@ -451,34 +493,178 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-[#030303] flex items-center justify-center p-4 sm:p-6 text-white relative overflow-hidden font-sans">
-      {/* ── Background Atmosphere (#030303 base with controlled 90px glow orbs) ── */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden flex items-center justify-center">
-        {/* Cyan Orb */}
-        <div className="absolute top-1/4 -left-20 w-80 h-80 bg-cyan-500/10 rounded-full blur-[90px]" />
-        {/* Purple Orb */}
-        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-purple-600/10 rounded-full blur-[90px]" />
-        {/* Fine background dot texture */}
+    <div className="min-h-screen w-full bg-[#09090b] text-white flex flex-col lg:flex-row relative overflow-hidden font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
+      {/* ── Global Midnight Oceanic Gradient Orbs ───────────────────────── */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 left-1/3 w-[30rem] h-[30rem] bg-indigo-600/10 rounded-full blur-[140px]" />
+        <div className="absolute top-1/3 right-10 w-80 h-80 bg-purple-600/10 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-emerald-500/5 rounded-full blur-[130px]" />
+
+        {/* Subtle grid pattern */}
         <div
-          className="absolute inset-0 opacity-[0.025]"
+          className="absolute inset-0 opacity-[0.03]"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.8) 1px, transparent 0)",
-            backgroundSize: "32px 32px",
+              "radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.9) 1px, transparent 0)",
+            backgroundSize: "36px 36px",
           }}
         />
       </div>
 
-      <Suspense
-        fallback={
-          <div className="w-full max-w-lg p-8 rounded-3xl bg-[#09090b]/80 backdrop-blur-2xl border border-white/15 text-center font-mono text-xs text-zinc-400">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto text-cyan-400 mb-2" />
-            <span>Loading MasmSpace Auth...</span>
+      {/* ── Left Side: Pure CSS Animated Gradient Mesh & Brand Visual ──── */}
+      <div className="relative hidden lg:flex lg:w-1/2 xl:w-7/12 flex-col justify-between p-12 xl:p-16 border-r border-white/10 overflow-hidden z-10">
+        {/* Animated Pure CSS Mesh Background */}
+        <div className="absolute inset-0 -z-10 overflow-hidden bg-[#09090b]">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-950/40 via-[#09090b] to-purple-950/30" />
+          {/* Animated glowing mesh orbs */}
+          <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] opacity-40 animate-aurora-mesh filter blur-[90px] pointer-events-none bg-[radial-gradient(ellipse_at_top_left,#06b6d4_0%,transparent_50%),radial-gradient(ellipse_at_bottom_right,#6366f1_0%,transparent_50%),radial-gradient(ellipse_at_center,#8b5cf6_0%,transparent_50%)]" />
+
+          {/* Micro-noise texture simulation */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-transparent to-[#09090b]/80" />
+        </div>
+
+        {/* Brand Header */}
+        <div className="flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center gap-3 group focus:outline-none">
+            <div className="w-11 h-11 rounded-2xl bg-white/[0.06] border border-white/15 p-2 flex items-center justify-center shadow-[0_0_25px_rgba(6,182,212,0.25)] group-hover:scale-105 group-hover:border-cyan-400/40 transition-all duration-300">
+              <Image
+                src="/masmspace-logo.png"
+                alt="MasmSpace"
+                width={38}
+                height={38}
+                className="object-contain"
+                priority
+              />
+            </div>
+            <div>
+              <span className="font-bold text-xl tracking-tight text-white group-hover:text-cyan-300 transition-colors">
+                MasmSpace
+              </span>
+              <span className="block text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+                by PRATHOMIX
+              </span>
+            </div>
+          </Link>
+
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-medium bg-white/[0.04] border border-white/10 text-zinc-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            v2.4 Linear Studio
+          </span>
+        </div>
+
+        {/* Center Tagline & Dynamic 3D/Glass Graphic Showcase */}
+        <div className="my-auto py-12 max-w-xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-medium mb-6 backdrop-blur-md">
+            <Cpu className="w-3.5 h-3.5" />
+            Next-Gen Spatial Architecture
           </div>
-        }
-      >
-        <LoginForm />
-      </Suspense>
+
+          <h1 className="text-4xl xl:text-5xl font-extrabold tracking-tight text-white leading-[1.15]">
+            Architect systems at the{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-400 to-purple-400">
+              speed of thought.
+            </span>
+          </h1>
+
+          <p className="mt-5 text-base text-zinc-400 leading-relaxed max-w-lg">
+            The spatial whiteboard workspace built for engineers. Generate deep architectures,
+            collaborate across infinite canvases, and transform diagrams into production-ready specs.
+          </p>
+
+          {/* Floating Glassmorphic Capability Badges */}
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] backdrop-blur-md border border-white/10 hover:border-cyan-500/30 transition-colors">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-white">Infinite Multi-Canvas</h4>
+                  <p className="text-[11px] text-zinc-400">Excalidraw 60FPS realtime sync</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] backdrop-blur-md border border-white/10 hover:border-purple-500/30 transition-colors">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-white">Contextual AI Agent</h4>
+                  <p className="text-[11px] text-zinc-400">Click-to-place intelligent graphs</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] backdrop-blur-md border border-white/10 hover:border-emerald-500/30 transition-colors">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-white">Cloud State Persistence</h4>
+                  <p className="text-[11px] text-zinc-400">Supabase instant memory snapshot</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] backdrop-blur-md border border-white/10 hover:border-blue-500/30 transition-colors">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+                  <Check className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-white">Enterprise Ready</h4>
+                  <p className="text-[11px] text-zinc-400">SOC2 compliant & encrypted</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer info in Hero panel */}
+        <div className="pt-6 border-t border-white/[0.08] flex items-center justify-between text-xs text-zinc-500">
+          <span>© 2026 PRATHOMIX Solution. All rights reserved.</span>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="hover:text-zinc-300 transition-colors">Privacy</Link>
+            <Link href="/" className="hover:text-zinc-300 transition-colors">Terms</Link>
+            <Link href="/" className="hover:text-zinc-300 transition-colors">Security</Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Right Side: High-Conversion Frosted Glass Auth ───────────────── */}
+      <div className="w-full lg:w-1/2 xl:w-5/12 min-h-screen flex flex-col justify-center items-center p-6 sm:p-10 relative z-10">
+        {/* Mobile Header Logo (visible only on small screens) */}
+        <div className="lg:hidden mb-8 text-center">
+          <Link href="/" className="inline-flex items-center gap-2.5 group">
+            <div className="w-10 h-10 rounded-2xl bg-white/[0.06] border border-white/15 p-1.5 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+              <Image
+                src="/masmspace-logo.png"
+                alt="MasmSpace"
+                width={32}
+                height={32}
+                className="object-contain"
+                priority
+              />
+            </div>
+            <span className="font-bold text-2xl tracking-tight text-white">MasmSpace</span>
+          </Link>
+        </div>
+
+        <Suspense
+          fallback={
+            <div className="w-full max-w-md p-8 rounded-3xl bg-[#09090b]/80 backdrop-blur-2xl border border-white/15 text-center font-mono text-xs text-zinc-400 shadow-2xl">
+              <Loader2 className="w-6 h-6 animate-spin mx-auto text-cyan-400 mb-2" />
+              <span>Initializing MasmSpace Auth...</span>
+            </div>
+          }
+        >
+          <LoginForm />
+        </Suspense>
+      </div>
     </div>
   );
 }

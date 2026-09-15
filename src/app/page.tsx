@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import Tilt from "react-parallax-tilt";
 import {
   Sparkles,
   Code2,
@@ -23,8 +24,12 @@ import {
   LogOut,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { CanvasLoader } from "@/components/CanvasLoader";
 
 export default function LandingPage() {
+  // ── Canvas Launch Loading State ───────────────────────────────────────────
+  const [isLaunchingCanvas, setIsLaunchingCanvas] = useState(false);
+
   // ── Segment-Wise Tabs State ────────────────────────────────────────────────
   const [activeSegment, setActiveSegment] = useState<
     "engineers" | "researchers" | "product"
@@ -53,7 +58,7 @@ export default function LandingPage() {
           });
           return;
         }
-      } catch {}
+      } catch { }
 
       if (typeof window !== "undefined" && isMounted) {
         try {
@@ -62,7 +67,7 @@ export default function LandingPage() {
             const parsed = JSON.parse(stored);
             if (parsed) setCurrentUser(parsed);
           }
-        } catch {}
+        } catch { }
       }
     }
 
@@ -203,6 +208,16 @@ print("[Pyodide WASM] Tensor layer converged.")`,
 
   return (
     <div className="min-h-screen bg-[#030303] text-gray-100 font-sans selection:bg-cyan-500/20 selection:text-cyan-300 relative overflow-x-hidden">
+      {/* ── Seamless Full-Screen Canvas Loader Transition ── */}
+      <AnimatePresence>
+        {isLaunchingCanvas && (
+          <CanvasLoader
+            message="Loading Workspace Environment…"
+            submessage="Streaming WebAssembly Canvas Engine & Vector RAG Pipeline"
+          />
+        )}
+      </AnimatePresence>
+
       {/* ── Ambient Neon Backdrops (Cyber-Glass Accents) ── */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute -top-48 left-1/2 -translate-x-1/2 w-[720px] h-[520px] bg-gradient-to-b from-cyan-500/15 via-purple-600/10 to-transparent blur-[160px] rounded-full" />
@@ -295,6 +310,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
 
             <Link
               href="/canvas"
+              onClick={() => setIsLaunchingCanvas(true)}
               className="group relative inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-cyan-500/20 via-cyan-400/20 to-purple-500/20 hover:from-cyan-500/30 hover:to-purple-500/30 border border-cyan-400/40 hover:border-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.25)] hover:shadow-[0_0_30px_rgba(6,182,212,0.45)] transition-all duration-300 active:scale-[0.98]"
             >
               <span>Launch Canvas</span>
@@ -351,6 +367,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
             >
               <Link
                 href="/canvas"
+                onClick={() => setIsLaunchingCanvas(true)}
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-9 py-4 rounded-xl text-base font-semibold text-black bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-400 hover:brightness-110 shadow-[0_0_30px_rgba(6,182,212,0.45)] hover:shadow-[0_0_45px_rgba(6,182,212,0.7)] transition-all duration-300 active:scale-[0.98]"
               >
                 <span>Launch Canvas</span>
@@ -517,8 +534,15 @@ print("[Pyodide WASM] Tensor layer converged.")`,
         {/* ═══════════════════════════════════════════════════════════════════════
             2. PROBLEM SECTION (THE PAIN POINTS)
            ═══════════════════════════════════════════════════════════════════════ */}
-        <section
+        {/* ═══════════════════════════════════════════════════════════════════════
+            2. PROBLEM SECTION (THE PAIN POINTS)
+           ═══════════════════════════════════════════════════════════════════════ */}
+        <motion.section
           id="problems"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="max-w-7xl mx-auto px-6 sm:px-8 py-24 sm:py-32 scroll-mt-20 border-t border-white/[0.04]"
         >
           <div className="max-w-3xl mx-auto text-center mb-16 sm:mb-20">
@@ -536,57 +560,100 @@ print("[Pyodide WASM] Tensor layer converged.")`,
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Pain Point 1 */}
-            <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-xl hover:border-red-500/30 transition-all duration-300">
-              <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-6 text-red-400">
-                <Boxes className="w-6 h-6" />
+            <Tilt
+              tiltMaxAngleX={10}
+              tiltMaxAngleY={10}
+              scale={1.02}
+              transitionSpeed={2000}
+              glareEnable={true}
+              glareMaxOpacity={0.15}
+              glareColor="#ffffff"
+              glarePosition="all"
+              glareBorderRadius="1rem"
+              className="h-full rounded-2xl"
+            >
+              <div className="h-full p-8 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-xl hover:border-red-500/30 transition-all duration-300">
+                <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-6 text-red-400">
+                  <Boxes className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
+                  Scattered Tools
+                </h3>
+                <p className="text-sm text-gray-400 leading-relaxed">
+                  Diagrams are trapped in one whiteboard, algorithm validation is
+                  buried in a local terminal, and AI prompting context is lost
+                  across browser tabs.
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
-                Scattered Tools
-              </h3>
-              <p className="text-sm text-gray-400 leading-relaxed">
-                Diagrams are trapped in one whiteboard, algorithm validation is
-                buried in a local terminal, and AI prompting context is lost
-                across browser tabs.
-              </p>
-            </div>
+            </Tilt>
 
             {/* Pain Point 2 */}
-            <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-xl hover:border-yellow-500/30 transition-all duration-300">
-              <div className="w-12 h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mb-6 text-yellow-400">
-                <Activity className="w-6 h-6" />
+            <Tilt
+              tiltMaxAngleX={10}
+              tiltMaxAngleY={10}
+              scale={1.02}
+              transitionSpeed={2000}
+              glareEnable={true}
+              glareMaxOpacity={0.15}
+              glareColor="#ffffff"
+              glarePosition="all"
+              glareBorderRadius="1rem"
+              className="h-full rounded-2xl"
+            >
+              <div className="h-full p-8 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-xl hover:border-yellow-500/30 transition-all duration-300">
+                <div className="w-12 h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mb-6 text-yellow-400">
+                  <Activity className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
+                  Heavy Latency & Crashes
+                </h3>
+                <p className="text-sm text-gray-400 leading-relaxed">
+                  Traditional cloud-rendered tools consume gigabytes of RAM, lag
+                  during screen shares, crash on 4GB laptops, and lack real local
+                  code compilation.
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
-                Heavy Latency & Crashes
-              </h3>
-              <p className="text-sm text-gray-400 leading-relaxed">
-                Traditional cloud-rendered tools consume gigabytes of RAM, lag
-                during screen shares, crash on 4GB laptops, and lack real local
-                code compilation.
-              </p>
-            </div>
+            </Tilt>
 
             {/* Pain Point 3 */}
-            <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-xl hover:border-purple-500/30 transition-all duration-300">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-6 text-purple-400">
-                <Layers className="w-6 h-6" />
+            <Tilt
+              tiltMaxAngleX={10}
+              tiltMaxAngleY={10}
+              scale={1.02}
+              transitionSpeed={2000}
+              glareEnable={true}
+              glareMaxOpacity={0.15}
+              glareColor="#ffffff"
+              glarePosition="all"
+              glareBorderRadius="1rem"
+              className="h-full rounded-2xl"
+            >
+              <div className="h-full p-8 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-xl hover:border-purple-500/30 transition-all duration-300">
+                <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-6 text-purple-400">
+                  <Layers className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
+                  Brutal Context Switching
+                </h3>
+                <p className="text-sm text-gray-400 leading-relaxed">
+                  Every switch between whiteboard, documentation, and code editor
+                  costs 23 minutes of deep focus recovery. Your creative momentum
+                  evaporates.
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
-                Brutal Context Switching
-              </h3>
-              <p className="text-sm text-gray-400 leading-relaxed">
-                Every switch between whiteboard, documentation, and code editor
-                costs 23 minutes of deep focus recovery. Your creative momentum
-                evaporates.
-              </p>
-            </div>
+            </Tilt>
           </div>
-        </section>
+        </motion.section>
 
         {/* ═══════════════════════════════════════════════════════════════════════
             3. SOLUTION & KEY FEATURES (THE TECH POWERHOUSE)
            ═══════════════════════════════════════════════════════════════════════ */}
-        <section
+        <motion.section
           id="features"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="max-w-7xl mx-auto px-6 sm:px-8 py-24 sm:py-32 scroll-mt-20 border-t border-white/[0.04]"
         >
           <div className="max-w-3xl mx-auto text-center mb-16 sm:mb-20">
@@ -604,95 +671,132 @@ print("[Pyodide WASM] Tensor layer converged.")`,
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Feature 1: Pyodide WASM */}
-            <motion.div
-              whileHover={{ y: -6 }}
-              className="group p-8 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-cyan-500/40 backdrop-blur-xl transition-all duration-300 flex flex-col justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]"
+            <Tilt
+              tiltMaxAngleX={10}
+              tiltMaxAngleY={10}
+              scale={1.02}
+              transitionSpeed={2000}
+              glareEnable={true}
+              glareMaxOpacity={0.15}
+              glareColor="#ffffff"
+              glarePosition="all"
+              glareBorderRadius="1rem"
+              className="h-full rounded-2xl"
             >
-              <div>
-                <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-6 text-cyan-400 group-hover:scale-110 transition-transform">
-                  <Cpu className="w-6 h-6" />
+              <div className="group h-full p-8 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-cyan-500/40 backdrop-blur-xl transition-all duration-300 flex flex-col justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
+                <div>
+                  <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-6 text-cyan-400 group-hover:scale-110 transition-transform">
+                    <Cpu className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-mono uppercase text-cyan-400/80 mb-2 block">
+                    Client-Side Runtime
+                  </span>
+                  <h3 className="text-2xl font-bold text-white mb-3 tracking-tight group-hover:text-cyan-300 transition-colors">
+                    Browser-Based Python Engine (WASM)
+                  </h3>
+                  <p className="text-sm text-gray-400 leading-relaxed mb-6">
+                    Run authentic Python 3, NumPy, and algorithm scripts natively
+                    inside your browser via Pyodide WebAssembly. Zero round-trips
+                    to an external cloud server, zero server fees, zero latency.
+                  </p>
                 </div>
-                <span className="text-xs font-mono uppercase text-cyan-400/80 mb-2 block">
-                  Client-Side Runtime
-                </span>
-                <h3 className="text-2xl font-bold text-white mb-3 tracking-tight group-hover:text-cyan-300 transition-colors">
-                  Browser-Based Python Engine (WASM)
-                </h3>
-                <p className="text-sm text-gray-400 leading-relaxed mb-6">
-                  Run authentic Python 3, NumPy, and algorithm scripts natively
-                  inside your browser via Pyodide WebAssembly. Zero round-trips
-                  to an external cloud server, zero server fees, zero latency.
-                </p>
+                <div className="pt-4 border-t border-white/[0.05] flex items-center justify-between text-xs text-cyan-400/80 font-mono">
+                  <span>Pyodide WebAssembly</span>
+                  <span>Instant Exec</span>
+                </div>
               </div>
-              <div className="pt-4 border-t border-white/[0.05] flex items-center justify-between text-xs text-cyan-400/80 font-mono">
-                <span>Pyodide WebAssembly</span>
-                <span>Instant Exec</span>
-              </div>
-            </motion.div>
+            </Tilt>
 
             {/* Feature 2: AI Architecture Swarm */}
-            <motion.div
-              whileHover={{ y: -6 }}
-              className="group p-8 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-purple-500/40 backdrop-blur-xl transition-all duration-300 flex flex-col justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]"
+            <Tilt
+              tiltMaxAngleX={10}
+              tiltMaxAngleY={10}
+              scale={1.02}
+              transitionSpeed={2000}
+              glareEnable={true}
+              glareMaxOpacity={0.15}
+              glareColor="#ffffff"
+              glarePosition="all"
+              glareBorderRadius="1rem"
+              className="h-full rounded-2xl"
             >
-              <div>
-                <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-6 text-purple-400 group-hover:scale-110 transition-transform">
-                  <Sparkles className="w-6 h-6" />
+              <div className="group h-full p-8 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-purple-500/40 backdrop-blur-xl transition-all duration-300 flex flex-col justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
+                <div>
+                  <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-6 text-purple-400 group-hover:scale-110 transition-transform">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-mono uppercase text-purple-400/80 mb-2 block">
+                    Intelligent Generation
+                  </span>
+                  <h3 className="text-2xl font-bold text-white mb-3 tracking-tight group-hover:text-purple-300 transition-colors">
+                    AI Architecture Swarm
+                  </h3>
+                  <p className="text-sm text-gray-400 leading-relaxed mb-6">
+                    Multi-agent intelligence (Gemini 1.5 &amp; Groq Llama-3.3)
+                    transforms natural language prompts or rough wireframes into
+                    structured, editable architecture blueprints and deployment
+                    manifests.
+                  </p>
                 </div>
-                <span className="text-xs font-mono uppercase text-purple-400/80 mb-2 block">
-                  Intelligent Generation
-                </span>
-                <h3 className="text-2xl font-bold text-white mb-3 tracking-tight group-hover:text-purple-300 transition-colors">
-                  AI Architecture Swarm
-                </h3>
-                <p className="text-sm text-gray-400 leading-relaxed mb-6">
-                  Multi-agent intelligence (Gemini 1.5 &amp; Groq Llama-3.3)
-                  transforms natural language prompts or rough wireframes into
-                  structured, editable architecture blueprints and deployment
-                  manifests.
-                </p>
+                <div className="pt-4 border-t border-white/[0.05] flex items-center justify-between text-xs text-purple-400/80 font-mono">
+                  <span>Multi-Provider Balancer</span>
+                  <span>Sub-Second Output</span>
+                </div>
               </div>
-              <div className="pt-4 border-t border-white/[0.05] flex items-center justify-between text-xs text-purple-400/80 font-mono">
-                <span>Multi-Provider Balancer</span>
-                <span>Sub-Second Output</span>
-              </div>
-            </motion.div>
+            </Tilt>
 
             {/* Feature 3: Infinite Cyber-Glass Canvas */}
-            <motion.div
-              whileHover={{ y: -6 }}
-              className="group p-8 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-teal-500/40 backdrop-blur-xl transition-all duration-300 flex flex-col justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]"
+            <Tilt
+              tiltMaxAngleX={10}
+              tiltMaxAngleY={10}
+              scale={1.02}
+              transitionSpeed={2000}
+              glareEnable={true}
+              glareMaxOpacity={0.15}
+              glareColor="#ffffff"
+              glarePosition="all"
+              glareBorderRadius="1rem"
+              className="h-full rounded-2xl"
             >
-              <div>
-                <div className="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-6 text-teal-400 group-hover:scale-110 transition-transform">
-                  <Zap className="w-6 h-6" />
+              <div className="group h-full p-8 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-teal-500/40 backdrop-blur-xl transition-all duration-300 flex flex-col justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
+                <div>
+                  <div className="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-6 text-teal-400 group-hover:scale-110 transition-transform">
+                    <Zap className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-mono uppercase text-teal-400/80 mb-2 block">
+                    Hardware Accelerated
+                  </span>
+                  <h3 className="text-2xl font-bold text-white mb-3 tracking-tight group-hover:text-teal-300 transition-colors">
+                    Infinite Cyber-Glass Canvas
+                  </h3>
+                  <p className="text-sm text-gray-400 leading-relaxed mb-6">
+                    High-throughput vector rendering engine optimized for locked 60
+                    FPS even on low-power 4GB RAM laptops. Unlimited board
+                    dimensions, smooth zoom, and crisp Excalidraw-grade visual
+                    precision.
+                  </p>
                 </div>
-                <span className="text-xs font-mono uppercase text-teal-400/80 mb-2 block">
-                  Hardware Accelerated
-                </span>
-                <h3 className="text-2xl font-bold text-white mb-3 tracking-tight group-hover:text-teal-300 transition-colors">
-                  Infinite Cyber-Glass Canvas
-                </h3>
-                <p className="text-sm text-gray-400 leading-relaxed mb-6">
-                  High-throughput vector rendering engine optimized for locked 60
-                  FPS even on low-power 4GB RAM laptops. Unlimited board
-                  dimensions, smooth zoom, and crisp Excalidraw-grade visual
-                  precision.
-                </p>
+                <div className="pt-4 border-t border-white/[0.05] flex items-center justify-between text-xs text-teal-400/80 font-mono">
+                  <span>Web Worker Threads</span>
+                  <span>60 FPS Locked</span>
+                </div>
               </div>
-              <div className="pt-4 border-t border-white/[0.05] flex items-center justify-between text-xs text-teal-400/80 font-mono">
-                <span>Web Worker Threads</span>
-                <span>60 FPS Locked</span>
-              </div>
-            </motion.div>
+            </Tilt>
           </div>
-        </section>
+        </motion.section>
 
         {/* ═══════════════════════════════════════════════════════════════════════
             4. FOR DIFFERENT BUILDERS (SEGMENT-WISE VALUE)
            ═══════════════════════════════════════════════════════════════════════ */}
-        <section
+        {/* ═══════════════════════════════════════════════════════════════════════
+            4. FOR DIFFERENT BUILDERS (SEGMENT-WISE VALUE)
+           ═══════════════════════════════════════════════════════════════════════ */}
+        <motion.section
           id="builders"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="max-w-7xl mx-auto px-6 sm:px-8 py-24 sm:py-32 scroll-mt-20 border-t border-white/[0.04]"
         >
           <div className="max-w-3xl mx-auto text-center mb-14">
@@ -723,11 +827,10 @@ print("[Pyodide WASM] Tensor layer converged.")`,
                 <button
                   key={tab.id}
                   onClick={() => setActiveSegment(tab.id)}
-                  className={`inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    isActive
+                  className={`inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
                       ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-[0_0_20px_rgba(6,182,212,0.2)]"
                       : "bg-white/[0.02] text-gray-400 hover:text-white border border-white/10 hover:bg-white/[0.05]"
-                  }`}
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
@@ -780,13 +883,17 @@ print("[Pyodide WASM] Tensor layer converged.")`,
               </div>
             </motion.div>
           </AnimatePresence>
-        </section>
+        </motion.section>
 
         {/* ═══════════════════════════════════════════════════════════════════════
             5. TRANSPARENT PRICING (DEVELOPER FRIENDLY)
            ═══════════════════════════════════════════════════════════════════════ */}
-        <section
+        <motion.section
           id="pricing"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="max-w-7xl mx-auto px-6 sm:px-8 py-24 sm:py-32 scroll-mt-20 border-t border-white/[0.04]"
         >
           <div className="max-w-3xl mx-auto text-center mb-16 sm:mb-20">
@@ -804,155 +911,184 @@ print("[Pyodide WASM] Tensor layer converged.")`,
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Free Tier */}
-            <div className="p-8 sm:p-10 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-xl flex flex-col justify-between transition-all duration-300 hover:border-white/20">
-              <div>
-                <span className="text-xs font-mono uppercase text-gray-400">
-                  Starter Plan
-                </span>
-                <h3 className="text-2xl font-bold text-white mt-1 mb-2">
-                  Free Tier
-                </h3>
-                <div className="flex items-baseline gap-2 mb-6">
-                  <span className="text-4xl sm:text-5xl font-extrabold text-white">
-                    $0
+            <Tilt
+              tiltMaxAngleX={8}
+              tiltMaxAngleY={8}
+              scale={1.01}
+              transitionSpeed={2000}
+              glareEnable={true}
+              glareMaxOpacity={0.08}
+              glareColor="#ffffff"
+              glarePosition="all"
+              glareBorderRadius="1rem"
+              className="h-full rounded-2xl"
+            >
+              <div className="h-full p-8 sm:p-10 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-xl flex flex-col justify-between transition-all duration-300 hover:border-white/20">
+                <div>
+                  <span className="text-xs font-mono uppercase text-gray-400">
+                    Starter Plan
                   </span>
-                  <span className="text-sm text-gray-400 font-mono">
-                    / forever
-                  </span>
-                </div>
-                <p className="text-sm text-gray-400 mb-8 leading-relaxed">
-                  Ideal for solo tinkerers, students, and engineers needing a
-                  blazing fast code-enabled sketchpad.
-                </p>
+                  <h3 className="text-2xl font-bold text-white mt-1 mb-2">
+                    Free Tier
+                  </h3>
+                  <div className="flex items-baseline gap-2 mb-6">
+                    <span className="text-4xl sm:text-5xl font-extrabold text-white">
+                      $0
+                    </span>
+                    <span className="text-sm text-gray-400 font-mono">
+                      / forever
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-400 mb-8 leading-relaxed">
+                    Ideal for solo tinkerers, students, and engineers needing a
+                    blazing fast code-enabled sketchpad.
+                  </p>
 
-                <div className="space-y-3.5 mb-8">
-                  {[
-                    "Core Infinite Canvas & Excalidraw Engine",
-                    "Local Pyodide WebAssembly Python Runner",
-                    "10 Daily AI Architecture Generation Prompts",
-                    "Local-first JSON, SVG, & PNG High-Res Exports",
-                    "100% Offline Capability",
-                  ].map((feat, i) => (
-                    <div key={i} className="flex items-center gap-3 text-sm text-gray-300">
-                      <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                      <span>{feat}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <Link
-                href="/canvas"
-                className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 transition-colors"
-              >
-                Start Free
-              </Link>
-            </div>
-
-            {/* Pro Tier */}
-            <div className="relative p-8 sm:p-10 rounded-2xl bg-white/[0.03] border border-cyan-400/40 backdrop-blur-xl flex flex-col justify-between shadow-[0_0_40px_rgba(6,182,212,0.15)] transition-all duration-300 hover:border-cyan-300">
-              {/* Pro Badge */}
-              <div className="absolute -top-3.5 right-8 px-3 py-1 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 text-black text-xs font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(6,182,212,0.5)]">
-                Most Popular
-              </div>
-
-              <div>
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                  <span className="text-xs font-mono uppercase text-cyan-400">
-                    Professional Architecture
-                  </span>
-
-                  {/* Monthly / Yearly Switcher */}
-                  <div className="inline-flex p-0.5 rounded-lg bg-black/60 border border-white/10 text-xs font-mono">
-                    <button
-                      onClick={() => setProBillingCycle("monthly")}
-                      className={`px-2.5 py-1 rounded-md transition-all ${
-                        proBillingCycle === "monthly"
-                          ? "bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-400/30"
-                          : "text-gray-400 hover:text-white"
-                      }`}
-                    >
-                      Monthly
-                    </button>
-                    <button
-                      onClick={() => setProBillingCycle("yearly")}
-                      className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
-                        proBillingCycle === "yearly"
-                          ? "bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-400/30"
-                          : "text-gray-400 hover:text-white"
-                      }`}
-                    >
-                      <span>Yearly</span>
-                      <span className="px-1.5 py-0.5 text-[10px] rounded bg-emerald-500/20 text-emerald-400 font-bold leading-none">
-                        Save 18%
-                      </span>
-                    </button>
+                  <div className="space-y-3.5 mb-8">
+                    {[
+                      "Core Infinite Canvas & Excalidraw Engine",
+                      "Local Pyodide WebAssembly Python Runner",
+                      "10 Daily AI Architecture Generation Prompts",
+                      "Local-first JSON, SVG, & PNG High-Res Exports",
+                      "100% Offline Capability",
+                    ].map((feat, i) => (
+                      <div key={i} className="flex items-center gap-3 text-sm text-gray-300">
+                        <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                        <span>{feat}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                <h3 className="text-2xl font-bold text-white mb-2">
-                  Pro Tier
-                </h3>
-
-                {/* Dynamic Price Display */}
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-4xl sm:text-5xl font-extrabold text-white">
-                    {proBillingCycle === "yearly" ? "$49" : "$5"}
-                  </span>
-                  <span className="text-sm text-gray-400 font-mono">
-                    {proBillingCycle === "yearly" ? "/ year" : "/ month"}
-                  </span>
-                  {proBillingCycle === "yearly" && (
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
-                      Save 18%
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-xs text-cyan-400/80 font-mono mb-6">
-                  {proBillingCycle === "yearly"
-                    ? "Billed annually ($4.08/mo effective) • Cancel anytime"
-                    : "Flexible monthly billing • Cancel anytime"}
-                </p>
-
-                <p className="text-sm text-gray-400 mb-8 leading-relaxed">
-                  Engineered for lead architects, senior engineers, and teams
-                  demanding infinite AI swarm generation.
-                </p>
-
-                <div className="space-y-3.5 mb-8">
-                  {[
-                    "Everything in Free Tier",
-                    "Unlimited AI Architecture Generation (Gemini + Groq)",
-                    "Encrypted Cloud Sync & Version History (Supabase)",
-                    "Priority Low-Latency Multi-User Collaboration",
-                    "Custom Python Script Templates & Voice-to-Canvas",
-                    "Priority 24/7 Developer Support",
-                  ].map((feat, i) => (
-                    <div key={i} className="flex items-center gap-3 text-sm text-white">
-                      <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                      <span>{feat}</span>
-                    </div>
-                  ))}
-                </div>
+                <Link
+                  href="/canvas"
+                  className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 transition-colors"
+                >
+                  Start Free
+                </Link>
               </div>
+            </Tilt>
 
-              <Link
-                href={`/canvas?plan=${proBillingCycle}`}
-                className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-semibold text-black bg-gradient-to-r from-cyan-400 to-teal-300 hover:brightness-110 shadow-[0_0_25px_rgba(6,182,212,0.35)] hover:shadow-[0_0_35px_rgba(6,182,212,0.55)] transition-all active:scale-[0.98]"
-              >
-                <span>Upgrade to Pro</span>
-                <ArrowRight className="w-4 h-4 text-black" />
-              </Link>
-            </div>
+            {/* Pro Tier with Dynamic Pulsing Glow & 3D Tilt */}
+            <Tilt
+              tiltMaxAngleX={8}
+              tiltMaxAngleY={8}
+              scale={1.02}
+              transitionSpeed={2000}
+              glareEnable={true}
+              glareMaxOpacity={0.12}
+              glareColor="#06b6d4"
+              glarePosition="all"
+              glareBorderRadius="1rem"
+              className="h-full rounded-2xl"
+            >
+              <div className="relative h-full p-8 sm:p-10 rounded-2xl bg-white/[0.03] border-2 border-cyan-400/50 backdrop-blur-xl flex flex-col justify-between shadow-[0_0_50px_rgba(6,182,212,0.35)] animate-[glow-breathe_4s_ease-in-out_infinite] transition-all duration-300 hover:border-cyan-300">
+                {/* Pro Badge */}
+                <div className="absolute -top-3.5 right-8 px-3 py-1 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 text-black text-xs font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(6,182,212,0.5)]">
+                  Most Popular
+                </div>
+
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <span className="text-xs font-mono uppercase text-cyan-400">
+                      Professional Architecture
+                    </span>
+
+                    {/* Monthly / Yearly Switcher */}
+                    <div className="inline-flex p-0.5 rounded-lg bg-black/60 border border-white/10 text-xs font-mono">
+                      <button
+                        onClick={() => setProBillingCycle("monthly")}
+                        className={`px-2.5 py-1 rounded-md transition-all ${proBillingCycle === "monthly"
+                            ? "bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-400/30"
+                            : "text-gray-400 hover:text-white"
+                          }`}
+                      >
+                        Monthly
+                      </button>
+                      <button
+                        onClick={() => setProBillingCycle("yearly")}
+                        className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${proBillingCycle === "yearly"
+                            ? "bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-400/30"
+                            : "text-gray-400 hover:text-white"
+                          }`}
+                      >
+                        <span>Yearly</span>
+                        <span className="px-1.5 py-0.5 text-[10px] rounded bg-emerald-500/20 text-emerald-400 font-bold leading-none">
+                          Save 18%
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <h3 className="text-2xl font-bold text-white mb-2">
+                    Pro Tier
+                  </h3>
+
+                  {/* Dynamic Price Display */}
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-4xl sm:text-5xl font-extrabold text-white">
+                      {proBillingCycle === "yearly" ? "$49" : "$5"}
+                    </span>
+                    <span className="text-sm text-gray-400 font-mono">
+                      {proBillingCycle === "yearly" ? "/ year" : "/ month"}
+                    </span>
+                    {proBillingCycle === "yearly" && (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                        Save 18%
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-cyan-400/80 font-mono mb-6">
+                    {proBillingCycle === "yearly"
+                      ? "Billed annually ($4.08/mo effective) • Cancel anytime"
+                      : "Flexible monthly billing • Cancel anytime"}
+                  </p>
+
+                  <p className="text-sm text-gray-400 mb-8 leading-relaxed">
+                    Engineered for lead architects, senior engineers, and teams
+                    demanding infinite AI swarm generation.
+                  </p>
+
+                  <div className="space-y-3.5 mb-8">
+                    {[
+                      "Everything in Free Tier",
+                      "300 Daily AI Architecture Generation Prompts",
+                      "Encrypted Cloud Sync & Version History (Supabase)",
+                      "Priority Low-Latency Multi-User Collaboration",
+                      "Custom Python Script Templates & Voice-to-Canvas",
+                      "Priority 24/7 Developer Support",
+                    ].map((feat, i) => (
+                      <div key={i} className="flex items-center gap-3 text-sm text-white">
+                        <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                        <span>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Link
+                  href={`/canvas?plan=${proBillingCycle}`}
+                  onClick={() => setIsLaunchingCanvas(true)}
+                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-semibold text-black bg-gradient-to-r from-cyan-400 to-teal-300 hover:brightness-110 shadow-[0_0_25px_rgba(6,182,212,0.35)] hover:shadow-[0_0_35px_rgba(6,182,212,0.55)] transition-all active:scale-[0.98]"
+                >
+                  <span>Upgrade to Pro</span>
+                  <ArrowRight className="w-4 h-4 text-black" />
+                </Link>
+              </div>
+            </Tilt>
           </div>
-        </section>
+        </motion.section>
 
         {/* ═══════════════════════════════════════════════════════════════════════
             6. FAQ (OBJECTION HANDLER)
            ═══════════════════════════════════════════════════════════════════════ */}
-        <section
+        <motion.section
           id="faq"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="max-w-5xl mx-auto px-6 sm:px-8 py-24 sm:py-32 scroll-mt-20 border-t border-white/[0.04]"
         >
           <div className="max-w-3xl mx-auto text-center mb-16">
@@ -982,9 +1118,8 @@ print("[Pyodide WASM] Tensor layer converged.")`,
                   >
                     <span>{faq.q}</span>
                     <ChevronDown
-                      className={`w-5 h-5 text-gray-400 shrink-0 transition-transform duration-300 ${
-                        isOpen ? "rotate-180 text-cyan-400" : ""
-                      }`}
+                      className={`w-5 h-5 text-gray-400 shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180 text-cyan-400" : ""
+                        }`}
                     />
                   </button>
                   <AnimatePresence>
@@ -1006,12 +1141,18 @@ print("[Pyodide WASM] Tensor layer converged.")`,
               );
             })}
           </div>
-        </section>
+        </motion.section>
 
         {/* ═══════════════════════════════════════════════════════════════════════
             7. FINAL CTA & MINIMALIST FOOTER
            ═══════════════════════════════════════════════════════════════════════ */}
-        <section className="relative px-6 sm:px-8 py-24 sm:py-32 border-t border-white/[0.06] overflow-hidden">
+        <motion.section
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="relative px-6 sm:px-8 py-24 sm:py-32 border-t border-white/[0.06] overflow-hidden"
+        >
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-r from-cyan-500/15 via-purple-600/15 to-transparent blur-[140px] rounded-full" />
           </div>
@@ -1019,7 +1160,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
           <div className="relative max-w-4xl mx-auto text-center">
             <h2 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight mb-6">
               Ready to Build at the{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-purple-500">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 via-purple-400 to-cyan-400 bg-[length:200%_auto] animate-shimmer-text">
                 Speed of Thought?
               </span>
             </h2>
@@ -1029,13 +1170,14 @@ print("[Pyodide WASM] Tensor layer converged.")`,
             </p>
             <Link
               href="/canvas"
+              onClick={() => setIsLaunchingCanvas(true)}
               className="inline-flex items-center gap-3 px-10 py-4 rounded-xl text-base font-semibold text-black bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-400 hover:brightness-110 shadow-[0_0_35px_rgba(6,182,212,0.45)] hover:shadow-[0_0_50px_rgba(6,182,212,0.7)] transition-all duration-300 active:scale-[0.98]"
             >
               <span>Launch MasmSpace Now</span>
               <ArrowRight className="w-5 h-5 text-black" />
             </Link>
           </div>
-        </section>
+        </motion.section>
       </main>
 
       {/* ── Footer ── */}

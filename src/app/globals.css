@@ -274,10 +274,17 @@ body {
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.6) !important;
 }
 
-/* 3. Floating Top Canvas Toolbar (Detached with margins) */
+/* 3. Floating Top Canvas Toolbar — locked, always on top, offset from our custom navbar */
 .excalidraw .App-toolbar-container {
-  top: 20px !important;
-  z-index: 30 !important;
+  top: 16px !important;
+  z-index: 40 !important;
+  pointer-events: auto !important;
+}
+
+/* Push the top action-bar row (undo/redo/zoom) safely below our custom navbar overlay */
+.excalidraw .layer-ui__wrapper .App-menu_top {
+  margin-top: 3rem !important;
+  z-index: 40 !important;
 }
 
 .excalidraw .App-toolbar {
@@ -336,19 +343,32 @@ body {
   z-index: 9999 !important;
 }
 
-/* ── 6. Excalidraw Properties Menu (Stroke, Background, etc.) — Midnight Minimalist ── */
+/* ── 6. Excalidraw Properties Menu — Fixed Position, Glassmorphism, Always On Top ── */
+/* Lock the element-properties panel to a fixed position below the left toolbar.      */
+/* It no longer moves / drags — clean and stable like Linear or Figma.                 */
 .excalidraw .App-menu_bottom--left,
 .excalidraw .App-menu_left,
 .excalidraw .layer-ui__wrapper .Island.App-menu_bottom--left,
 .excalidraw .layer-ui__wrapper .Island[aria-label="Properties"],
 .excalidraw .layer-ui__wrapper .sidebar--docked {
-  background: rgba(15, 15, 20, 0.85) !important;
-  backdrop-filter: blur(10px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+  /* Fixed position below the main toolbar, left-anchored */
+  position: fixed !important;
+  bottom: 96px !important;
+  left: 20px !important;
+  transform: none !important;             /* ← kills any legacy translate3d from old dragging */
+  z-index: 9999 !important;              /* Above canvas drawings, below our modals */
+
+  /* Premium glassmorphism panel */
+  background: rgba(9, 9, 15, 0.82) !important;
+  backdrop-filter: blur(24px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(200%) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 1rem !important;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.04) inset !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 0 24px rgba(6, 182, 212, 0.08) !important;
+  transition: opacity 0.2s ease, box-shadow 0.2s ease !important;
   overflow: hidden !important;
 }
 
@@ -373,6 +393,11 @@ body {
   border: 1px solid rgba(6, 182, 212, 0.45) !important;
   color: #22d3ee !important;
   box-shadow: 0 0 10px rgba(6, 182, 212, 0.3) !important;
+}
+
+/* ── Remove any legacy drag-handle injected by old DraggablePropertiesMenu ── */
+.masmspace-drag-handle {
+  display: none !important;
 }
 
 
@@ -1840,4 +1865,40 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 245, 255, 0.4);
+}
+
+/* ── Excalidraw Properties Menu & UI Z-Index Elevation (Never Hidden by Navbar) ── */
+.excalidraw .layer-ui__wrapper {
+  z-index: 9999 !important;
+}
+
+.excalidraw .App-menu_bottom--left,
+.excalidraw .App-menu__left,
+.excalidraw .layer-ui__wrapper .properties-panel,
+.excalidraw .layer-ui__wrapper .properties-content,
+.excalidraw .layer-ui__wrapper .Island.App-menu,
+.excalidraw .layer-ui__wrapper .sidebar,
+.excalidraw .layer-ui__wrapper .sidebar--left,
+.excalidraw .layer-ui__wrapper .popover,
+.excalidraw .layer-ui__wrapper .dropdown-menu,
+.excalidraw .layer-ui__wrapper .dropdown-menu-container,
+.excalidraw .layer-ui__wrapper .color-picker,
+.excalidraw .layer-ui__wrapper .color-picker-popover,
+.excalidraw .ExcalidrawModal,
+.excalidraw .Modal,
+.excalidraw-modal-container {
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+}
+
+/* ── Driver.js Maximum Overlay & Popover Z-Index Elevation ── */
+.driver-overlay,
+.driver-stage,
+.driver-active-element {
+  z-index: 10000000 !important;
+}
+
+.driver-popover,
+.masmspace-tour-popover {
+  z-index: 10000001 !important;
 }

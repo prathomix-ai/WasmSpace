@@ -28,6 +28,13 @@ export function PricingModal({
   const yearlyDetails = getPlanDetails("yearly");
   const activePlanDetails = getPlanDetails(billingCycle);
 
+  const discountPercent = Math.max(
+    0,
+    Math.round(
+      ((monthlyDetails.amount * 12 - yearlyDetails.amount) / (monthlyDetails.amount * 12)) * 100
+    )
+  );
+
   if (!isOpen) return null;
 
   return (
@@ -140,9 +147,9 @@ export function PricingModal({
                   : "bg-transparent border-transparent hover:bg-white/5 text-zinc-400"
                 }`}
             >
-              {/* Glowing Save 18% Badge */}
+              {/* Glowing Save Badge */}
               <span className="absolute -top-2.5 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold font-mono bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
-                Save 18%
+                Save {discountPercent}%
               </span>
               <div className="text-xs font-semibold text-zinc-300 flex items-center gap-1">
                 <span>Yearly Plan</span>

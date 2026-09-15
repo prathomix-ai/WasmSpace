@@ -28,11 +28,11 @@ export const PRICING_CONFIG: Record<CurrencyCode, PlanPricing> = {
   INR: {
     currency: "INR",
     symbol: "₹",
-    monthlyAmount: 420,
-    monthlySubunits: 42000, // 42000 paise (₹420.00)
-    yearlyAmount: 4100,
-    yearlySubunits: 410000, // 410000 paise (₹4,100.00)
-    monthlyPerYear: 341.67,
+    monthlyAmount: 149,
+    monthlySubunits: 14900, // 14900 paise (₹149.00)
+    yearlyAmount: 1499,
+    yearlySubunits: 149900, // 149900 paise (₹1,499.00)
+    monthlyPerYear: 124.91,
   },
 };
 

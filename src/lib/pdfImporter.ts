@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // MasmSpace — PDF & Document Importer Utility
-// Renders PDF pages into images in-browser via PDF.js WebAssembly / Canvas
+// Renders PDF pages into high-resolution images in-browser via PDF.js WebWorker & HTML5 Canvas
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface RenderedPdfPage {
@@ -21,21 +21,27 @@ const PDFJS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.mi
 const PDFJS_WORKER_CDN = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
 /**
- * Loads the PDF.js library script dynamically
+ * Loads the PDF.js library dynamically in the browser
  */
-function loadPdfJsScript(): Promise<any> {
+async function loadPdfJsScript(): Promise<any> {
   if (typeof window === "undefined") {
-    return Promise.reject(new Error("PDF importing is only supported in browser"));
+    throw new Error("PDF importing is only supported in browser environments.");
   }
 
+  // 1. Check if pdfjs-dist was installed and loaded via window
   if (window.pdfjsLib) {
-    return Promise.resolve(window.pdfjsLib);
+    if (!window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_CDN;
+    }
+    return window.pdfjsLib;
   }
 
+  // 2. Reuse loading promise if already in-flight
   if (window.pdfjsLoadingPromise) {
     return window.pdfjsLoadingPromise;
   }
 
+  // 3. Fallback to resilient CDN loading
   window.pdfjsLoadingPromise = new Promise((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${PDFJS_CDN}"]`);
     if (existing) {
@@ -62,7 +68,7 @@ function loadPdfJsScript(): Promise<any> {
         reject(new Error("pdfjsLib not defined after script load"));
       }
     };
-    script.onerror = () => reject(new Error("Could not load PDF.js from CDN"));
+    script.onerror = () => reject(new Error("Could not load PDF.js library"));
     document.head.appendChild(script);
   });
 
@@ -70,9 +76,13 @@ function loadPdfJsScript(): Promise<any> {
 }
 
 /**
- * Converts a PDF File into an array of high-res image data URLs (one per page)
+ * Reads an uploaded PDF File and renders each page to a high-resolution base64 data URL
+ *
+ * @param file - The PDF File object from input[type=file]
+ * @param onProgress - Optional callback receiving (currentPage, totalPages)
+ * @returns Promise resolving to an array of RenderedPdfPage objects
  */
-export async function renderPdfFileToImages(
+export async function extractPdfPagesToImages(
   file: File,
   onProgress?: (current: number, total: number) => void
 ): Promise<RenderedPdfPage[]> {
@@ -89,17 +99,17 @@ export async function renderPdfFileToImages(
     onProgress?.(pageNum, numPages);
 
     const page = await pdfDoc.getPage(pageNum);
-    // Scale 1.5 gives crisp annotations on retina displays without excessive memory
-    const viewport = page.getViewport({ scale: 1.5 });
+    // Scale 2.0 provides ultra-crisp, high-definition text rendering when zooming in Excalidraw
+    const viewport = page.getViewport({ scale: 2.0 });
 
     const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) continue;
 
     canvas.width = viewport.width;
     canvas.height = viewport.height;
 
-    // Fill white background for transparent PDF pages
+    // Fill pure white background so transparent PDF pages render cleanly
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -112,12 +122,15 @@ export async function renderPdfFileToImages(
 
     renderedPages.push({
       pageNumber: pageNum,
-      // Target display size on whiteboard in canvas units
-      width: Math.round(viewport.width * 0.75),
-      height: Math.round(viewport.height * 0.75),
+      // Target display size on canvas (normalized to ~1x coordinates)
+      width: Math.round(viewport.width / 2.0),
+      height: Math.round(viewport.height / 2.0),
       dataUrl,
     });
   }
 
   return renderedPages;
 }
+
+// Backward compatibility alias
+export const renderPdfFileToImages = extractPdfPagesToImages;

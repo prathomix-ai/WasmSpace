@@ -16,8 +16,38 @@ const config: Config = {
 
   theme: {
     extend: {
-      // ── Color Palette ───────────────────────────────────────────────────
+      // ── Color Palette: Midnight Oceanic & Aurora ─────────────────────────
       colors: {
+        midnight: {
+          DEFAULT: '#09090b',
+          dark:    '#030712',
+          deep:    '#02040a',
+          surface: '#0d1117',
+          card:    'rgba(17, 24, 39, 0.7)',
+          border:  'rgba(255, 255, 255, 0.08)',
+        },
+        ocean: {
+          50:  '#f0f9ff',
+          100: '#e0f2fe',
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#0ea5e9',
+          600: '#0284c7',
+          700: '#0369a1',
+          800: '#075985',
+          900: '#0c4a6e',
+          950: '#082f49',
+        },
+        aurora: {
+          purple:  '#a855f7',
+          blue:    '#3b82f6',
+          cyan:    '#06b6d4',
+          emerald: '#10b981',
+          teal:    '#14b8a6',
+          violet:  '#8b5cf6',
+          indigo:  '#6366f1',
+        },
         neon: {
           cyan:   '#00f5ff',
           purple: '#a855f7',
@@ -27,10 +57,10 @@ const config: Config = {
           yellow: '#eab308',
         },
         void: {
-          DEFAULT: '#0a0a0f',
-          dark:    '#0d0d14',
-          surface: '#12121c',
-          raised:  '#1a1a2e',
+          DEFAULT: '#09090b',
+          dark:    '#030712',
+          surface: '#0f172a',
+          raised:  '#1e293b',
         },
       },
 
@@ -44,9 +74,12 @@ const config: Config = {
       // ── Animations ──────────────────────────────────────────────────────
       animation: {
         'pulse-neon':    'pulse-neon 2s ease-in-out infinite',
-        'float':         'float 3s ease-in-out infinite',
+        'float':         'float 4s ease-in-out infinite',
         'glow-breathe':  'glow-breathe 3s ease-in-out infinite',
         'scan-line':     'scan-line 4s linear infinite',
+        'aurora-mesh':   'aurora-mesh 12s ease infinite alternate',
+        'spin-slow':     'spin 8s linear infinite',
+        'shimmer-text':  'shimmer-text 6s ease-in-out infinite',
       },
       keyframes: {
         'pulse-neon': {
@@ -58,25 +91,50 @@ const config: Config = {
           '50%':      { transform: 'translateY(-8px)' },
         },
         'glow-breathe': {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(0,245,255,0.2)' },
-          '50%':      { boxShadow: '0 0 40px rgba(0,245,255,0.5), 0 0 80px rgba(0,245,255,0.2)' },
+          '0%, 100%': { boxShadow: '0 0 20px rgba(6,182,212,0.2)' },
+          '50%':      { boxShadow: '0 0 45px rgba(6,182,212,0.6), 0 0 85px rgba(168,85,247,0.35)' },
         },
         'scan-line': {
           '0%':   { transform: 'translateY(-100%)' },
           '100%': { transform: 'translateY(100vh)' },
+        },
+        'aurora-mesh': {
+          '0%': {
+            backgroundPosition: '0% 50%',
+            filter: 'hue-rotate(0deg)',
+          },
+          '100%': {
+            backgroundPosition: '100% 50%',
+            filter: 'hue-rotate(30deg)',
+          },
+        },
+        'shimmer-text': {
+          '0%, 100%': {
+            backgroundPosition: '0% 50%',
+            filter: 'hue-rotate(0deg)',
+          },
+          '50%': {
+            backgroundPosition: '100% 50%',
+            filter: 'hue-rotate(45deg)',
+          },
         },
       },
 
       // ── Backdrop blur ───────────────────────────────────────────────────
       backdropBlur: {
         xs: '2px',
+        md: '12px',
+        xl: '20px',
+        '2xl': '32px',
       },
 
       // ── Box shadows ─────────────────────────────────────────────────────
       boxShadow: {
         'neon-cyan':   '0 0 20px rgba(0,245,255,0.3), 0 0 60px rgba(0,245,255,0.1)',
         'neon-purple': '0 0 20px rgba(168,85,247,0.3), 0 0 60px rgba(168,85,247,0.1)',
-        'glass':       '0 8px 32px rgba(0,0,0,0.2), inset 0 0 20px rgba(255,255,255,0.05)',
+        'aurora-glow': '0 0 40px rgba(6,182,212,0.35), 0 0 80px rgba(139,92,246,0.2)',
+        'glass':       '0 8px 32px rgba(0,0,0,0.37), inset 0 0 20px rgba(255,255,255,0.05)',
+        'glass-card':  '0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)',
       },
     },
   },

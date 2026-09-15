@@ -150,10 +150,33 @@ async function callGemini(
   }
 
   const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) {
-    throw new Error("Gemini returned an empty response candidate.");
+
+  // ── Handle blocked / empty candidates gracefully ────────────────────────────
+  // Gemini can return a candidate with finishReason: "SAFETY" | "OTHER" | "RECITATION"
+  // and zero parts — this triggers the "model output must contain output text" error.
+  const candidate = data?.candidates?.[0];
+  const finishReason: string = candidate?.finishReason || "UNKNOWN";
+
+  // Try to extract text from any available part across all candidates
+  let text: string | undefined;
+  for (const c of data?.candidates || []) {
+    for (const part of c?.content?.parts || []) {
+      if (part?.text && part.text.trim().length > 0) {
+        text = part.text;
+        break;
+      }
+    }
+    if (text) break;
   }
+
+  if (!text) {
+    // Surface the real reason so callers can log it properly
+    const blockReason = data?.promptFeedback?.blockReason || "none";
+    throw new Error(
+      `Gemini returned no usable text. finishReason=${finishReason}, blockReason=${blockReason}`
+    );
+  }
+
   return text;
 }
 

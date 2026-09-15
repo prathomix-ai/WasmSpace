@@ -81,10 +81,10 @@ export default function VSCodeExplorer({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Strict 5MB file size limit for performance & memory safety
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    // 25MB file size limit
+    const MAX_FILE_SIZE = 25 * 1024 * 1024;
     if (file.size > MAX_FILE_SIZE) {
-      alert(`File "${file.name}" exceeds the 5MB size limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please upload a file under 5MB.`);
+      alert(`File "${file.name}" exceeds the 25MB size limit. Please upload a file under 25MB.`);
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
@@ -93,14 +93,37 @@ export default function VSCodeExplorer({
       setIsImportingPdf(true);
       setImportProgress({ current: 0, total: 1 });
 
-      const pages = await renderPdfFileToImages(file, (current, total) => {
+      const fileExt = file.name.split(".").pop()?.toLowerCase() || "";
+      let targetFile = file;
+
+      if (fileExt !== "pdf") {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("/api/convert-document", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          throw new Error(errJson.error || `Could not convert .${fileExt} document.`);
+        }
+
+        const pdfBlob = await res.blob();
+        targetFile = new File([pdfBlob], file.name.replace(/\.[^/.]+$/, "") + ".pdf", {
+          type: "application/pdf",
+        });
+      }
+
+      const pages = await renderPdfFileToImages(targetFile, (current, total) => {
         setImportProgress({ current, total });
       });
 
       onImportPdfPages(pages, file.name);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      alert(`Could not import PDF: ${msg}`);
+      alert(`Could not import document: ${msg}`);
     } finally {
       setIsImportingPdf(false);
       setImportProgress(null);
@@ -270,16 +293,16 @@ export default function VSCodeExplorer({
               </div>
             </div>
 
-            {/* Hidden File Input for PDF */}
+            {/* Hidden File Input for Universal Documents */}
             <input
               ref={fileInputRef}
               type="file"
-              accept="application/pdf"
+              accept=".pdf,.docx,.doc,.pptx,.ppt"
               className="hidden"
               onChange={handlePdfUpload}
             />
 
-            {/* PDF Import Card */}
+            {/* Universal Document Import Card */}
             <div className="p-3 border-b border-white/10 bg-gradient-to-b from-neon-purple/5 to-transparent">
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -287,7 +310,7 @@ export default function VSCodeExplorer({
                 className="w-full py-2 px-3 rounded-lg bg-neon-purple/15 hover:bg-neon-purple/25 border border-neon-purple/30 text-neon-purple font-medium text-xs flex items-center justify-center gap-2 transition-all shadow-[0_0_16px_rgba(168,85,247,0.15)] disabled:opacity-50"
               >
                 <span>{isImportingPdf ? "⏳" : "📥"}</span>
-                <span>{isImportingPdf ? "Rendering PDF..." : "Import PDF to Canvas"}</span>
+                <span>{isImportingPdf ? "Synthesizing Document..." : "Import Document (PDF/Word/PPT)"}</span>
               </button>
 
               {isImportingPdf && importProgress && (

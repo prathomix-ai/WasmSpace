@@ -197,8 +197,8 @@ export function ProPricingCard({
     const modalDescription =
       activeCurrency === "INR"
         ? (isYearly
-            ? "MasmSpace Pro Yearly Membership (₹4,100/year)"
-            : "MasmSpace Pro Monthly Membership (₹420/month)")
+            ? "MasmSpace Pro Yearly Membership (₹1,499/year)"
+            : "MasmSpace Pro Monthly Membership (₹149/month)")
         : (isYearly
             ? "MasmSpace Pro Yearly Membership ($49/year)"
             : "MasmSpace Pro Monthly Membership ($5/month)");

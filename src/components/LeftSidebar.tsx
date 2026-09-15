@@ -235,9 +235,9 @@ export function LeftSidebar({
     }, 50);
   };
 
-  // Natural flexbox PRO Badge with glowing cyberpunk neon shadow
+  // Glowing gradient PRO badge
   const ProBadge = () => (
-    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.35)] shrink-0 font-mono leading-none select-none">
+    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_10px_rgba(6,182,212,0.5)] shrink-0 font-mono leading-none select-none border-none">
       PRO
     </span>
   );
@@ -246,7 +246,9 @@ export function LeftSidebar({
     <>
       {/* ── 1. Desktop & Tablet Sidebar Container with Smooth Distraction-Free Transition ── */}
       <aside
-        className={`hidden md:flex flex-col flex-shrink-0 relative z-50 overflow-y-auto custom-scrollbar my-3 ml-3 h-[calc(100vh-1.5rem)] bg-[#09090b]/60 backdrop-blur-xl border border-white/5 rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.5)] select-none transition-all duration-300 ease-in-out ${
+        id="app-left-sidebar"
+        data-tour="sidebar"
+        className={`hidden md:flex flex-col flex-shrink-0 relative z-50 overflow-y-auto custom-scrollbar my-3 ml-3 h-[calc(100vh-1.5rem)] bg-[#09090b]/60 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.7),0_0_80px_rgba(6,182,212,0.04)] select-none transition-all duration-300 ease-in-out ${
           !isSidebarVisible
             ? "-translate-x-[calc(100%+2rem)] opacity-0 pointer-events-none !w-0 !m-0 !p-0 overflow-hidden"
             : isCollapsed
@@ -506,7 +508,7 @@ export function LeftSidebar({
           </div>
         ) : (
           /* ── Standard Full Suite Navigation: Premium Glassmorphism Dock ── */
-          <div className="bg-[#09090b]/60 backdrop-blur-md border border-white/10 rounded-2xl py-4 px-2 flex flex-col gap-3 shadow-inner">
+          <div className="bg-[#09090b]/60 backdrop-blur-2xl border border-white/8 rounded-2xl py-3.5 px-2 flex flex-col gap-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
             {/* ── Primary Tools (Present to Voice AI) ── */}
             <div className="flex flex-col gap-1.5">
               {/* Present (PRO) */}
@@ -514,7 +516,7 @@ export function LeftSidebar({
                 type="button"
                 id="sidebar-btn-present"
                 onClick={() => handleGatedAction("Laser Presentation Mode", onPresentClick)}
-                className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 }`}
                 onMouseEnter={(e) =>
@@ -537,7 +539,7 @@ export function LeftSidebar({
                 type="button"
                 id="sidebar-btn-search"
                 onClick={() => handleGatedAction("Canvas Vector RAG Search", onSearchClick)}
-                className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 }`}
                 onMouseEnter={(e) =>
@@ -561,7 +563,7 @@ export function LeftSidebar({
                 id="sidebar-btn-board-brain"
                 onClick={() => handleGatedAction("AI Meeting Summaries & Action Items", onBoardBrainClick)}
                 disabled={isSummarising}
-                className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer disabled:opacity-50 group ${
+                className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer disabled:opacity-50 group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 }`}
                 onMouseEnter={(e) =>
@@ -588,7 +590,7 @@ export function LeftSidebar({
                   id="sidebar-btn-save-index"
                   onClick={onSaveAndIndex}
                   disabled={isIndexing}
-                  className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer disabled:opacity-50 group ${
+                  className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer disabled:opacity-50 group ${
                     isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                   } ${isIndexing ? "cursor-wait" : ""}`}
                   onMouseEnter={(e) =>
@@ -616,7 +618,7 @@ export function LeftSidebar({
                 type="button"
                 id="sidebar-btn-share"
                 onClick={() => handleGatedAction("Live Multiplayer Collaboration", onShareClick)}
-                className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 }`}
                 onMouseEnter={(e) =>
@@ -639,12 +641,12 @@ export function LeftSidebar({
                 type="button"
                 id="sidebar-btn-code"
                 onClick={onCodeStudioClick}
-                className={`flex items-center w-full text-sm font-medium hover:bg-white/10 rounded-lg transition-all cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium rounded-lg transition-all duration-300 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 } ${
                   isCodeOpen
                     ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
-                    : "text-gray-300 hover:text-white border border-transparent hover:border-white/5"
+                    : "text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 border border-transparent hover:border-white/10"
                 }`}
                 onMouseEnter={(e) =>
                   showTooltip("Code Studio", e.currentTarget, {
@@ -669,12 +671,12 @@ export function LeftSidebar({
                 type="button"
                 id="sidebar-btn-voice-robot"
                 onClick={onVoiceClick}
-                className={`flex items-center w-full text-sm font-medium hover:bg-white/10 rounded-lg transition-all cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium rounded-lg transition-all duration-300 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 } ${
                   isVoiceListening
                     ? "bg-purple-900/50 text-purple-200 border border-purple-400/80 shadow-[0_0_16px_rgba(168,85,247,0.4)]"
-                    : "text-gray-300 hover:text-white border border-transparent hover:border-white/5"
+                    : "text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 border border-transparent hover:border-white/10"
                 }`}
                 onMouseEnter={(e) =>
                   showTooltip(
@@ -717,12 +719,12 @@ export function LeftSidebar({
                 type="button"
                 id="sidebar-btn-files"
                 onClick={onToggleExplorer}
-                className={`flex items-center w-full text-sm font-medium hover:bg-white/10 rounded-lg transition-all cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium rounded-lg transition-all duration-300 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 } ${
                   isExplorerOpen
                     ? "bg-cyan-500/15 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]"
-                    : "text-gray-300 hover:text-white border border-transparent hover:border-white/5"
+                    : "text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 border border-transparent hover:border-white/10"
                 }`}
                 onMouseEnter={(e) =>
                   showTooltip("Project Files", e.currentTarget, {
@@ -742,7 +744,7 @@ export function LeftSidebar({
                 type="button"
                 id="sidebar-btn-screenshot"
                 onClick={onTakeScreenshot}
-                className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 }`}
                 onMouseEnter={(e) =>
@@ -755,7 +757,7 @@ export function LeftSidebar({
                 onMouseLeave={hideTooltip}
               >
                 <div className="flex items-center gap-3">
-                  <Camera className="w-5 h-5 text-gray-300 opacity-80 group-hover:opacity-100 transition-opacity shrink-0" />
+                  <Camera className="w-5 h-5 text-indigo-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(99,102,241,0.6)] transition-all shrink-0" />
                   {!isCollapsed && <span>Screenshot</span>}
                 </div>
               </button>
@@ -764,7 +766,7 @@ export function LeftSidebar({
               {isAdmin && (
                 <Link
                   href="/admin"
-                  className={`flex items-center w-full text-sm font-semibold text-cyan-300 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 shadow-[0_0_14px_rgba(6,182,212,0.35)] hover:shadow-[0_0_22px_rgba(6,182,212,0.6)] rounded-lg transition-all cursor-pointer group ${
+                  className={`flex items-center w-full text-sm font-semibold text-cyan-300 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 shadow-[0_0_14px_rgba(6,182,212,0.35)] hover:shadow-[0_0_22px_rgba(6,182,212,0.6)] rounded-lg transition-all duration-300 cursor-pointer group ${
                     isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                   }`}
                   onMouseEnter={(e) =>
@@ -788,7 +790,7 @@ export function LeftSidebar({
                   id="sidebar-btn-save-cloud"
                   onClick={onSaveToCloud}
                   disabled={isSavingCloud}
-                  className={`flex items-center w-full text-sm font-medium text-cyan-300 hover:text-white hover:bg-cyan-500/10 rounded-lg transition-all border border-transparent hover:border-cyan-500/20 cursor-pointer group ${
+                  className={`flex items-center w-full text-sm font-medium text-cyan-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
                     isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                   } ${isSavingCloud ? "opacity-75 cursor-wait" : ""}`}
                   onMouseEnter={(e) =>
@@ -816,7 +818,7 @@ export function LeftSidebar({
                 type="button"
                 id="sidebar-btn-settings"
                 onClick={onOpenSettings}
-                className={`flex items-center w-full text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 }`}
                 onMouseEnter={(e) =>
@@ -827,7 +829,7 @@ export function LeftSidebar({
                 onMouseLeave={hideTooltip}
               >
                 <div className="flex items-center gap-3">
-                  <Settings className="w-5 h-5 text-gray-400 opacity-80 group-hover:opacity-100 group-hover:rotate-45 transition-all shrink-0" />
+                  <Settings className="w-5 h-5 text-slate-400 opacity-80 group-hover:opacity-100 group-hover:rotate-45 transition-all shrink-0" />
                   {!isCollapsed && <span>Settings</span>}
                 </div>
               </button>
@@ -843,7 +845,7 @@ export function LeftSidebar({
                     onToggleExecutiveMode();
                   }
                 }}
-                className={`flex items-center w-full text-sm font-medium text-amber-300 hover:text-white hover:bg-amber-500/20 rounded-lg transition-all border border-transparent hover:border-amber-500/30 cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium text-amber-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-amber-500/30 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 }`}
                 onMouseEnter={(e) =>
@@ -894,7 +896,7 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-upgrade-pro"
               onClick={onOpenProModal}
-              className={`flex items-center w-full rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 border border-cyan-400/40 text-cyan-300 text-sm font-bold shadow-[0_0_14px_rgba(6,182,212,0.3)] hover:shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-all cursor-pointer group ${
+              className={`relative overflow-hidden flex items-center w-full rounded-xl bg-gradient-to-r from-cyan-600/30 via-blue-600/25 to-purple-700/30 hover:from-cyan-500/45 hover:via-blue-600/38 hover:to-purple-600/45 border border-cyan-400/60 text-cyan-200 text-sm font-bold shadow-[0_0_24px_rgba(6,182,212,0.4),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_0_40px_rgba(6,182,212,0.65)] animate-[glow-breathe_4s_ease-in-out_infinite] transition-all duration-300 cursor-pointer group ${
                 isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
               }`}
               onMouseEnter={(e) =>
@@ -905,11 +907,11 @@ export function LeftSidebar({
               onMouseLeave={hideTooltip}
             >
               <div className="flex items-center gap-3.5">
-                <Crown className="w-5 h-5 fill-cyan-400 text-cyan-400 opacity-90 group-hover:opacity-100 transition-opacity shrink-0 drop-shadow-[0_0_6px_rgba(6,182,212,0.6)]" />
+                <Crown className="w-5 h-5 fill-cyan-400 text-cyan-400 opacity-90 group-hover:opacity-100 transition-opacity shrink-0 drop-shadow-[0_0_8px_rgba(6,182,212,0.7)]" />
                 {!isCollapsed && <span>GET PRO</span>}
               </div>
               {!isCollapsed && (
-                <span className="text-xs text-cyan-400 font-bold group-hover:translate-x-0.5 transition-transform">
+                <span className="text-xs text-cyan-300 font-bold group-hover:translate-x-0.5 transition-transform">
                   ⚡
                 </span>
               )}

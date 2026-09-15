@@ -1151,7 +1151,7 @@ export function SettingsModal({
                       }`}
                     >
                       <Moon className="w-5 h-5 text-indigo-400" />
-                      <span>Dark (Cyberpunk)</span>
+                      <span>Dark</span>
                     </button>
 
                     <button
@@ -1497,7 +1497,7 @@ export function SettingsModal({
                         className="px-5 py-2.5 rounded-xl font-mono text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all flex items-center gap-2 cursor-pointer"
                       >
                         <CreditCard className="w-4 h-4" />
-                        <span>Upgrade to PRO ({currency === "INR" ? "₹420/mo" : "$5/mo"} via Razorpay)</span>
+                        <span>Upgrade to PRO ({currency === "INR" ? "₹149/mo" : "$5/mo"} via Razorpay)</span>
                       </button>
                     )}
                   </div>

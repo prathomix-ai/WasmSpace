@@ -143,8 +143,8 @@ export function Checkout({
       const descriptionText =
         activeCurrency === "INR"
           ? (plan === "yearly"
-              ? "MasmSpace Pro Annual Membership (₹4,100/yr)"
-              : "MasmSpace Pro Monthly Membership (₹420/mo)")
+              ? "MasmSpace Pro Annual Membership (₹1,499/yr)"
+              : "MasmSpace Pro Monthly Membership (₹149/mo)")
           : (plan === "yearly"
               ? "MasmSpace Pro Annual Membership ($49/yr)"
               : "MasmSpace Pro Monthly Membership ($5/mo)");

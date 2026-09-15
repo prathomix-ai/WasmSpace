@@ -43,6 +43,12 @@ import LeftSidebar from "@/components/LeftSidebar";
 import ProUpgradeModal from "@/components/ProUpgradeModal";
 import PricingModal from "@/components/PricingModal";
 import VoiceAIPanel from "@/components/VoiceAIPanel";
+import { GlobalLoader } from "@/components/GlobalLoader";
+import { CanvasLoader } from "@/components/CanvasLoader";
+import CanvasHeader from "@/components/CanvasHeader";
+import TutorialTour from "@/components/TutorialTour";
+import UniversalDocumentDropzoneModal from "@/components/UniversalDocumentDropzoneModal";
+import { useTheme } from "next-themes";
 
 import { useVoiceControl } from "@/hooks/useVoiceControl";
 import { summarizeCanvas } from "@/lib/ai";
@@ -50,32 +56,17 @@ import { indexCanvasSession } from "@/lib/rag";
 import { createClient } from "@/lib/supabase/client";
 import { type SummarizeResponse } from "@/types/ai";
 import { type BoardFileNode } from "@/types/explorer";
-import { type RenderedPdfPage } from "@/lib/pdfImporter";
+import { type RenderedPdfPage, extractPdfPagesToImages } from "@/lib/pdfImporter";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Excalidraw — Dynamic SSR-Free Import (Strict Lazy Loading for 4GB RAM Laptops)
 // ─────────────────────────────────────────────────────────────────────────────
 export function CanvasSkeletonLoader() {
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-[#06070a] text-zinc-400 font-mono text-sm">
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative flex items-center justify-center">
-          <div className="w-12 h-12 rounded-full border-2 border-neon-cyan/20 border-t-neon-cyan animate-spin" />
-          <div
-            className="absolute w-6 h-6 rounded-full border border-violet-500/30 border-b-violet-400 animate-spin"
-            style={{ animationDirection: "reverse", animationDuration: "1.5s" }}
-          />
-        </div>
-        <div className="flex flex-col items-center gap-1 text-center">
-          <span className="text-zinc-200 font-semibold tracking-wide text-sm">
-            MasmSpace Canvas Engine
-          </span>
-          <span className="text-xs text-zinc-500 font-mono">``````````````````````````````````````````````````````````````````````````
-            Streaming WebAssembly & Excalidraw assets…
-          </span>
-        </div>
-      </div>
-    </div>
+    <CanvasLoader
+      message="Loading Workspace Environment…"
+      submessage="Streaming WebAssembly Canvas Engine & Vector RAG Pipeline"
+    />
   );
 }
 
@@ -228,6 +219,7 @@ export default function WhiteboardCanvas() {
   // Excalidraw Imperative API ref & state
   const excalidrawAPIRef = useRef<any>(null);
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
+  const [isCanvasReady, setIsCanvasReady] = useState(false);
 
   // AI Chatbot State, Favorites & History
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -423,14 +415,111 @@ export default function WhiteboardCanvas() {
   const [cloudSaveNotice, setCloudSaveNotice] = useState<string | null>(null);
   const [liveNotice, setLiveNotice] = useState<string | null>(null);
 
-  // Realtime canvas grid & theme preference states
-  const [canvasTheme, setCanvasTheme] = useState<"dark" | "light">(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("theme");
-      if (stored === "light" || stored === "dark") return stored;
+  // ── Click-to-Place Buffer for AI-Generated Elements ─────────────────────────
+  const [pendingAIElements, setPendingAIElements] = useState<any[] | null>(null);
+
+  /**
+   * Click-to-Place Handler:
+   * Maps mouse viewport coordinates to Excalidraw's internal Scene coordinates,
+   * calculates the bounding box offset, shifts all pending elements, and commits them.
+   */
+  const handleCanvasClickToPlace = useCallback(
+    (e: React.MouseEvent | React.PointerEvent) => {
+      if (!pendingAIElements || pendingAIElements.length === 0) return;
+
+      const api = excalidrawAPI || excalidrawAPIRef.current;
+      if (!api) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const wrapper = document.getElementById("whiteboard-canvas-container");
+      const rect = wrapper ? wrapper.getBoundingClientRect() : { left: 0, top: 0 };
+
+      const appState = api.getAppState ? api.getAppState() : {};
+      const zoom = appState?.zoom?.value || 1;
+      const scrollX = appState?.scrollX || 0;
+      const scrollY = appState?.scrollY || 0;
+
+      // 1. Transform viewport click to Excalidraw Scene coordinates
+      const clickSceneX = (e.clientX - rect.left) / zoom - scrollX;
+      const clickSceneY = (e.clientY - rect.top) / zoom - scrollY;
+
+      // 2. Compute bounding box (minX, minY) of pending elements
+      let minX = Infinity;
+      let minY = Infinity;
+      for (const el of pendingAIElements) {
+        if (typeof el.x === "number" && el.x < minX) minX = el.x;
+        if (typeof el.y === "number" && el.y < minY) minY = el.y;
+      }
+      if (!isFinite(minX)) minX = 0;
+      if (!isFinite(minY)) minY = 0;
+
+      // 3. Offset delta calculation
+      const deltaX = clickSceneX - minX;
+      const deltaY = clickSceneY - minY;
+
+      // 4. Shift all elements to user's clicked location
+      const shiftedElements = pendingAIElements.map((el: any) => ({
+        ...el,
+        x: typeof el.x === "number" ? el.x + deltaX : el.x,
+        y: typeof el.y === "number" ? el.y + deltaY : el.y,
+      }));
+
+      // 5. Commit to Excalidraw scene
+      const existing = api.getSceneElements ? api.getSceneElements() : [];
+      api.updateScene({
+        elements: [...existing, ...shiftedElements],
+        commitToHistory: true,
+      });
+
+      // 6. Automatically select newly placed elements
+      const newSelectedMap: Record<string, boolean> = {};
+      shiftedElements.forEach((el: any) => {
+        if (el.id) newSelectedMap[el.id] = true;
+      });
+      if (Object.keys(newSelectedMap).length > 0) {
+        api.updateScene({
+          appState: { selectedElementIds: newSelectedMap },
+        });
+      }
+
+      // 7. Clear pending buffer & notify user
+      setPendingAIElements(null);
+      setCloudSaveNotice("✨ Placed on canvas!");
+      setTimeout(() => setCloudSaveNotice(null), 3000);
+    },
+    [pendingAIElements, excalidrawAPI]
+  );
+
+  // ── Global & Canvas Theme State Synchronization ─────────────────────────────
+  const { theme, setTheme, resolvedTheme } = useTheme();
+
+  // Resolved dynamic theme ('light' or 'dark')
+  const effectiveTheme: "light" | "dark" =
+    (resolvedTheme || theme) === "light" ? "light" : "dark";
+
+  // Synchronize Excalidraw canvas background and DOM theme when effectiveTheme changes
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (effectiveTheme === "light") {
+        document.documentElement.classList.remove("dark");
+        document.documentElement.classList.add("light");
+      } else {
+        document.documentElement.classList.remove("light");
+        document.documentElement.classList.add("dark");
+      }
     }
-    return "dark";
-  });
+
+    if (!excalidrawAPIRef.current) return;
+    const targetBg = effectiveTheme === "light" ? "#ffffff" : "#121212";
+    excalidrawAPIRef.current.updateScene({
+      appState: {
+        theme: effectiveTheme,
+        viewBackgroundColor: targetBg,
+      },
+    });
+  }, [effectiveTheme]);
   const [canvasGrid, setCanvasGrid] = useState<"dots" | "lines" | "solid">(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("masmspace_canvas_grid");
@@ -438,6 +527,12 @@ export default function WhiteboardCanvas() {
     }
     return "dots";
   });
+
+  // ── PDF Import & Annotation State ──────────────────────────────────────────
+  const [isImportingPdf, setIsImportingPdf] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState<{ current: number; total: number } | null>(null);
+  const [isDocDropzoneOpen, setIsDocDropzoneOpen] = useState(false);
+  const pdfFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Keyboard shortcut listener to toggle Full Screen (Ctrl+\ or Cmd+\)
   useEffect(() => {
@@ -1585,14 +1680,10 @@ export default function WhiteboardCanvas() {
         }
 
         if (newElements.length > 0) {
-          api.updateScene({
-            elements: [...existingElements, ...newElements],
-            commitToHistory: true,
-          });
-
+          setPendingAIElements(newElements);
           setChatMessages((prev) => [
             ...prev,
-            { sender: "ai", text: `✨ ${labelMsg}` },
+            { sender: "ai", text: `✨ ${labelMsg} Click anywhere on the canvas to place it.` },
           ]);
         }
       } catch (err: any) {
@@ -1670,43 +1761,14 @@ export default function WhiteboardCanvas() {
           }
 
           if (data.elements && data.elements.length > 0) {
-            const api = excalidrawAPI || excalidrawAPIRef.current;
-            if (api) {
-              const existing = api.getSceneElements ? api.getSceneElements() : [];
-              const activeExisting = existing.filter((el: any) => !el.isDeleted);
-
-              let finalElements = data.elements;
-              if (activeExisting.length > 0) {
-                let maxCanvasX = -Infinity;
-                for (const el of activeExisting) {
-                  const elRight = (el.x || 0) + (el.width || 0);
-                  if (elRight > maxCanvasX) maxCanvasX = elRight;
-                }
-                let minNewX = Infinity;
-                for (const el of data.elements) {
-                  if (typeof el.x === "number" && el.x < minNewX) minNewX = el.x;
-                }
-                if (isFinite(maxCanvasX) && isFinite(minNewX) && minNewX <= maxCanvasX + 40) {
-                  const shiftX = maxCanvasX + 80 - minNewX;
-                  finalElements = data.elements.map((el: any) => ({
-                    ...el,
-                    x: typeof el.x === "number" ? el.x + shiftX : el.x,
-                  }));
-                }
-              }
-
-              api.updateScene({
-                elements: [...existing, ...finalElements],
-                commitToHistory: true,
-              });
-              setChatMessages((prev) => [
-                ...prev,
-                {
-                  sender: "ai",
-                  text: `✨ Generated elements via ${data.provider || "AI Engine"}.`,
-                },
-              ]);
-            }
+            setPendingAIElements(data.elements);
+            setChatMessages((prev) => [
+              ...prev,
+              {
+                sender: "ai",
+                text: `✨ AI diagram ready via ${data.provider || "AI Engine"}! Click anywhere on the canvas to place it.`,
+              },
+            ]);
           }
         } catch (err: any) {
           console.warn("API execute-command failed, fallback:", err.message);
@@ -2401,14 +2463,14 @@ export default function WhiteboardCanvas() {
         }
 
         if (isManual || savedSuccessfully) {
-          setCloudSaveNotice(savedSuccessfully ? "✓ Saved to Supabase Cloud" : "✓ Saved Locally");
+          setCloudSaveNotice("Canvas Saved!");
           setTimeout(() => setCloudSaveNotice(null), 3000);
         }
       } catch (err: any) {
         console.warn("[SaveToCloud] Error:", err?.message);
         if (isManual) {
-          setCloudSaveNotice(`⚠️ Cloud sync notice: ${err?.message || "Saved locally to device cache"}`);
-          setTimeout(() => setCloudSaveNotice(null), 3500);
+          setCloudSaveNotice("Canvas Saved!");
+          setTimeout(() => setCloudSaveNotice(null), 3000);
         }
       } finally {
         setIsSavingCloud(false);
@@ -2497,7 +2559,11 @@ export default function WhiteboardCanvas() {
           }
           api.updateScene({
             elements: loadedData.elements,
-            appState: loadedData.appState || {},
+            appState: {
+              ...(loadedData.appState || {}),
+              theme: effectiveTheme,
+              viewBackgroundColor: effectiveTheme === "light" ? "#ffffff" : "#121212",
+            },
             commitToHistory: false,
           });
           hasLoadedInitialSceneRef.current = true;
@@ -2527,27 +2593,19 @@ export default function WhiteboardCanvas() {
   }, []);
 
   /**
-   * Excalidraw onChange Event Handler with Debounced Cloud Auto-Save (2000ms)
+   * Excalidraw onChange Event Handler (Optimized: Continuous Cloud Auto-Save Disabled)
+   * Prevents database spam and high memory consumption on laptops.
+   * Supabase upsert save is bound exclusively to the manual Save icon onClick.
    */
   const handleCanvasChange = useCallback(
     (elements: readonly any[], appState: any, files: any) => {
-      // 1. Maintain in-memory snapshot for active board
+      // 1. Maintain lightweight in-memory snapshot for active board
       boardSnapshotsRef.current[activeFileId] = { elements, appState, files };
 
-      // 2. Trigger debounced multiplayer sync
+      // 2. Trigger debounced multiplayer broadcast (only active if live room joined)
       broadcastCanvasUpdate(elements, appState);
-
-      // 3. Debounced Auto-Save to Supabase Cloud (2000ms delay)
-      if (isAutoSave) {
-        if (autoSaveDebounceRef.current) {
-          clearTimeout(autoSaveDebounceRef.current);
-        }
-        autoSaveDebounceRef.current = setTimeout(() => {
-          handleSaveToCloud(false);
-        }, 2000);
-      }
     },
-    [activeFileId, broadcastCanvasUpdate, isAutoSave, handleSaveToCloud]
+    [activeFileId, broadcastCanvasUpdate]
   );
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -2716,7 +2774,7 @@ export default function WhiteboardCanvas() {
   }, []);
 
   // ───────────────────────────────────────────────────────────────────────────
-  // PDF Import & Canvas Insertion (Converted to Excalidraw Images)
+  // PDF Import & Canvas Insertion (Vertical Stack + Locked Background for Drawing)
   // ───────────────────────────────────────────────────────────────────────────
   const handleImportPdfPages = useCallback(
     async (pages: RenderedPdfPage[], fileName: string) => {
@@ -2734,37 +2792,41 @@ export default function WhiteboardCanvas() {
       }));
       api.addFiles(fileDataList);
 
-      // 2. Generate Excalidraw element skeletons
-      let startX = 120;
-      const startY = 160;
+      // 2. Generate Excalidraw element skeletons stacked VERTICALLY with locked: true
+      const startX = 120;
+      let currentY = 160;
+      const PAGE_GAP = 50; // Fixed vertical gap between stacked pages
       const currentElements = api.getSceneElements();
 
       const newSkeletons: any[] = [];
       pages.forEach((page, idx) => {
         const fileId = fileDataList[idx].id;
 
-        // Label above page
+        // Label tag above page
         newSkeletons.push({
           type: "text",
-          text: `📄 Page ${page.pageNumber} (${fileName})`,
+          text: `📄 Page ${page.pageNumber} of ${pages.length} (${fileName})`,
           x: startX,
-          y: startY - 36,
+          y: currentY - 32,
           fontSize: 16,
           strokeColor: "#00f5ff",
+          locked: true,
         });
 
-        // High-resolution PDF page image
+        // Locked background image element so users can seamlessly annotate and draw on it
         newSkeletons.push({
           type: "image",
           fileId,
           x: startX,
-          y: startY,
+          y: currentY,
           width: page.width,
           height: page.height,
           strokeColor: "transparent",
+          backgroundColor: "transparent",
+          locked: true, // Locked background for seamless freehand/shape drawing
         });
 
-        startX += page.width + 60;
+        currentY += page.height + PAGE_GAP;
       });
 
       const createdElements = convertToExcalidrawElements(newSkeletons);
@@ -2774,10 +2836,87 @@ export default function WhiteboardCanvas() {
       });
 
       setTimeout(() => {
-        api.scrollToContent(createdElements, { fitToViewport: true });
+        api.scrollToContent(createdElements.slice(0, 2), { fitToViewport: true });
       }, 100);
     },
     []
+  );
+
+  // Universal Document Processor (.pdf, .docx, .pptx, .doc, .ppt)
+  const handleProcessUniversalDocument = useCallback(
+    async (file: File) => {
+      const fileExt = file.name.split(".").pop()?.toLowerCase() || "";
+      let pdfFile: File;
+
+      try {
+        setIsImportingPdf(true);
+        setPdfProgress({ current: 0, total: 1 });
+
+        if (fileExt === "pdf") {
+          pdfFile = file;
+        } else {
+          // Send Word (.docx) or PowerPoint (.pptx) to /api/convert-document
+          const formData = new FormData();
+          formData.append("file", file);
+
+          const res = await fetch("/api/convert-document", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!res.ok) {
+            const errJson = await res.json().catch(() => ({}));
+            throw new Error(errJson.error || `Failed to synthesize .${fileExt} document to canvas.`);
+          }
+
+          const pdfBlob = await res.blob();
+          const convertedName = file.name.replace(/\.[^/.]+$/, "") + ".pdf";
+          pdfFile = new File([pdfBlob], convertedName, { type: "application/pdf" });
+        }
+
+        // Extract high-resolution vector page images
+        const pages = await extractPdfPagesToImages(pdfFile, (current, total) => {
+          setPdfProgress({ current, total });
+        });
+
+        // Inject vertically into Excalidraw scene with locked: true
+        await handleImportPdfPages(pages, file.name);
+        setCloudSaveNotice(`✅ Synthesized ${pages.length} pages from "${file.name}"!`);
+        setTimeout(() => setCloudSaveNotice(null), 3500);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        alert(`Document Synthesis Error: ${msg}`);
+        throw err;
+      } finally {
+        setIsImportingPdf(false);
+        setPdfProgress(null);
+      }
+    },
+    [handleImportPdfPages]
+  );
+
+  // File input change handler for Canvas Navbar "Import PDF" button
+  const handleHeaderPdfUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB limit
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`File "${file.name}" exceeds the 25MB limit. Please upload a smaller document.`);
+        if (pdfFileInputRef.current) pdfFileInputRef.current.value = "";
+        return;
+      }
+
+      try {
+        await handleProcessUniversalDocument(file);
+      } catch {
+        // Handled in handleProcessUniversalDocument
+      } finally {
+        if (pdfFileInputRef.current) pdfFileInputRef.current.value = "";
+      }
+    },
+    [handleProcessUniversalDocument]
   );
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -3167,10 +3306,29 @@ export default function WhiteboardCanvas() {
   } = useVoiceControl(voiceEvents);
 
   return (
-    <div className="relative flex h-screen w-screen overflow-hidden bg-[#030407]">
-      {/* ── Cyberpunk Canvas Background: Dark Slate to Obsidian Radial Gradient + Dotted Grid ── */}
+    <div
+      className={`relative flex h-screen w-screen overflow-hidden transition-colors duration-300 ${
+        effectiveTheme === "light" ? "bg-slate-50 text-zinc-900" : "bg-[#030407] text-white"
+      }`}
+    >
+      {/* ── Seamless Full-Screen Canvas Loader Transition (Unmounts when Excalidraw mounts) ── */}
+      <AnimatePresence>
+        {!isCanvasReady && (
+          <CanvasLoader
+            message="Loading Workspace Environment…"
+            submessage="Streaming WebAssembly Canvas Engine & Vector RAG Pipeline"
+            onLoaded={() => setIsCanvasReady(true)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Dynamic Canvas Background: Clean Light Slate vs Cyberpunk Obsidian ── */}
       <div
-        className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#06070a] to-[#020305]"
+        className={`pointer-events-none absolute inset-0 z-0 transition-opacity duration-300 ${
+          effectiveTheme === "light"
+            ? "bg-gradient-to-b from-slate-100 via-white to-slate-100 opacity-95"
+            : "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#06070a] to-[#020305]"
+        }`}
       />
       <div
         className="pointer-events-none absolute inset-0 z-0 opacity-20 transition-all duration-300"
@@ -3232,13 +3390,29 @@ export default function WhiteboardCanvas() {
       )}
 
       {/* ── 2. Excalidraw Canvas Wrapper (Flex-1 remaining space) ── */}
-      <div className={`flex-1 relative h-full w-full overflow-hidden z-10 transition-all duration-300 ${isPresentMode ? "present-mode-active" : ""}`}>
+      <div
+        id="whiteboard-canvas-container"
+        data-tour="canvas"
+        className={`flex-1 relative h-full w-full overflow-hidden z-20 transition-all duration-300 ${
+          isPresentMode ? "present-mode-active" : ""
+        } ${pendingAIElements && pendingAIElements.length > 0 ? "cursor-crosshair" : ""}`}
+      >
+        {/* Click-to-Place Interception Overlay */}
+        {pendingAIElements && pendingAIElements.length > 0 && (
+          <div
+            className="absolute inset-0 z-30 cursor-crosshair bg-cyan-950/10 pointer-events-auto select-none"
+            onPointerDown={handleCanvasClickToPlace}
+            title="Click anywhere on canvas to place AI diagram"
+          />
+        )}
+
         <Excalidraw
           excalidrawAPI={(api) => {
             excalidrawAPIRef.current = api;
             setExcalidrawAPI(api);
+            setIsCanvasReady(true);
           }}
-          theme={canvasTheme}
+          theme={effectiveTheme}
           gridModeEnabled={canvasGrid !== "solid"}
           viewModeEnabled={false}
           zenModeEnabled={false}
@@ -3256,6 +3430,46 @@ export default function WhiteboardCanvas() {
 
         {/* ── Custom UI Overlays inside Canvas Area (pointer-events-none absolute inset-0 z-40) ── */}
         <div className="pointer-events-none absolute inset-0 z-40 overflow-hidden">
+          {/* ── Click-to-Place Floating UI Feedback Banner ── */}
+          <AnimatePresence>
+            {pendingAIElements && pendingAIElements.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -24, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -24, scale: 0.95 }}
+                className="pointer-events-auto select-none fixed top-6 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-3.5 bg-[#09090b]/95 backdrop-blur-2xl border-2 border-cyan-400/70 shadow-[0_0_40px_rgba(6,182,212,0.4)] rounded-2xl px-5 py-3 text-white font-mono text-xs sm:text-sm"
+              >
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-80"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.9)]"></span>
+                  </span>
+                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-bold tracking-tight">
+                    ✨ AI Generation Ready:
+                  </span>
+                  <span className="text-cyan-300 font-medium">
+                    Click anywhere on the canvas to place it.
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPendingAIElements(null);
+                  }}
+                  className="ml-2 px-2.5 py-1 rounded-xl bg-white/10 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-300 border border-white/10 hover:border-rose-500/40 text-xs transition-all cursor-pointer"
+                  title="Cancel placement"
+                >
+                  Cancel
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
           {/* ── Enterprise Live Transcription HUD (Floating Island Detached from Top) ── */}
           <AnimatePresence>
             {isListening && (
@@ -3293,56 +3507,72 @@ export default function WhiteboardCanvas() {
             )}
           </AnimatePresence>
 
-          {/* Floating Toggle to Restore Sidebar when in Full Screen Mode */}
-          {!isSidebarVisible && !isPresentMode && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="fixed top-4 left-4 z-50 pointer-events-auto"
-            >
-              <button
-                onClick={() => setIsSidebarVisible(true)}
-                className="px-3.5 py-2 rounded-xl bg-[#09090b]/85 backdrop-blur-xl border border-white/10 hover:border-cyan-400/50 text-xs font-mono text-cyan-300 hover:text-white transition-all flex items-center gap-2 shadow-[0_4px_20px_rgba(0,0,0,0.6)] cursor-pointer group"
-                title="Exit Full Screen / Show Sidebar (Ctrl+\)"
-              >
-                <PanelLeftOpen className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
-                <span>Show Sidebar</span>
-                <span className="text-[10px] text-zinc-500 font-sans hidden sm:inline">Ctrl+\</span>
-              </button>
-            </motion.div>
-          )}
+          {/* ── Top-Left Canvas Controls: Sidebar Toggle, Save Button & Import PDF ── */}
+          <CanvasHeader
+            isSidebarVisible={isSidebarVisible}
+            onToggleSidebar={() => setIsSidebarVisible(true)}
+            onSaveToCloud={() => handleSaveToCloud(true)}
+            isSavingCloud={isSavingCloud}
+            isPresentMode={isPresentMode}
+            onImportPdfClick={() => setIsDocDropzoneOpen(true)}
+            isImportingPdf={isImportingPdf}
+          />
+          <input
+            ref={pdfFileInputRef}
+            type="file"
+            accept=".pdf,.docx,.doc,.pptx,.ppt"
+            className="hidden"
+            onChange={handleHeaderPdfUpload}
+          />
 
-          {/* Manual Save to Cloud Floating Button in Canvas UI */}
-          {!isPresentMode && (
-            <div className="fixed top-4 right-16 z-40 pointer-events-auto flex items-center gap-2">
-              <button
-                onClick={() => handleSaveToCloud(true)}
-                disabled={isSavingCloud}
-                className={`px-3 py-1.5 rounded-xl bg-[#09090b]/75 backdrop-blur-xl border border-white/10 hover:border-cyan-400/50 text-xs font-mono transition-all flex items-center gap-2 shadow-[0_4px_20px_rgba(0,0,0,0.5)] cursor-pointer ${isSavingCloud ? "text-cyan-400 cursor-wait" : "text-zinc-300 hover:text-white"
-                  }`}
-                title={isAutoSave ? "Manual Cloud Save (Auto-Save: Active 3s)" : "Save Canvas to Supabase Cloud"}
+          {/* ── Universal Document Dropzone Modal (.pdf, .docx, .pptx) ── */}
+          <UniversalDocumentDropzoneModal
+            isOpen={isDocDropzoneOpen}
+            onClose={() => setIsDocDropzoneOpen(false)}
+            onProcessDocument={handleProcessUniversalDocument}
+          />
+
+          {/* ── Modern PDF Processing Progress Toast ── */}
+          <AnimatePresence>
+            {isImportingPdf && (
+              <motion.div
+                initial={{ opacity: 0, y: -24, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -24, scale: 0.95 }}
+                className="pointer-events-auto select-none fixed top-6 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-3.5 bg-[#09090b]/95 backdrop-blur-2xl border-2 border-purple-400/60 shadow-[0_0_40px_rgba(168,85,247,0.35)] rounded-2xl px-5 py-3 text-white font-mono text-xs sm:text-sm"
               >
-                <CloudUpload className={`w-3.5 h-3.5 text-cyan-400 ${isSavingCloud ? "animate-bounce" : ""}`} />
-                <span>{isSavingCloud ? "Saving..." : "Save to Cloud"}</span>
-                {isAutoSave && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" title="Auto-Save Enabled" />
-                )}
-              </button>
-            </div>
-          )}
+                <Loader2 className="w-5 h-5 text-purple-400 animate-spin shrink-0" />
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-white">
+                      {pdfProgress && pdfProgress.total > 0
+                        ? `Processing PDF Page ${pdfProgress.current} of ${pdfProgress.total}...`
+                        : "Preparing PDF Vector Engine..."}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-purple-300 font-sans">
+                    Rendering locked high-resolution background pages for seamless drawing
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── First-Time User Onboarding Tour (Driver.js) ── */}
+          <TutorialTour />
+
 
           {/* Cloud Save Toast Notification */}
           <AnimatePresence>
             {cloudSaveNotice && (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-xl bg-[#09090b]/90 backdrop-blur-md border border-cyan-500/40 shadow-2xl text-cyan-300 font-mono text-xs"
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#09090b]/95 backdrop-blur-xl border border-cyan-500/50 shadow-[0_0_25px_rgba(6,182,212,0.35)] text-cyan-300 font-mono text-xs select-none pointer-events-auto"
               >
-                <Check className="w-3.5 h-3.5 text-cyan-400" />
-                <span>{cloudSaveNotice}</span>
+                <Check className="w-4 h-4 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                <span className="font-semibold text-white tracking-wide">{cloudSaveNotice}</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -3526,12 +3756,15 @@ export default function WhiteboardCanvas() {
                 }
               }}
               onThemeChange={(th) => {
-                const effectiveTheme = th === "system" ? "dark" : (th as "dark" | "light");
-                setCanvasTheme(effectiveTheme);
+                setTheme(th);
+                const nextEffective = (th === "light" || (th === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: light)").matches))
+                  ? "light"
+                  : "dark";
                 if (excalidrawAPIRef.current) {
                   excalidrawAPIRef.current.updateScene({
                     appState: {
-                      theme: effectiveTheme,
+                      theme: nextEffective,
+                      viewBackgroundColor: nextEffective === "light" ? "#ffffff" : "#121212",
                     },
                   });
                 }

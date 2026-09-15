@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { createClient } from "@/lib/supabase/client";
 
 export interface InvoiceItem {
@@ -11,7 +12,8 @@ export interface InvoiceItem {
 }
 
 /**
- * Generates and downloads a clean, professional PDF invoice for PRATHOMIX MasmSpace.
+ * Generates and downloads a modern, premium SaaS receipt PDF for PRATHOMIX MasmSpace.
+ * Styled after Stripe / Vercel minimalist invoices.
  * Output file: PRATHOMIX_Invoice_[InvoiceID].pdf
  */
 export async function downloadInvoicePdf(invoice: InvoiceItem): Promise<string> {
@@ -51,189 +53,179 @@ export async function downloadInvoicePdf(invoice: InvoiceItem): Promise<string> 
 
   const pageWidth = doc.internal.pageSize.getWidth(); // 210mm
   const margin = 20;
-  const contentWidth = pageWidth - margin * 2; // 170mm
 
-  // Top cyan brand accent line
-  doc.setFillColor(6, 182, 212); // #06b6d4
-  doc.rect(0, 0, pageWidth, 4, "F");
-
-  // --- HEADER SECTION ---
-  // Brand Name
+  // ── 1. PREMIUM HEADER & BRANDING (Clean, modern, no heavy colored top bar) ──
+  // Left side: Brand name & website
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(24);
+  doc.setFontSize(22);
   doc.setTextColor(15, 23, 42); // #0f172a slate-900
-  doc.text("PRATHOMIX", margin, 24);
+  doc.text("PRATHOMIX", margin, 26);
 
-  // Subtitle / Brand Website
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(100, 116, 139); // #64748b slate-500
-  doc.text("masmspace.online", margin, 30);
-  doc.text("AI Code Studio & Spatial Multiplayer Canvas", margin, 35);
+  doc.text("masmspace.online", margin, 32);
 
-  // Right Header: INVOICE / RECEIPT
+  doc.setFontSize(8.5);
+  doc.setTextColor(148, 163, 184); // #94a3b8 slate-400
+  doc.text("Next-Gen Collaborative Canvas & AI Code OS", margin, 37);
+
+  // Right side: Sleek muted RECEIPT / INVOICE metadata
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.setTextColor(30, 41, 59); // #1e293b
-  doc.text("RECEIPT / INVOICE", pageWidth - margin, 24, { align: "right" });
+  doc.setFontSize(14);
+  doc.setTextColor(71, 85, 105); // #475569 slate-600
+  doc.text("RECEIPT / INVOICE", pageWidth - margin, 26, { align: "right" });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(100, 116, 139);
-  doc.text(`Invoice ID: ${invoiceId}`, pageWidth - margin, 31, { align: "right" });
-  doc.text(`Date: ${invoiceDate}`, pageWidth - margin, 36, { align: "right" });
+  doc.text(`Invoice ID: ${invoiceId}`, pageWidth - margin, 32, { align: "right" });
+  doc.text(`Date: ${invoiceDate}`, pageWidth - margin, 37, { align: "right" });
 
-  // Divider line below header
-  doc.setDrawColor(226, 232, 240); // #e2e8f0
-  doc.setLineWidth(0.5);
-  doc.line(margin, 43, pageWidth - margin, 43);
+  // Elegant Divider Line Below Header
+  doc.setDrawColor(226, 232, 240); // #e2e8f0 slate-200
+  doc.setLineWidth(0.35);
+  doc.line(margin, 44, pageWidth - margin, 44);
 
-  // --- STATUS BADGE & CUSTOMER DETAILS ---
-  const detailsStartY = 53;
+  // ── 2. BILLED TO & MODERN "PAID" BADGE ──
+  const detailsY = 55;
 
-  // Billed To Section (Left)
+  // Billed To Info (Left)
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(100, 116, 139);
-  doc.text("BILLED TO:", margin, detailsStartY);
+  doc.setFontSize(8);
+  doc.setTextColor(148, 163, 184); // #94a3b8 slate-400
+  doc.text("BILLED TO", margin, detailsY);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(15, 23, 42);
-  doc.text(billedEmail, margin, detailsStartY + 6);
+  doc.setFontSize(10.5);
+  doc.setTextColor(15, 23, 42); // #0f172a
+  doc.text(billedEmail, margin, detailsY + 6);
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(100, 116, 139);
-  doc.text("PRATHOMIX Verified Account", margin, detailsStartY + 11);
+  doc.setFontSize(8.5);
+  doc.setTextColor(100, 116, 139); // #64748b
+  doc.text("Verified Account • MasmSpace Cloud", margin, detailsY + 11);
 
-  // Status Badge Stamp (Right): "Status: PAID" in green
-  const badgeWidth = 44;
-  const badgeHeight = 14;
+  // Modern "PAID" Badge (Right): Soft pastel green background with bold dark green text in rounded rectangle
+  const badgeWidth = 36;
+  const badgeHeight = 9.5;
   const badgeX = pageWidth - margin - badgeWidth;
-  const badgeY = detailsStartY - 4;
+  const badgeY = detailsY - 2;
 
-  // Soft emerald background box
-  doc.setFillColor(236, 253, 245); // #ecfdf5 (emerald-50)
-  doc.setDrawColor(16, 185, 129); // #10b981 (emerald-500)
-  doc.setLineWidth(0.8);
+  // Soft pastel green background (#ecfdf5) with fine border (#a7f3d0)
+  doc.setFillColor(236, 253, 245);
+  doc.setDrawColor(167, 243, 208);
+  doc.setLineWidth(0.35);
   doc.roundedRect(badgeX, badgeY, badgeWidth, badgeHeight, 2.5, 2.5, "FD");
 
-  // Status Stamp Text
+  // Bold dark green text (#065f46)
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(4, 120, 87); // #047857 (emerald-700)
-  doc.text("STATUS: PAID", badgeX + badgeWidth / 2, badgeY + 9, { align: "center" });
-
-  // --- TRANSACTION TABLE ---
-  const tableStartY = 78;
-  const rowHeight = 11;
-
-  // Table Header Background
-  doc.setFillColor(248, 250, 252); // #f8fafc slate-50
-  doc.setDrawColor(226, 232, 240); // #e2e8f0
-  doc.setLineWidth(0.3);
-  doc.rect(margin, tableStartY, contentWidth, 9, "FD");
-
-  // Table Header Columns
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(71, 85, 105); // #475569 slate-600
-
-  const colDesc = margin + 4;
-  const colQty = margin + 105;
-  const colRate = margin + 130;
-  const colTotal = pageWidth - margin - 4;
-
-  doc.text("ITEM / SUBSCRIPTION TIER", colDesc, tableStartY + 6);
-  doc.text("QTY", colQty, tableStartY + 6);
-  doc.text("AMOUNT", colRate, tableStartY + 6);
-  doc.text("TOTAL", colTotal, tableStartY + 6, { align: "right" });
-
-  // Table Item Row
-  const itemRowY = tableStartY + 9;
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(241, 245, 249);
-  doc.rect(margin, itemRowY, contentWidth, rowHeight, "FD");
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9.5);
-  doc.setTextColor(15, 23, 42); // slate-900
-  doc.text(tierDescription, colDesc, itemRowY + 7);
-
-  doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.setTextColor(71, 85, 105);
-  doc.text("1", colQty, itemRowY + 7);
-  doc.text(totalAmount, colRate, itemRowY + 7);
+  doc.setTextColor(6, 95, 70);
+  doc.text("STATUS: PAID", badgeX + badgeWidth / 2, badgeY + 6.2, { align: "center" });
 
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(15, 23, 42);
-  doc.text(totalAmount, colTotal, itemRowY + 7, { align: "right" });
+  // ── 3. MINIMALIST TABLE STYLING VIA jspdf-autotable ──
+  autoTable(doc, {
+    startY: 76,
+    margin: { left: margin, right: margin },
+    head: [["ITEM DESCRIPTION", "QTY", "RATE", "AMOUNT"]],
+    body: [
+      [
+        {
+          content: `${tierDescription}\nIncludes unlimited AI architecture generation, Pyodide WASM runtime, and 4K vector exports.`,
+          styles: { fontStyle: "normal" },
+        },
+        "1",
+        totalAmount,
+        totalAmount,
+      ],
+    ],
+    theme: "plain",
+    headStyles: {
+      fillColor: [244, 244, 245], // #f4f4f5 very subtle light gray
+      textColor: [71, 85, 105],   // #475569 slate-600
+      fontStyle: "bold",
+      fontSize: 8.5,
+      cellPadding: { top: 4.5, bottom: 4.5, left: 5, right: 5 },
+      lineColor: [226, 232, 240], // #e2e8f0
+      lineWidth: { bottom: 0.35, top: 0, left: 0, right: 0 },
+    },
+    bodyStyles: {
+      textColor: [15, 23, 42],    // #0f172a slate-900
+      fontSize: 9,
+      cellPadding: { top: 6, bottom: 6, left: 5, right: 5 },
+      lineColor: [241, 245, 249], // #f1f5f9 subtle bottom divider
+      lineWidth: { bottom: 0.35, top: 0, left: 0, right: 0 },
+    },
+    columnStyles: {
+      0: { cellWidth: 100 },
+      1: { cellWidth: 20, halign: "center" },
+      2: { cellWidth: 25, halign: "right" },
+      3: { cellWidth: 25, halign: "right", fontStyle: "bold" },
+    },
+  });
 
-  // Subtitle info below row
-  const row2Y = itemRowY + rowHeight;
-  doc.setFillColor(255, 255, 255);
-  doc.rect(margin, row2Y, contentWidth, 8, "FD");
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(148, 163, 184); // #94a3b8 slate-400
-  doc.text("Includes unlimited AI actions, real-time multiplayer whiteboard, and multi-language Code Studio.", colDesc, row2Y + 5.5);
-
-  // --- TOTALS & SUMMARY ---
-  const totalsStartY = row2Y + 16;
-  const totalsLabelX = pageWidth - margin - 60;
-  const totalsValX = pageWidth - margin - 4;
+  // ── 4. TOTALS & SUMMARY SECTION ──
+  const finalY = (doc as any).lastAutoTable?.finalY || 105;
+  const totalsY = finalY + 12;
+  const totalsLabelX = pageWidth - margin - 65;
+  const totalsValX = pageWidth - margin;
 
   // Subtotal
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(100, 116, 139);
-  doc.text("Subtotal:", totalsLabelX, totalsStartY);
-  doc.text(totalAmount, totalsValX, totalsStartY, { align: "right" });
+  doc.text("Subtotal:", totalsLabelX, totalsY);
+  doc.text(totalAmount, totalsValX, totalsY, { align: "right" });
 
-  // Tax
-  doc.text("Estimated Tax / VAT (0%):", totalsLabelX, totalsStartY + 6);
-  doc.text("$0.00 USD", totalsValX, totalsStartY + 6, { align: "right" });
+  // Tax / VAT (0%)
+  doc.text("Estimated Tax / VAT (0%):", totalsLabelX, totalsY + 6);
+  doc.text("$0.00 USD", totalsValX, totalsY + 6, { align: "right" });
 
-  // Divider
+  // Light divider
   doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.4);
-  doc.line(totalsLabelX, totalsStartY + 9, pageWidth - margin, totalsStartY + 9);
+  doc.setLineWidth(0.35);
+  doc.line(totalsLabelX, totalsY + 9.5, pageWidth - margin, totalsY + 9.5);
 
-  // Total Paid
+  // Emphasized Total Paid (Primary brand cyan/teal accent)
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(15, 23, 42);
-  doc.text("Total Paid:", totalsLabelX, totalsStartY + 15);
-  doc.setTextColor(16, 185, 129); // emerald-600
-  doc.text(totalAmount, totalsValX, totalsStartY + 15, { align: "right" });
+  doc.text("Total Paid:", totalsLabelX, totalsY + 16.5);
 
-  // Payment method note
+  doc.setFontSize(13);
+  doc.setTextColor(8, 145, 178); // #0891b2 (Cyan-600 brand accent)
+  doc.text(totalAmount, totalsValX, totalsY + 16.5, { align: "right" });
+
+  // Payment note
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(148, 163, 184);
-  doc.text("Payment Method: Online Checkout (Razorpay / Instant Transfer)", totalsLabelX - 25, totalsStartY + 21);
+  doc.setTextColor(148, 163, 184); // #94a3b8
+  doc.text("Payment Method: Card Checkout (Instant Transfer)", totalsLabelX - 20, totalsY + 23);
 
-  // --- FOOTER SECTION ---
-  const footerY = 265;
+  // ── 5. EMAIL & FOOTER SECTION (Subtle, gray, centered, with light divider) ──
+  const footerY = 270;
 
-  doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.5);
+  // Clean, light gray divider line above footer
+  doc.setDrawColor(226, 232, 240); // #e2e8f0
+  doc.setLineWidth(0.35);
   doc.line(margin, footerY, pageWidth - margin, footerY);
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(71, 85, 105);
-  doc.text("Thank you for your business with PRATHOMIX!", margin, footerY + 6);
-
+  // Centered subtle footer text
   doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(148, 163, 184); // #94a3b8
+  doc.text("Thank you for choosing PRATHOMIX MasmSpace.", pageWidth / 2, footerY + 6.5, {
+    align: "center",
+  });
+
   doc.setFontSize(8);
-  doc.setTextColor(148, 163, 184);
+  doc.setTextColor(148, 163, 184); // #94a3b8
   doc.text(
-    "PRATHOMIX Cloud Platform • masmspace.online • For inquiries, email: support@masmspace.online",
-    margin,
-    footerY + 11
+    "PRATHOMIX Cloud Platform • masmspace.online • For inquiries: support@prathomix.tech",
+    pageWidth / 2,
+    footerY + 11.5,
+    { align: "center" }
   );
 
   // 3. Trigger Browser Download
