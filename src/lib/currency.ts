@@ -197,7 +197,7 @@ export function useCurrency() {
     setCurrencyState(newCurrency);
     try {
       localStorage.setItem(STORAGE_KEY, newCurrency);
-    } catch {}
+    } catch { }
   }, []);
 
   const getPlanDetails = useCallback(

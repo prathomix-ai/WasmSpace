@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
         authenticatedUserId = user.id;
         authenticatedUserEmail = user.email || null;
       }
-    } catch {}
+    } catch { }
 
     if (!authenticatedUserId) {
       const authHeader = req.headers.get("authorization");
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
             authenticatedUserId = tokenUser.id;
             authenticatedUserEmail = tokenUser.email || null;
           }
-        } catch {}
+        } catch { }
       }
     }
 

@@ -91,22 +91,20 @@ export function PricingModal({
               <button
                 type="button"
                 onClick={() => setCurrency("USD")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  currency === "USD"
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${currency === "USD"
                     ? "bg-cyan-500/25 text-cyan-300 border border-cyan-400/50 shadow-[0_0_10px_rgba(6,182,212,0.25)]"
                     : "text-zinc-400 hover:text-white"
-                }`}
+                  }`}
               >
                 $ USD
               </button>
               <button
                 type="button"
                 onClick={() => setCurrency("INR")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  currency === "INR"
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${currency === "INR"
                     ? "bg-emerald-500/25 text-emerald-300 border border-emerald-400/50 shadow-[0_0_10px_rgba(16,185,129,0.25)]"
                     : "text-zinc-400 hover:text-white"
-                }`}
+                  }`}
               >
                 ₹ INR {detectedCountry === "IN" ? "🇮🇳" : ""}
               </button>
@@ -123,11 +121,10 @@ export function PricingModal({
             <button
               type="button"
               onClick={() => setBillingCycle("monthly")}
-              className={`relative flex flex-col items-start p-3 rounded-xl border transition-all text-left cursor-pointer ${
-                billingCycle === "monthly"
+              className={`relative flex flex-col items-start p-3 rounded-xl border transition-all text-left cursor-pointer ${billingCycle === "monthly"
                   ? "bg-cyan-500/15 border-cyan-400/60 shadow-[0_0_20px_rgba(6,182,212,0.2)]"
                   : "bg-transparent border-transparent hover:bg-white/5 text-zinc-400"
-              }`}
+                }`}
             >
               <div className="text-xs font-semibold text-zinc-300">Monthly Plan</div>
               <div className="text-lg font-bold text-white font-mono">{monthlyDetails.formatted} / month</div>
@@ -138,11 +135,10 @@ export function PricingModal({
             <button
               type="button"
               onClick={() => setBillingCycle("yearly")}
-              className={`relative flex flex-col items-start p-3 rounded-xl border transition-all text-left cursor-pointer ${
-                billingCycle === "yearly"
+              className={`relative flex flex-col items-start p-3 rounded-xl border transition-all text-left cursor-pointer ${billingCycle === "yearly"
                   ? "bg-cyan-500/20 border-cyan-400 shadow-[0_0_25px_rgba(6,182,212,0.3)]"
                   : "bg-transparent border-transparent hover:bg-white/5 text-zinc-400"
-              }`}
+                }`}
             >
               {/* Glowing Save 18% Badge */}
               <span className="absolute -top-2.5 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold font-mono bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.3)]">

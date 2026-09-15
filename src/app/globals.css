@@ -257,7 +257,7 @@ body {
 /* 1. Cyberpunk Dotted Grid Canvas Pattern & Deep Slate Radial Gradient */
 .excalidraw .excalidraw-container {
   background-color: #030407 !important;
-  background-image: 
+  background-image:
     radial-gradient(ellipse at 50% 0%, rgba(15, 23, 42, 0.5) 0%, rgba(3, 4, 7, 0.98) 75%),
     radial-gradient(rgba(6, 182, 212, 0.14) 1px, transparent 1px) !important;
   background-size: 100% 100%, 28px 28px !important;
@@ -269,7 +269,8 @@ body {
   backdrop-filter: blur(24px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: 1rem !important; /* rounded-2xl */
+  border-radius: 1rem !important;
+  /* rounded-2xl */
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.6) !important;
 }
 
@@ -290,7 +291,7 @@ body {
 }
 
 /* 4. Neon Cyberpunk Accents on Active Tool Icons */
-.excalidraw .ToolIcon_type_radio:checked + label,
+.excalidraw .ToolIcon_type_radio:checked+label,
 .excalidraw .ToolIcon_type_button.active,
 .excalidraw .ToolIcon_type_button:active {
   background-color: rgba(6, 182, 212, 0.2) !important;
@@ -334,6 +335,46 @@ body {
 .excalidraw .Modal {
   z-index: 9999 !important;
 }
+
+/* ── 6. Excalidraw Properties Menu (Stroke, Background, etc.) — Midnight Minimalist ── */
+.excalidraw .App-menu_bottom--left,
+.excalidraw .App-menu_left,
+.excalidraw .layer-ui__wrapper .Island.App-menu_bottom--left,
+.excalidraw .layer-ui__wrapper .Island[aria-label="Properties"],
+.excalidraw .layer-ui__wrapper .sidebar--docked {
+  background: rgba(15, 15, 20, 0.85) !important;
+  backdrop-filter: blur(10px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.04) inset !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  overflow: hidden !important;
+}
+
+/* Properties panel labels and headings */
+.excalidraw .App-menu_bottom--left h3,
+.excalidraw .App-menu_bottom--left .control-label,
+.excalidraw .App-menu_bottom--left label {
+  color: #94a3b8 !important;
+  font-family: inherit !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+
+/* Color swatches & option buttons in properties menu */
+.excalidraw .App-menu_bottom--left .buttonList {
+  background: transparent !important;
+}
+
+.excalidraw .App-menu_bottom--left .ToolIcon_type_radio:checked+label,
+.excalidraw .App-menu_bottom--left .ToolIcon_type_button.active {
+  background-color: rgba(6, 182, 212, 0.2) !important;
+  border: 1px solid rgba(6, 182, 212, 0.45) !important;
+  color: #22d3ee !important;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.3) !important;
+}
+
 
 /* ── Toolbar overlay ───────────────────────────────────────────────────────── */
 .masmspace-toolbar {
@@ -1447,9 +1488,11 @@ body {
 
 @media (max-width: 768px) {
   .voice-control-dock {
-    bottom: 5rem; /* bottom-20 on mobile */
+    bottom: 5rem;
+    /* bottom-20 on mobile */
     left: 1rem;
-    padding: 0.75rem; /* p-3 */
+    padding: 0.75rem;
+    /* p-3 */
     max-width: calc(100vw - 2rem);
   }
 }
@@ -1784,14 +1827,17 @@ body {
   width: 4px;
   height: 4px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.02);
   border-radius: 4px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 4px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 245, 255, 0.4);
 }

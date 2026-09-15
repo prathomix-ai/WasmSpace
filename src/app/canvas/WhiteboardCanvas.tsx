@@ -325,7 +325,7 @@ export default function WhiteboardCanvas() {
               .or(`user_email.eq.${email},user_id.eq.${user.id}`)
               .maybeSingle();
             usageData = u;
-          } catch {}
+          } catch { }
 
           const role = profile?.role?.toLowerCase();
           const sub = profile?.subscription_status?.toLowerCase();
@@ -460,7 +460,7 @@ export default function WhiteboardCanvas() {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
-      } catch {}
+      } catch { }
     }
     return INITIAL_TREE_NODES;
   });
@@ -472,7 +472,7 @@ export default function WhiteboardCanvas() {
     if (typeof window !== "undefined" && treeNodes && treeNodes.length > 0) {
       try {
         localStorage.setItem("masmspace_explorer_tree_nodes", JSON.stringify(treeNodes));
-      } catch {}
+      } catch { }
     }
   }, [treeNodes]);
 
@@ -658,951 +658,951 @@ export default function WhiteboardCanvas() {
           }
         }
 
-      const createRect = (opts: {
-        id: string;
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        strokeColor: string;
-        backgroundColor: string;
-        roundness?: number;
-      }) => ({
-        id: opts.id,
-        type: "rectangle",
-        x: opts.x,
-        y: opts.y,
-        width: opts.width,
-        height: opts.height,
-        angle: 0,
-        strokeColor: opts.strokeColor,
-        backgroundColor: opts.backgroundColor,
-        fillStyle: "solid",
-        strokeWidth: 2,
-        strokeStyle: "solid",
-        roughness: 1,
-        opacity: 100,
-        groupIds: [],
-        frameId: null,
-        roundness: opts.roundness !== undefined ? { type: opts.roundness } : { type: 3 },
-        seed: Math.floor(Math.random() * 100000),
-        version: 1,
-        versionNonce: Math.floor(Math.random() * 100000),
-        isDeleted: false,
-        boundElements: null,
-        updated: Date.now(),
-        link: null,
-        locked: false,
-      });
+        const createRect = (opts: {
+          id: string;
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+          strokeColor: string;
+          backgroundColor: string;
+          roundness?: number;
+        }) => ({
+          id: opts.id,
+          type: "rectangle",
+          x: opts.x,
+          y: opts.y,
+          width: opts.width,
+          height: opts.height,
+          angle: 0,
+          strokeColor: opts.strokeColor,
+          backgroundColor: opts.backgroundColor,
+          fillStyle: "solid",
+          strokeWidth: 2,
+          strokeStyle: "solid",
+          roughness: 1,
+          opacity: 100,
+          groupIds: [],
+          frameId: null,
+          roundness: opts.roundness !== undefined ? { type: opts.roundness } : { type: 3 },
+          seed: Math.floor(Math.random() * 100000),
+          version: 1,
+          versionNonce: Math.floor(Math.random() * 100000),
+          isDeleted: false,
+          boundElements: null,
+          updated: Date.now(),
+          link: null,
+          locked: false,
+        });
 
-      const createText = (opts: {
-        id: string;
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        text: string;
-        fontSize?: number;
-        strokeColor?: string;
-      }) => ({
-        id: opts.id,
-        type: "text",
-        x: opts.x,
-        y: opts.y,
-        width: opts.width,
-        height: opts.height,
-        angle: 0,
-        strokeColor: opts.strokeColor || "#ffffff",
-        backgroundColor: "transparent",
-        fillStyle: "solid",
-        strokeWidth: 1,
-        strokeStyle: "solid",
-        roughness: 0,
-        opacity: 100,
-        groupIds: [],
-        frameId: null,
-        roundness: null,
-        seed: Math.floor(Math.random() * 100000),
-        version: 1,
-        versionNonce: Math.floor(Math.random() * 100000),
-        isDeleted: false,
-        boundElements: null,
-        updated: Date.now(),
-        link: null,
-        locked: false,
-        text: opts.text,
-        fontSize: opts.fontSize || 15,
-        fontFamily: 1,
-        textAlign: "left",
-        verticalAlign: "top",
-        baseline: 14,
-        containerId: null,
-        originalText: opts.text,
-        lineHeight: 1.25,
-      });
+        const createText = (opts: {
+          id: string;
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+          text: string;
+          fontSize?: number;
+          strokeColor?: string;
+        }) => ({
+          id: opts.id,
+          type: "text",
+          x: opts.x,
+          y: opts.y,
+          width: opts.width,
+          height: opts.height,
+          angle: 0,
+          strokeColor: opts.strokeColor || "#ffffff",
+          backgroundColor: "transparent",
+          fillStyle: "solid",
+          strokeWidth: 1,
+          strokeStyle: "solid",
+          roughness: 0,
+          opacity: 100,
+          groupIds: [],
+          frameId: null,
+          roundness: null,
+          seed: Math.floor(Math.random() * 100000),
+          version: 1,
+          versionNonce: Math.floor(Math.random() * 100000),
+          isDeleted: false,
+          boundElements: null,
+          updated: Date.now(),
+          link: null,
+          locked: false,
+          text: opts.text,
+          fontSize: opts.fontSize || 15,
+          fontFamily: 1,
+          textAlign: "left",
+          verticalAlign: "top",
+          baseline: 14,
+          containerId: null,
+          originalText: opts.text,
+          lineHeight: 1.25,
+        });
 
-      const createArrow = (opts: {
-        id: string;
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        points: number[][];
-        strokeColor?: string;
-      }) => ({
-        id: opts.id,
-        type: "arrow",
-        x: opts.x,
-        y: opts.y,
-        width: opts.width,
-        height: opts.height,
-        angle: 0,
-        strokeColor: opts.strokeColor || "#38bdf8",
-        backgroundColor: "transparent",
-        fillStyle: "solid",
-        strokeWidth: 2,
-        strokeStyle: "solid",
-        roughness: 1,
-        opacity: 100,
-        groupIds: [],
-        frameId: null,
-        roundness: null,
-        seed: Math.floor(Math.random() * 100000),
-        version: 1,
-        versionNonce: Math.floor(Math.random() * 100000),
-        isDeleted: false,
-        boundElements: null,
-        updated: Date.now(),
-        link: null,
-        locked: false,
-        points: opts.points,
-        lastCommittedPoint: null,
-        startBinding: null,
-        endBinding: null,
-        startArrowhead: null,
-        endArrowhead: "arrow",
-      });
+        const createArrow = (opts: {
+          id: string;
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+          points: number[][];
+          strokeColor?: string;
+        }) => ({
+          id: opts.id,
+          type: "arrow",
+          x: opts.x,
+          y: opts.y,
+          width: opts.width,
+          height: opts.height,
+          angle: 0,
+          strokeColor: opts.strokeColor || "#38bdf8",
+          backgroundColor: "transparent",
+          fillStyle: "solid",
+          strokeWidth: 2,
+          strokeStyle: "solid",
+          roughness: 1,
+          opacity: 100,
+          groupIds: [],
+          frameId: null,
+          roundness: null,
+          seed: Math.floor(Math.random() * 100000),
+          version: 1,
+          versionNonce: Math.floor(Math.random() * 100000),
+          isDeleted: false,
+          boundElements: null,
+          updated: Date.now(),
+          link: null,
+          locked: false,
+          points: opts.points,
+          lastCommittedPoint: null,
+          startBinding: null,
+          endBinding: null,
+          startArrowhead: null,
+          endArrowhead: "arrow",
+        });
 
-      if (commandType === "clear") {
-        if (api.resetScene) {
-          api.resetScene();
-          setChatMessages((prev) => [
-            ...prev,
-            { sender: "ai", text: "🧹 Canvas cleared." },
-          ]);
-        }
-        return;
-      }
-
-      const newElements: any[] = [];
-      let labelMsg = "";
-
-      switch (commandType) {
-        // ── 1. Generate Kanban Board (3 Columns: To Do, In Progress, Done) ──
-        case "kanban": {
-          const colW = 210;
-          const colH = 360;
-          const startX = centerX - 330;
-          const startY = centerY - 150;
-
-          // Column 1: TO DO
-          newElements.push(
-            createRect({
-              id: `${baseId}_col1`,
-              x: startX,
-              y: startY,
-              width: colW,
-              height: colH,
-              strokeColor: "#0284c7",
-              backgroundColor: "rgba(2, 132, 199, 0.08)",
-            }),
-            createText({
-              id: `${baseId}_t1`,
-              x: startX + 16,
-              y: startY + 14,
-              width: 170,
-              height: 24,
-              text: "📋 TO DO (2)",
-              fontSize: 16,
-              strokeColor: "#38bdf8",
-            }),
-            createRect({
-              id: `${baseId}_c1_1`,
-              x: startX + 12,
-              y: startY + 50,
-              width: 186,
-              height: 55,
-              strokeColor: "#00f5ff",
-              backgroundColor: "rgba(0, 245, 255, 0.12)",
-            }),
-            createText({
-              id: `${baseId}_c1_1t`,
-              x: startX + 22,
-              y: startY + 65,
-              width: 165,
-              height: 22,
-              text: "[PRO-102] Auth API Gateway",
-              fontSize: 12,
-              strokeColor: "#e0f2fe",
-            }),
-            createRect({
-              id: `${baseId}_c1_2`,
-              x: startX + 12,
-              y: startY + 115,
-              width: 186,
-              height: 55,
-              strokeColor: "#00f5ff",
-              backgroundColor: "rgba(0, 245, 255, 0.12)",
-            }),
-            createText({
-              id: `${baseId}_c1_2t`,
-              x: startX + 22,
-              y: startY + 130,
-              width: 165,
-              height: 22,
-              text: "[PRO-109] SSO Integration",
-              fontSize: 12,
-              strokeColor: "#e0f2fe",
-            })
-          );
-
-          // Column 2: IN PROGRESS
-          const x2 = startX + colW + 20;
-          newElements.push(
-            createRect({
-              id: `${baseId}_col2`,
-              x: x2,
-              y: startY,
-              width: colW,
-              height: colH,
-              strokeColor: "#eab308",
-              backgroundColor: "rgba(234, 179, 8, 0.08)",
-            }),
-            createText({
-              id: `${baseId}_t2`,
-              x: x2 + 16,
-              y: startY + 14,
-              width: 170,
-              height: 24,
-              text: "⚡ IN PROGRESS (2)",
-              fontSize: 16,
-              strokeColor: "#facc15",
-            }),
-            createRect({
-              id: `${baseId}_c2_1`,
-              x: x2 + 12,
-              y: startY + 50,
-              width: 186,
-              height: 55,
-              strokeColor: "#f59e0b",
-              backgroundColor: "rgba(245, 158, 11, 0.14)",
-            }),
-            createText({
-              id: `${baseId}_c2_1t`,
-              x: x2 + 22,
-              y: startY + 65,
-              width: 165,
-              height: 22,
-              text: "[PRO-105] Vector RAG Engine",
-              fontSize: 12,
-              strokeColor: "#fef3c7",
-            }),
-            createRect({
-              id: `${baseId}_c2_2`,
-              x: x2 + 12,
-              y: startY + 115,
-              width: 186,
-              height: 55,
-              strokeColor: "#f59e0b",
-              backgroundColor: "rgba(245, 158, 11, 0.14)",
-            }),
-            createText({
-              id: `${baseId}_c2_2t`,
-              x: x2 + 22,
-              y: startY + 130,
-              width: 165,
-              height: 22,
-              text: "[PRO-114] Executive HUD UI",
-              fontSize: 12,
-              strokeColor: "#fef3c7",
-            })
-          );
-
-          // Column 3: DONE
-          const x3 = startX + (colW + 20) * 2;
-          newElements.push(
-            createRect({
-              id: `${baseId}_col3`,
-              x: x3,
-              y: startY,
-              width: colW,
-              height: colH,
-              strokeColor: "#10b981",
-              backgroundColor: "rgba(16, 185, 129, 0.08)",
-            }),
-            createText({
-              id: `${baseId}_t3`,
-              x: x3 + 16,
-              y: startY + 14,
-              width: 170,
-              height: 24,
-              text: "✅ DONE (2)",
-              fontSize: 16,
-              strokeColor: "#34d399",
-            }),
-            createRect({
-              id: `${baseId}_c3_1`,
-              x: x3 + 12,
-              y: startY + 50,
-              width: 186,
-              height: 55,
-              strokeColor: "#10b981",
-              backgroundColor: "rgba(16, 185, 129, 0.14)",
-            }),
-            createText({
-              id: `${baseId}_c3_1t`,
-              x: x3 + 22,
-              y: startY + 65,
-              width: 165,
-              height: 22,
-              text: "[PRO-101] Core Board Setup",
-              fontSize: 12,
-              strokeColor: "#d1fae5",
-            }),
-            createRect({
-              id: `${baseId}_c3_2`,
-              x: x3 + 12,
-              y: startY + 115,
-              width: 186,
-              height: 55,
-              strokeColor: "#10b981",
-              backgroundColor: "rgba(16, 185, 129, 0.14)",
-            }),
-            createText({
-              id: `${baseId}_c3_2t`,
-              x: x3 + 22,
-              y: startY + 130,
-              width: 165,
-              height: 22,
-              text: "[PRO-103] Pyodide WASM Engine",
-              fontSize: 12,
-              strokeColor: "#d1fae5",
-            })
-          );
-
-          labelMsg = "Generated Corporate Kanban Board with 3 active columns!";
-          break;
+        if (commandType === "clear") {
+          if (api.resetScene) {
+            api.resetScene();
+            setChatMessages((prev) => [
+              ...prev,
+              { sender: "ai", text: "🧹 Canvas cleared." },
+            ]);
+          }
+          return;
         }
 
-        // ── 2. System Architecture Diagram ──
-        case "sysarch": {
-          const yPos = centerY - 30;
-          newElements.push(
-            // Client Tier
-            createRect({
-              id: `${baseId}_tier1`,
-              x: centerX - 360,
-              y: yPos,
-              width: 170,
-              height: 75,
-              strokeColor: "#00f5ff",
-              backgroundColor: "rgba(0, 245, 255, 0.12)",
-            }),
-            createText({
-              id: `${baseId}_tier1_t`,
-              x: centerX - 345,
-              y: yPos + 22,
-              width: 140,
-              height: 35,
-              text: "Next.js Web / Client",
-              fontSize: 13,
-              strokeColor: "#e0f2fe",
-            }),
-            createArrow({
-              id: `${baseId}_arr1`,
-              x: centerX - 190,
-              y: yPos + 37,
-              width: 60,
-              height: 2,
-              points: [[0, 0], [60, 0]],
-              strokeColor: "#00f5ff",
-            }),
+        const newElements: any[] = [];
+        let labelMsg = "";
 
-            // Gateway Tier
-            createRect({
-              id: `${baseId}_tier2`,
-              x: centerX - 120,
-              y: yPos,
-              width: 180,
-              height: 75,
-              strokeColor: "#a855f7",
-              backgroundColor: "rgba(168, 85, 247, 0.15)",
-            }),
-            createText({
-              id: `${baseId}_tier2_t`,
-              x: centerX - 105,
-              y: yPos + 22,
-              width: 150,
-              height: 35,
-              text: "API Gateway & Auth",
-              fontSize: 13,
-              strokeColor: "#f3e8ff",
-            }),
-            createArrow({
-              id: `${baseId}_arr2`,
-              x: centerX + 60,
-              y: yPos + 37,
-              width: 60,
-              height: 2,
-              points: [[0, 0], [60, 0]],
-              strokeColor: "#a855f7",
-            }),
+        switch (commandType) {
+          // ── 1. Generate Kanban Board (3 Columns: To Do, In Progress, Done) ──
+          case "kanban": {
+            const colW = 210;
+            const colH = 360;
+            const startX = centerX - 330;
+            const startY = centerY - 150;
 
-            // Database Tier
-            createRect({
-              id: `${baseId}_tier3`,
-              x: centerX + 130,
-              y: yPos,
-              width: 180,
-              height: 75,
-              strokeColor: "#10b981",
-              backgroundColor: "rgba(16, 185, 129, 0.15)",
-            }),
-            createText({
-              id: `${baseId}_tier3_t`,
-              x: centerX + 145,
-              y: yPos + 22,
-              width: 150,
-              height: 35,
-              text: "Postgres + pgvector",
-              fontSize: 13,
-              strokeColor: "#d1fae5",
-            })
-          );
-
-          labelMsg = "Generated Multi-Tier System Architecture Diagram!";
-          break;
-        }
-
-        // ── 3. SWOT Analysis Framework ──
-        case "swot": {
-          const qW = 210;
-          const qH = 135;
-          const sX = centerX - 220;
-          const sY = centerY - 140;
-
-          newElements.push(
-            // Strengths
-            createRect({
-              id: `${baseId}_s`,
-              x: sX,
-              y: sY,
-              width: qW,
-              height: qH,
-              strokeColor: "#10b981",
-              backgroundColor: "rgba(16, 185, 129, 0.12)",
-            }),
-            createText({
-              id: `${baseId}_st`,
-              x: sX + 15,
-              y: sY + 15,
-              width: 180,
-              height: 25,
-              text: "💪 STRENGTHS (Internal)",
-              fontSize: 13,
-              strokeColor: "#34d399",
-            }),
-            createText({
-              id: `${baseId}_sb`,
-              x: sX + 15,
-              y: sY + 45,
-              width: 180,
-              height: 60,
-              text: "• Native WASM code exec\n• Ultra-fast Excalidraw UI\n• Multi-agent RAG search",
-              fontSize: 11,
-              strokeColor: "#a7f3d0",
-            }),
-
-            // Weaknesses
-            createRect({
-              id: `${baseId}_w`,
-              x: sX + qW + 15,
-              y: sY,
-              width: qW,
-              height: qH,
-              strokeColor: "#f43f5e",
-              backgroundColor: "rgba(244, 63, 94, 0.12)",
-            }),
-            createText({
-              id: `${baseId}_wt`,
-              x: sX + qW + 30,
-              y: sY + 15,
-              width: 180,
-              height: 25,
-              text: "⚠️ WEAKNESSES (Internal)",
-              fontSize: 13,
-              strokeColor: "#fb7185",
-            }),
-            createText({
-              id: `${baseId}_wb`,
-              x: sX + qW + 30,
-              y: sY + 45,
-              width: 180,
-              height: 60,
-              text: "• Initial mobile sync polish\n• Higher GPU memory cap\n• Complex edge caching",
-              fontSize: 11,
-              strokeColor: "#fecdd3",
-            }),
-
-            // Opportunities
-            createRect({
-              id: `${baseId}_o`,
-              x: sX,
-              y: sY + qH + 15,
-              width: qW,
-              height: qH,
-              strokeColor: "#00f5ff",
-              backgroundColor: "rgba(0, 245, 255, 0.12)",
-            }),
-            createText({
-              id: `${baseId}_ot`,
-              x: sX + 15,
-              y: sY + qH + 30,
-              width: 180,
-              height: 25,
-              text: "🚀 OPPORTUNITIES (Market)",
-              fontSize: 13,
-              strokeColor: "#38bdf8",
-            }),
-            createText({
-              id: `${baseId}_ob`,
-              x: sX + 15,
-              y: sY + qH + 60,
-              width: 180,
-              height: 60,
-              text: "• Enterprise Whiteboards\n• AI-driven Agile planning\n• C-Level Executive suite",
-              fontSize: 11,
-              strokeColor: "#bae6fd",
-            }),
-
-            // Threats
-            createRect({
-              id: `${baseId}_t`,
-              x: sX + qW + 15,
-              y: sY + qH + 15,
-              width: qW,
-              height: qH,
-              strokeColor: "#f59e0b",
-              backgroundColor: "rgba(245, 158, 11, 0.12)",
-            }),
-            createText({
-              id: `${baseId}_tt`,
-              x: sX + qW + 30,
-              y: sY + qH + 30,
-              width: 180,
-              height: 25,
-              text: "🛡️ THREATS (External)",
-              fontSize: 13,
-              strokeColor: "#fbbf24",
-            }),
-            createText({
-              id: `${baseId}_tb`,
-              x: sX + qW + 30,
-              y: sY + qH + 60,
-              width: 180,
-              height: 60,
-              text: "• Incumbent collaboration tools\n• Data privacy compliance\n• Shifting API rate limits",
-              fontSize: 11,
-              strokeColor: "#fde68a",
-            })
-          );
-
-          labelMsg = "Generated SWOT Strategic Analysis Framework!";
-          break;
-        }
-
-        // ── 4. Create Meeting Agenda ──
-        case "agenda": {
-          const aX = centerX - 220;
-          const aY = centerY - 140;
-          const aW = 440;
-
-          newElements.push(
-            // Header
-            createRect({
-              id: `${baseId}_hdr`,
-              x: aX,
-              y: aY,
-              width: aW,
-              height: 65,
-              strokeColor: "#38bdf8",
-              backgroundColor: "rgba(56, 189, 248, 0.14)",
-            }),
-            createText({
-              id: `${baseId}_hdrt`,
-              x: aX + 16,
-              y: aY + 12,
-              width: 400,
-              height: 25,
-              text: "📅 EXECUTIVE SPRINT REVIEW & STRATEGY SYNC",
-              fontSize: 14,
-              strokeColor: "#ffffff",
-            }),
-            createText({
-              id: `${baseId}_hdrsub`,
-              x: aX + 16,
-              y: aY + 36,
-              width: 400,
-              height: 20,
-              text: "Attendees: Executive Leadership & Engineering Leads • Duration: 45m",
-              fontSize: 11,
-              strokeColor: "#94a3b8",
-            }),
-
-            // Items
-            createRect({
-              id: `${baseId}_it1`,
-              x: aX,
-              y: aY + 80,
-              width: aW,
-              height: 50,
-              strokeColor: "#334155",
-              backgroundColor: "rgba(255, 255, 255, 0.04)",
-            }),
-            createText({
-              id: `${baseId}_it1t`,
-              x: aX + 16,
-              y: aY + 95,
-              width: 400,
-              height: 22,
-              text: "01. Q3 Roadmap Review & Milestone Status (15m)",
-              fontSize: 13,
-              strokeColor: "#e2e8f0",
-            }),
-
-            createRect({
-              id: `${baseId}_it2`,
-              x: aX,
-              y: aY + 140,
-              width: aW,
-              height: 50,
-              strokeColor: "#334155",
-              backgroundColor: "rgba(255, 255, 255, 0.04)",
-            }),
-            createText({
-              id: `${baseId}_it2t`,
-              x: aX + 16,
-              y: aY + 155,
-              width: 400,
-              height: 22,
-              text: "02. Technical Architecture & Scale Bottlenecks (20m)",
-              fontSize: 13,
-              strokeColor: "#e2e8f0",
-            }),
-
-            createRect({
-              id: `${baseId}_it3`,
-              x: aX,
-              y: aY + 200,
-              width: aW,
-              height: 50,
-              strokeColor: "#334155",
-              backgroundColor: "rgba(255, 255, 255, 0.04)",
-            }),
-            createText({
-              id: `${baseId}_it3t`,
-              x: aX + 16,
-              y: aY + 215,
-              width: 400,
-              height: 22,
-              text: "03. Action Items, Owners & Sign-Off (10m)",
-              fontSize: 13,
-              strokeColor: "#e2e8f0",
-            })
-          );
-
-          labelMsg = "Created Meeting Agenda Framework on canvas!";
-          break;
-        }
-
-        // ── 5. User Journey Map ──
-        case "userjourney": {
-          const sW = 140;
-          const sH = 90;
-          const yPos = centerY - 40;
-          const startX = centerX - 330;
-
-          const steps = [
-            { num: "1. DISCOVERY", desc: "Organic search\nInteractive demo", color: "#38bdf8" },
-            { num: "2. ONBOARD", desc: "Instant canvas\nZero signup wall", color: "#a855f7" },
-            { num: "3. EXECUTE", desc: "Realtime team sync\nAI drawing bot", color: "#10b981" },
-            { num: "4. ADVOCATE", desc: "Clean 4K export\nEnterprise Pro upgrade", color: "#f59e0b" },
-          ];
-
-          steps.forEach((st, i) => {
-            const curX = startX + i * (sW + 30);
+            // Column 1: TO DO
             newElements.push(
               createRect({
-                id: `${baseId}_uj_${i}`,
-                x: curX,
-                y: yPos,
-                width: sW,
-                height: sH,
-                strokeColor: st.color,
-                backgroundColor: "rgba(255, 255, 255, 0.05)",
+                id: `${baseId}_col1`,
+                x: startX,
+                y: startY,
+                width: colW,
+                height: colH,
+                strokeColor: "#0284c7",
+                backgroundColor: "rgba(2, 132, 199, 0.08)",
               }),
               createText({
-                id: `${baseId}_ujt_${i}`,
-                x: curX + 10,
-                y: yPos + 12,
-                width: sW - 20,
-                height: 20,
-                text: st.num,
+                id: `${baseId}_t1`,
+                x: startX + 16,
+                y: startY + 14,
+                width: 170,
+                height: 24,
+                text: "📋 TO DO (2)",
+                fontSize: 16,
+                strokeColor: "#38bdf8",
+              }),
+              createRect({
+                id: `${baseId}_c1_1`,
+                x: startX + 12,
+                y: startY + 50,
+                width: 186,
+                height: 55,
+                strokeColor: "#00f5ff",
+                backgroundColor: "rgba(0, 245, 255, 0.12)",
+              }),
+              createText({
+                id: `${baseId}_c1_1t`,
+                x: startX + 22,
+                y: startY + 65,
+                width: 165,
+                height: 22,
+                text: "[PRO-102] Auth API Gateway",
                 fontSize: 12,
-                strokeColor: st.color,
+                strokeColor: "#e0f2fe",
+              }),
+              createRect({
+                id: `${baseId}_c1_2`,
+                x: startX + 12,
+                y: startY + 115,
+                width: 186,
+                height: 55,
+                strokeColor: "#00f5ff",
+                backgroundColor: "rgba(0, 245, 255, 0.12)",
               }),
               createText({
-                id: `${baseId}_ujd_${i}`,
-                x: curX + 10,
-                y: yPos + 38,
-                width: sW - 20,
-                height: 40,
-                text: st.desc,
-                fontSize: 11,
-                strokeColor: "#cbd5e1",
+                id: `${baseId}_c1_2t`,
+                x: startX + 22,
+                y: startY + 130,
+                width: 165,
+                height: 22,
+                text: "[PRO-109] SSO Integration",
+                fontSize: 12,
+                strokeColor: "#e0f2fe",
               })
             );
 
-            if (i < steps.length - 1) {
+            // Column 2: IN PROGRESS
+            const x2 = startX + colW + 20;
+            newElements.push(
+              createRect({
+                id: `${baseId}_col2`,
+                x: x2,
+                y: startY,
+                width: colW,
+                height: colH,
+                strokeColor: "#eab308",
+                backgroundColor: "rgba(234, 179, 8, 0.08)",
+              }),
+              createText({
+                id: `${baseId}_t2`,
+                x: x2 + 16,
+                y: startY + 14,
+                width: 170,
+                height: 24,
+                text: "⚡ IN PROGRESS (2)",
+                fontSize: 16,
+                strokeColor: "#facc15",
+              }),
+              createRect({
+                id: `${baseId}_c2_1`,
+                x: x2 + 12,
+                y: startY + 50,
+                width: 186,
+                height: 55,
+                strokeColor: "#f59e0b",
+                backgroundColor: "rgba(245, 158, 11, 0.14)",
+              }),
+              createText({
+                id: `${baseId}_c2_1t`,
+                x: x2 + 22,
+                y: startY + 65,
+                width: 165,
+                height: 22,
+                text: "[PRO-105] Vector RAG Engine",
+                fontSize: 12,
+                strokeColor: "#fef3c7",
+              }),
+              createRect({
+                id: `${baseId}_c2_2`,
+                x: x2 + 12,
+                y: startY + 115,
+                width: 186,
+                height: 55,
+                strokeColor: "#f59e0b",
+                backgroundColor: "rgba(245, 158, 11, 0.14)",
+              }),
+              createText({
+                id: `${baseId}_c2_2t`,
+                x: x2 + 22,
+                y: startY + 130,
+                width: 165,
+                height: 22,
+                text: "[PRO-114] Executive HUD UI",
+                fontSize: 12,
+                strokeColor: "#fef3c7",
+              })
+            );
+
+            // Column 3: DONE
+            const x3 = startX + (colW + 20) * 2;
+            newElements.push(
+              createRect({
+                id: `${baseId}_col3`,
+                x: x3,
+                y: startY,
+                width: colW,
+                height: colH,
+                strokeColor: "#10b981",
+                backgroundColor: "rgba(16, 185, 129, 0.08)",
+              }),
+              createText({
+                id: `${baseId}_t3`,
+                x: x3 + 16,
+                y: startY + 14,
+                width: 170,
+                height: 24,
+                text: "✅ DONE (2)",
+                fontSize: 16,
+                strokeColor: "#34d399",
+              }),
+              createRect({
+                id: `${baseId}_c3_1`,
+                x: x3 + 12,
+                y: startY + 50,
+                width: 186,
+                height: 55,
+                strokeColor: "#10b981",
+                backgroundColor: "rgba(16, 185, 129, 0.14)",
+              }),
+              createText({
+                id: `${baseId}_c3_1t`,
+                x: x3 + 22,
+                y: startY + 65,
+                width: 165,
+                height: 22,
+                text: "[PRO-101] Core Board Setup",
+                fontSize: 12,
+                strokeColor: "#d1fae5",
+              }),
+              createRect({
+                id: `${baseId}_c3_2`,
+                x: x3 + 12,
+                y: startY + 115,
+                width: 186,
+                height: 55,
+                strokeColor: "#10b981",
+                backgroundColor: "rgba(16, 185, 129, 0.14)",
+              }),
+              createText({
+                id: `${baseId}_c3_2t`,
+                x: x3 + 22,
+                y: startY + 130,
+                width: 165,
+                height: 22,
+                text: "[PRO-103] Pyodide WASM Engine",
+                fontSize: 12,
+                strokeColor: "#d1fae5",
+              })
+            );
+
+            labelMsg = "Generated Corporate Kanban Board with 3 active columns!";
+            break;
+          }
+
+          // ── 2. System Architecture Diagram ──
+          case "sysarch": {
+            const yPos = centerY - 30;
+            newElements.push(
+              // Client Tier
+              createRect({
+                id: `${baseId}_tier1`,
+                x: centerX - 360,
+                y: yPos,
+                width: 170,
+                height: 75,
+                strokeColor: "#00f5ff",
+                backgroundColor: "rgba(0, 245, 255, 0.12)",
+              }),
+              createText({
+                id: `${baseId}_tier1_t`,
+                x: centerX - 345,
+                y: yPos + 22,
+                width: 140,
+                height: 35,
+                text: "Next.js Web / Client",
+                fontSize: 13,
+                strokeColor: "#e0f2fe",
+              }),
+              createArrow({
+                id: `${baseId}_arr1`,
+                x: centerX - 190,
+                y: yPos + 37,
+                width: 60,
+                height: 2,
+                points: [[0, 0], [60, 0]],
+                strokeColor: "#00f5ff",
+              }),
+
+              // Gateway Tier
+              createRect({
+                id: `${baseId}_tier2`,
+                x: centerX - 120,
+                y: yPos,
+                width: 180,
+                height: 75,
+                strokeColor: "#a855f7",
+                backgroundColor: "rgba(168, 85, 247, 0.15)",
+              }),
+              createText({
+                id: `${baseId}_tier2_t`,
+                x: centerX - 105,
+                y: yPos + 22,
+                width: 150,
+                height: 35,
+                text: "API Gateway & Auth",
+                fontSize: 13,
+                strokeColor: "#f3e8ff",
+              }),
+              createArrow({
+                id: `${baseId}_arr2`,
+                x: centerX + 60,
+                y: yPos + 37,
+                width: 60,
+                height: 2,
+                points: [[0, 0], [60, 0]],
+                strokeColor: "#a855f7",
+              }),
+
+              // Database Tier
+              createRect({
+                id: `${baseId}_tier3`,
+                x: centerX + 130,
+                y: yPos,
+                width: 180,
+                height: 75,
+                strokeColor: "#10b981",
+                backgroundColor: "rgba(16, 185, 129, 0.15)",
+              }),
+              createText({
+                id: `${baseId}_tier3_t`,
+                x: centerX + 145,
+                y: yPos + 22,
+                width: 150,
+                height: 35,
+                text: "Postgres + pgvector",
+                fontSize: 13,
+                strokeColor: "#d1fae5",
+              })
+            );
+
+            labelMsg = "Generated Multi-Tier System Architecture Diagram!";
+            break;
+          }
+
+          // ── 3. SWOT Analysis Framework ──
+          case "swot": {
+            const qW = 210;
+            const qH = 135;
+            const sX = centerX - 220;
+            const sY = centerY - 140;
+
+            newElements.push(
+              // Strengths
+              createRect({
+                id: `${baseId}_s`,
+                x: sX,
+                y: sY,
+                width: qW,
+                height: qH,
+                strokeColor: "#10b981",
+                backgroundColor: "rgba(16, 185, 129, 0.12)",
+              }),
+              createText({
+                id: `${baseId}_st`,
+                x: sX + 15,
+                y: sY + 15,
+                width: 180,
+                height: 25,
+                text: "💪 STRENGTHS (Internal)",
+                fontSize: 13,
+                strokeColor: "#34d399",
+              }),
+              createText({
+                id: `${baseId}_sb`,
+                x: sX + 15,
+                y: sY + 45,
+                width: 180,
+                height: 60,
+                text: "• Native WASM code exec\n• Ultra-fast Excalidraw UI\n• Multi-agent RAG search",
+                fontSize: 11,
+                strokeColor: "#a7f3d0",
+              }),
+
+              // Weaknesses
+              createRect({
+                id: `${baseId}_w`,
+                x: sX + qW + 15,
+                y: sY,
+                width: qW,
+                height: qH,
+                strokeColor: "#f43f5e",
+                backgroundColor: "rgba(244, 63, 94, 0.12)",
+              }),
+              createText({
+                id: `${baseId}_wt`,
+                x: sX + qW + 30,
+                y: sY + 15,
+                width: 180,
+                height: 25,
+                text: "⚠️ WEAKNESSES (Internal)",
+                fontSize: 13,
+                strokeColor: "#fb7185",
+              }),
+              createText({
+                id: `${baseId}_wb`,
+                x: sX + qW + 30,
+                y: sY + 45,
+                width: 180,
+                height: 60,
+                text: "• Initial mobile sync polish\n• Higher GPU memory cap\n• Complex edge caching",
+                fontSize: 11,
+                strokeColor: "#fecdd3",
+              }),
+
+              // Opportunities
+              createRect({
+                id: `${baseId}_o`,
+                x: sX,
+                y: sY + qH + 15,
+                width: qW,
+                height: qH,
+                strokeColor: "#00f5ff",
+                backgroundColor: "rgba(0, 245, 255, 0.12)",
+              }),
+              createText({
+                id: `${baseId}_ot`,
+                x: sX + 15,
+                y: sY + qH + 30,
+                width: 180,
+                height: 25,
+                text: "🚀 OPPORTUNITIES (Market)",
+                fontSize: 13,
+                strokeColor: "#38bdf8",
+              }),
+              createText({
+                id: `${baseId}_ob`,
+                x: sX + 15,
+                y: sY + qH + 60,
+                width: 180,
+                height: 60,
+                text: "• Enterprise Whiteboards\n• AI-driven Agile planning\n• C-Level Executive suite",
+                fontSize: 11,
+                strokeColor: "#bae6fd",
+              }),
+
+              // Threats
+              createRect({
+                id: `${baseId}_t`,
+                x: sX + qW + 15,
+                y: sY + qH + 15,
+                width: qW,
+                height: qH,
+                strokeColor: "#f59e0b",
+                backgroundColor: "rgba(245, 158, 11, 0.12)",
+              }),
+              createText({
+                id: `${baseId}_tt`,
+                x: sX + qW + 30,
+                y: sY + qH + 30,
+                width: 180,
+                height: 25,
+                text: "🛡️ THREATS (External)",
+                fontSize: 13,
+                strokeColor: "#fbbf24",
+              }),
+              createText({
+                id: `${baseId}_tb`,
+                x: sX + qW + 30,
+                y: sY + qH + 60,
+                width: 180,
+                height: 60,
+                text: "• Incumbent collaboration tools\n• Data privacy compliance\n• Shifting API rate limits",
+                fontSize: 11,
+                strokeColor: "#fde68a",
+              })
+            );
+
+            labelMsg = "Generated SWOT Strategic Analysis Framework!";
+            break;
+          }
+
+          // ── 4. Create Meeting Agenda ──
+          case "agenda": {
+            const aX = centerX - 220;
+            const aY = centerY - 140;
+            const aW = 440;
+
+            newElements.push(
+              // Header
+              createRect({
+                id: `${baseId}_hdr`,
+                x: aX,
+                y: aY,
+                width: aW,
+                height: 65,
+                strokeColor: "#38bdf8",
+                backgroundColor: "rgba(56, 189, 248, 0.14)",
+              }),
+              createText({
+                id: `${baseId}_hdrt`,
+                x: aX + 16,
+                y: aY + 12,
+                width: 400,
+                height: 25,
+                text: "📅 EXECUTIVE SPRINT REVIEW & STRATEGY SYNC",
+                fontSize: 14,
+                strokeColor: "#ffffff",
+              }),
+              createText({
+                id: `${baseId}_hdrsub`,
+                x: aX + 16,
+                y: aY + 36,
+                width: 400,
+                height: 20,
+                text: "Attendees: Executive Leadership & Engineering Leads • Duration: 45m",
+                fontSize: 11,
+                strokeColor: "#94a3b8",
+              }),
+
+              // Items
+              createRect({
+                id: `${baseId}_it1`,
+                x: aX,
+                y: aY + 80,
+                width: aW,
+                height: 50,
+                strokeColor: "#334155",
+                backgroundColor: "rgba(255, 255, 255, 0.04)",
+              }),
+              createText({
+                id: `${baseId}_it1t`,
+                x: aX + 16,
+                y: aY + 95,
+                width: 400,
+                height: 22,
+                text: "01. Q3 Roadmap Review & Milestone Status (15m)",
+                fontSize: 13,
+                strokeColor: "#e2e8f0",
+              }),
+
+              createRect({
+                id: `${baseId}_it2`,
+                x: aX,
+                y: aY + 140,
+                width: aW,
+                height: 50,
+                strokeColor: "#334155",
+                backgroundColor: "rgba(255, 255, 255, 0.04)",
+              }),
+              createText({
+                id: `${baseId}_it2t`,
+                x: aX + 16,
+                y: aY + 155,
+                width: 400,
+                height: 22,
+                text: "02. Technical Architecture & Scale Bottlenecks (20m)",
+                fontSize: 13,
+                strokeColor: "#e2e8f0",
+              }),
+
+              createRect({
+                id: `${baseId}_it3`,
+                x: aX,
+                y: aY + 200,
+                width: aW,
+                height: 50,
+                strokeColor: "#334155",
+                backgroundColor: "rgba(255, 255, 255, 0.04)",
+              }),
+              createText({
+                id: `${baseId}_it3t`,
+                x: aX + 16,
+                y: aY + 215,
+                width: 400,
+                height: 22,
+                text: "03. Action Items, Owners & Sign-Off (10m)",
+                fontSize: 13,
+                strokeColor: "#e2e8f0",
+              })
+            );
+
+            labelMsg = "Created Meeting Agenda Framework on canvas!";
+            break;
+          }
+
+          // ── 5. User Journey Map ──
+          case "userjourney": {
+            const sW = 140;
+            const sH = 90;
+            const yPos = centerY - 40;
+            const startX = centerX - 330;
+
+            const steps = [
+              { num: "1. DISCOVERY", desc: "Organic search\nInteractive demo", color: "#38bdf8" },
+              { num: "2. ONBOARD", desc: "Instant canvas\nZero signup wall", color: "#a855f7" },
+              { num: "3. EXECUTE", desc: "Realtime team sync\nAI drawing bot", color: "#10b981" },
+              { num: "4. ADVOCATE", desc: "Clean 4K export\nEnterprise Pro upgrade", color: "#f59e0b" },
+            ];
+
+            steps.forEach((st, i) => {
+              const curX = startX + i * (sW + 30);
               newElements.push(
-                createArrow({
-                  id: `${baseId}_uja_${i}`,
-                  x: curX + sW,
-                  y: yPos + sH / 2,
-                  width: 30,
-                  height: 2,
-                  points: [[0, 0], [30, 0]],
+                createRect({
+                  id: `${baseId}_uj_${i}`,
+                  x: curX,
+                  y: yPos,
+                  width: sW,
+                  height: sH,
                   strokeColor: st.color,
+                  backgroundColor: "rgba(255, 255, 255, 0.05)",
+                }),
+                createText({
+                  id: `${baseId}_ujt_${i}`,
+                  x: curX + 10,
+                  y: yPos + 12,
+                  width: sW - 20,
+                  height: 20,
+                  text: st.num,
+                  fontSize: 12,
+                  strokeColor: st.color,
+                }),
+                createText({
+                  id: `${baseId}_ujd_${i}`,
+                  x: curX + 10,
+                  y: yPos + 38,
+                  width: sW - 20,
+                  height: 40,
+                  text: st.desc,
+                  fontSize: 11,
+                  strokeColor: "#cbd5e1",
                 })
               );
-            }
-          });
 
-          labelMsg = "Generated 4-Stage User Journey Map!";
-          break;
-        }
+              if (i < steps.length - 1) {
+                newElements.push(
+                  createArrow({
+                    id: `${baseId}_uja_${i}`,
+                    x: curX + sW,
+                    y: yPos + sH / 2,
+                    width: 30,
+                    height: 2,
+                    points: [[0, 0], [30, 0]],
+                    strokeColor: st.color,
+                  })
+                );
+              }
+            });
 
-        // ── Primitives & Essential Shapes ──
-        case "rectangle":
-          newElements.push(
-            createRect({
+            labelMsg = "Generated 4-Stage User Journey Map!";
+            break;
+          }
+
+          // ── Primitives & Essential Shapes ──
+          case "rectangle":
+            newElements.push(
+              createRect({
+                id: baseId,
+                x: centerX,
+                y: centerY,
+                width: 200,
+                height: 120,
+                strokeColor: "#00f5ff",
+                backgroundColor: "rgba(0, 245, 255, 0.15)",
+              })
+            );
+            labelMsg = "Drawn a Container Box on canvas!";
+            break;
+
+          case "triangle":
+            newElements.push({
               id: baseId,
+              type: "line",
               x: centerX,
               y: centerY,
-              width: 200,
-              height: 120,
-              strokeColor: "#00f5ff",
-              backgroundColor: "rgba(0, 245, 255, 0.15)",
-            })
-          );
-          labelMsg = "Drawn a Container Box on canvas!";
-          break;
+              width: 180,
+              height: 160,
+              angle: 0,
+              strokeColor: "#a855f7",
+              backgroundColor: "rgba(168, 85, 247, 0.2)",
+              fillStyle: "solid",
+              strokeWidth: 2,
+              strokeStyle: "solid",
+              roughness: 1,
+              opacity: 100,
+              groupIds: [],
+              frameId: null,
+              roundness: null,
+              seed: Math.floor(Math.random() * 100000),
+              version: 1,
+              versionNonce: Math.floor(Math.random() * 100000),
+              isDeleted: false,
+              boundElements: null,
+              updated: Date.now(),
+              link: null,
+              locked: false,
+              points: [
+                [90, 0],
+                [180, 160],
+                [0, 160],
+                [90, 0],
+              ],
+              lastCommittedPoint: null,
+              startBinding: null,
+              endBinding: null,
+              startArrowhead: null,
+              endArrowhead: null,
+            });
+            labelMsg = "Drawn a Triangle on canvas!";
+            break;
 
-        case "triangle":
-          newElements.push({
-            id: baseId,
-            type: "line",
-            x: centerX,
-            y: centerY,
-            width: 180,
-            height: 160,
-            angle: 0,
-            strokeColor: "#a855f7",
-            backgroundColor: "rgba(168, 85, 247, 0.2)",
-            fillStyle: "solid",
-            strokeWidth: 2,
-            strokeStyle: "solid",
-            roughness: 1,
-            opacity: 100,
-            groupIds: [],
-            frameId: null,
-            roundness: null,
-            seed: Math.floor(Math.random() * 100000),
-            version: 1,
-            versionNonce: Math.floor(Math.random() * 100000),
-            isDeleted: false,
-            boundElements: null,
-            updated: Date.now(),
-            link: null,
-            locked: false,
-            points: [
-              [90, 0],
-              [180, 160],
-              [0, 160],
-              [90, 0],
-            ],
-            lastCommittedPoint: null,
-            startBinding: null,
-            endBinding: null,
-            startArrowhead: null,
-            endArrowhead: null,
-          });
-          labelMsg = "Drawn a Triangle on canvas!";
-          break;
-
-        case "circle":
-          newElements.push({
-            id: baseId,
-            type: "ellipse",
-            x: centerX,
-            y: centerY,
-            width: 150,
-            height: 150,
-            angle: 0,
-            strokeColor: "#10b981",
-            backgroundColor: "rgba(16, 185, 129, 0.15)",
-            fillStyle: "solid",
-            strokeWidth: 2,
-            strokeStyle: "solid",
-            roughness: 1,
-            opacity: 100,
-            groupIds: [],
-            frameId: null,
-            roundness: null,
-            seed: Math.floor(Math.random() * 100000),
-            version: 1,
-            versionNonce: Math.floor(Math.random() * 100000),
-            isDeleted: false,
-            boundElements: null,
-            updated: Date.now(),
-            link: null,
-            locked: false,
-          });
-          labelMsg = "Drawn a Circle on canvas!";
-          break;
-
-        case "diamond":
-          newElements.push({
-            id: baseId,
-            type: "diamond",
-            x: centerX,
-            y: centerY,
-            width: 160,
-            height: 160,
-            angle: 0,
-            strokeColor: "#ec4899",
-            backgroundColor: "rgba(236, 72, 153, 0.15)",
-            fillStyle: "solid",
-            strokeWidth: 2,
-            strokeStyle: "solid",
-            roughness: 1,
-            opacity: 100,
-            groupIds: [],
-            frameId: null,
-            roundness: { type: 2 },
-            seed: Math.floor(Math.random() * 100000),
-            version: 1,
-            versionNonce: Math.floor(Math.random() * 100000),
-            isDeleted: false,
-            boundElements: null,
-            updated: Date.now(),
-            link: null,
-            locked: false,
-          });
-          labelMsg = "Drawn a Decision Gateway on canvas!";
-          break;
-
-        case "textbox":
-          newElements.push(
-            createText({
+          case "circle":
+            newElements.push({
               id: baseId,
-              x: centerX,
-              y: centerY,
-              width: 220,
-              height: 40,
-              text: "Enterprise Project Note",
-              fontSize: 18,
-              strokeColor: "#38bdf8",
-            })
-          );
-          labelMsg = "Added a Text Box to canvas!";
-          break;
-
-        case "stickynote":
-          newElements.push(
-            createRect({
-              id: baseId,
-              x: centerX,
-              y: centerY,
-              width: 170,
-              height: 170,
-              strokeColor: "#eab308",
-              backgroundColor: "rgba(234, 179, 8, 0.25)",
-              roundness: 3,
-            }),
-            createText({
-              id: `${baseId}_txt`,
-              x: centerX + 15,
-              y: centerY + 20,
-              width: 140,
-              height: 120,
-              text: "💡 Executive Note:\nReview Sprint OKRs before Friday sync.",
-              fontSize: 13,
-              strokeColor: "#fef08a",
-            })
-          );
-          labelMsg = "Placed an Executive Sticky Note on canvas!";
-          break;
-
-        case "database":
-          newElements.push(
-            createRect({
-              id: baseId,
+              type: "ellipse",
               x: centerX,
               y: centerY,
               width: 150,
+              height: 150,
+              angle: 0,
+              strokeColor: "#10b981",
+              backgroundColor: "rgba(16, 185, 129, 0.15)",
+              fillStyle: "solid",
+              strokeWidth: 2,
+              strokeStyle: "solid",
+              roughness: 1,
+              opacity: 100,
+              groupIds: [],
+              frameId: null,
+              roundness: null,
+              seed: Math.floor(Math.random() * 100000),
+              version: 1,
+              versionNonce: Math.floor(Math.random() * 100000),
+              isDeleted: false,
+              boundElements: null,
+              updated: Date.now(),
+              link: null,
+              locked: false,
+            });
+            labelMsg = "Drawn a Circle on canvas!";
+            break;
+
+          case "diamond":
+            newElements.push({
+              id: baseId,
+              type: "diamond",
+              x: centerX,
+              y: centerY,
+              width: 160,
               height: 160,
-              strokeColor: "#6366f1",
-              backgroundColor: "rgba(99, 102, 241, 0.2)",
-            }),
-            createText({
-              id: `${baseId}_t`,
-              x: centerX + 15,
-              y: centerY + 20,
-              width: 120,
-              height: 30,
-              text: "🗄️ Database",
-              fontSize: 14,
-              strokeColor: "#c7d2fe",
-            })
-          );
-          labelMsg = "Added a Database container to canvas!";
-          break;
+              angle: 0,
+              strokeColor: "#ec4899",
+              backgroundColor: "rgba(236, 72, 153, 0.15)",
+              fillStyle: "solid",
+              strokeWidth: 2,
+              strokeStyle: "solid",
+              roughness: 1,
+              opacity: 100,
+              groupIds: [],
+              frameId: null,
+              roundness: { type: 2 },
+              seed: Math.floor(Math.random() * 100000),
+              version: 1,
+              versionNonce: Math.floor(Math.random() * 100000),
+              isDeleted: false,
+              boundElements: null,
+              updated: Date.now(),
+              link: null,
+              locked: false,
+            });
+            labelMsg = "Drawn a Decision Gateway on canvas!";
+            break;
 
-        default:
-          console.warn(`Unknown commandType: ${commandType}`);
-          return;
+          case "textbox":
+            newElements.push(
+              createText({
+                id: baseId,
+                x: centerX,
+                y: centerY,
+                width: 220,
+                height: 40,
+                text: "Enterprise Project Note",
+                fontSize: 18,
+                strokeColor: "#38bdf8",
+              })
+            );
+            labelMsg = "Added a Text Box to canvas!";
+            break;
+
+          case "stickynote":
+            newElements.push(
+              createRect({
+                id: baseId,
+                x: centerX,
+                y: centerY,
+                width: 170,
+                height: 170,
+                strokeColor: "#eab308",
+                backgroundColor: "rgba(234, 179, 8, 0.25)",
+                roundness: 3,
+              }),
+              createText({
+                id: `${baseId}_txt`,
+                x: centerX + 15,
+                y: centerY + 20,
+                width: 140,
+                height: 120,
+                text: "💡 Executive Note:\nReview Sprint OKRs before Friday sync.",
+                fontSize: 13,
+                strokeColor: "#fef08a",
+              })
+            );
+            labelMsg = "Placed an Executive Sticky Note on canvas!";
+            break;
+
+          case "database":
+            newElements.push(
+              createRect({
+                id: baseId,
+                x: centerX,
+                y: centerY,
+                width: 150,
+                height: 160,
+                strokeColor: "#6366f1",
+                backgroundColor: "rgba(99, 102, 241, 0.2)",
+              }),
+              createText({
+                id: `${baseId}_t`,
+                x: centerX + 15,
+                y: centerY + 20,
+                width: 120,
+                height: 30,
+                text: "🗄️ Database",
+                fontSize: 14,
+                strokeColor: "#c7d2fe",
+              })
+            );
+            labelMsg = "Added a Database container to canvas!";
+            break;
+
+          default:
+            console.warn(`Unknown commandType: ${commandType}`);
+            return;
+        }
+
+        if (newElements.length > 0) {
+          api.updateScene({
+            elements: [...existingElements, ...newElements],
+            commitToHistory: true,
+          });
+
+          setChatMessages((prev) => [
+            ...prev,
+            { sender: "ai", text: `✨ ${labelMsg}` },
+          ]);
+        }
+      } catch (err: any) {
+        console.error("Execute command error:", err);
+      } finally {
+        setIsGenerating(false);
       }
-
-      if (newElements.length > 0) {
-        api.updateScene({
-          elements: [...existingElements, ...newElements],
-          commitToHistory: true,
-        });
-
-        setChatMessages((prev) => [
-          ...prev,
-          { sender: "ai", text: `✨ ${labelMsg}` },
-        ]);
-      }
-    } catch (err: any) {
-      console.error("Execute command error:", err);
-    } finally {
-      setIsGenerating(false);
-    }
-  },
-  [excalidrawAPI]
-);
+    },
+    [excalidrawAPI]
+  );
 
   const handleSendChat = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -1674,7 +1674,7 @@ export default function WhiteboardCanvas() {
             if (api) {
               const existing = api.getSceneElements ? api.getSceneElements() : [];
               const activeExisting = existing.filter((el: any) => !el.isDeleted);
-              
+
               let finalElements = data.elements;
               if (activeExisting.length > 0) {
                 let maxCanvasX = -Infinity;
@@ -1744,7 +1744,7 @@ export default function WhiteboardCanvas() {
         const parsed = JSON.parse(savedUser);
         if (parsed) setCurrentUser(parsed);
       }
-    } catch {}
+    } catch { }
 
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -1755,7 +1755,7 @@ export default function WhiteboardCanvas() {
           name: (user.user_metadata?.full_name as string) || user.email?.split("@")[0],
         });
       }
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -1841,7 +1841,7 @@ export default function WhiteboardCanvas() {
                 timestamp: Date.now(),
               },
             });
-          } catch {}
+          } catch { }
         }
       })
       .on("broadcast", { event: "peer:kicked" }, ({ payload }) => {
@@ -2044,13 +2044,13 @@ export default function WhiteboardCanvas() {
         type: "broadcast",
         event: "laser:pointer",
         payload,
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     if (broadcastChannelRef.current) {
       try {
         broadcastChannelRef.current.postMessage(payload);
-      } catch {}
+      } catch { }
     }
   }, [currentUser]);
 
@@ -2062,14 +2062,14 @@ export default function WhiteboardCanvas() {
         type: "broadcast",
         event: "room:terminated",
         payload: { roomId: activeFileId },
-      }).catch(() => {});
+      }).catch(() => { });
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
     if (broadcastChannelRef.current) {
       try {
         broadcastChannelRef.current.postMessage({ event: "room:terminated" });
-      } catch {}
+      } catch { }
     }
     setPeerLasers({});
     setLiveNotice("Live session ended. Canvas reverted to private session.");
@@ -2089,12 +2089,12 @@ export default function WhiteboardCanvas() {
         type: "broadcast",
         event: "peer:kicked",
         payload: { targetPeerId: peerId },
-      }).catch(() => {});
+      }).catch(() => { });
     }
     if (broadcastChannelRef.current) {
       try {
         broadcastChannelRef.current.postMessage({ event: "peer:kicked", targetPeerId: peerId });
-      } catch {}
+      } catch { }
     }
     setPeerLasers((prev) => {
       const next = { ...prev };
@@ -2256,7 +2256,7 @@ export default function WhiteboardCanvas() {
               event: "canvas:change",
               ...payload,
             });
-          } catch {}
+          } catch { }
         }
       }, 120);
     },
@@ -2314,27 +2314,28 @@ export default function WhiteboardCanvas() {
 
         let savedSuccessfully = false;
 
-        // Strategy 1: Save to workspaces table if present
+        // Strategy 1: Save directly to your active Supabase tables (boards + canvas_state)
         try {
-          const { error: wsError } = await supabase.from("workspaces").upsert(
-            {
-              id: activeFileId && activeFileId.length === 36 ? activeFileId : undefined,
-              user_id: user.id,
-              title: boardTitle || "MasmSpace Session",
-              data: scenePayload,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "id" }
-          );
-          if (!wsError) savedSuccessfully = true;
-        } catch {}
+          let boardId = activeFileId && activeFileId.length === 36 ? activeFileId : null;
 
-        // Strategy 2: Save to canvas_state + boards tables (schema.sql)
-        if (!savedSuccessfully) {
-          try {
-            const { data: boardData } = await supabase
+          if (!boardId) {
+            const { data: existingBoard } = await supabase
               .from("boards")
-              .upsert({
+              .select("id")
+              .eq("owner_id", user.id)
+              .order("updated_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (existingBoard?.id) {
+              boardId = existingBoard.id;
+            }
+          }
+
+          if (!boardId) {
+            const { data: newBoard, error: newBoardErr } = await supabase
+              .from("boards")
+              .insert({
                 name: boardTitle || "Untitled Board",
                 owner_id: user.id,
                 updated_at: new Date().toISOString(),
@@ -2342,20 +2343,61 @@ export default function WhiteboardCanvas() {
               .select("id")
               .single();
 
-            if (boardData?.id) {
-              await supabase.from("canvas_state").upsert(
-                {
-                  board_id: boardData.id,
-                  state: scenePayload,
-                  updated_at: new Date().toISOString(),
-                },
-                { onConflict: "board_id" }
-              );
+            if (!newBoardErr && newBoard?.id) {
+              boardId = newBoard.id;
+            }
+          } else {
+            await supabase
+              .from("boards")
+              .update({
+                name: boardTitle || "Untitled Board",
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", boardId);
+          }
+
+          if (boardId) {
+            const { error: stateError } = await supabase.from("canvas_state").upsert(
+              {
+                board_id: boardId,
+                state: scenePayload,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "board_id" }
+            );
+
+            if (!stateError) {
+              savedSuccessfully = true;
+            } else {
+              console.warn("[SaveToCloud] canvas_state upsert notice:", stateError.message);
+            }
+          }
+        } catch (boardErr) {
+          console.warn("[SaveToCloud] boards/canvas_state save notice:", boardErr);
+        }
+
+        // Strategy 2: Optional fallback to workspaces table if configured
+        if (!savedSuccessfully) {
+          try {
+            const workspacePayload: any = {
+              host_id: user.id,
+              title: boardTitle || "MasmSpace Session",
+              canvas_state: scenePayload,
+              updated_at: new Date().toISOString(),
+            };
+
+            if (activeFileId && activeFileId.length === 36) {
+              workspacePayload.id = activeFileId;
+            }
+
+            const { error: wsError } = await supabase
+              .from("workspaces")
+              .upsert(workspacePayload, { onConflict: "id" });
+
+            if (!wsError) {
               savedSuccessfully = true;
             }
-          } catch (err) {
-            console.warn("[SaveToCloud] Boards schema attempt notice:", err);
-          }
+          } catch { }
         }
 
         if (isManual || savedSuccessfully) {
@@ -2392,43 +2434,47 @@ export default function WhiteboardCanvas() {
         let loadedData: any = null;
 
         if (user) {
-          // Attempt 1: Load from workspaces
+          // Attempt 1: Load from existing boards + canvas_state
           try {
-            const { data: wsData } = await supabase
-              .from("workspaces")
-              .select("data, title")
-              .eq("user_id", user.id)
+            const { data: boardData } = await supabase
+              .from("boards")
+              .select("id, name, canvas_state(state)")
+              .eq("owner_id", user.id)
               .order("updated_at", { ascending: false })
               .limit(1)
               .maybeSingle();
 
-            if (wsData?.data?.elements?.length) {
-              loadedData = wsData.data;
-              if (wsData.title && isMounted) {
-                setBoardTitle(wsData.title);
+            const statePayload =
+              (boardData as any)?.canvas_state?.[0]?.state ||
+              (boardData as any)?.canvas_state?.state;
+
+            if (statePayload?.elements?.length) {
+              loadedData = statePayload;
+              if (boardData?.name && isMounted) {
+                setBoardTitle(boardData.name);
               }
             }
-          } catch {}
+          } catch { }
 
-          // Attempt 2: Load from canvas_state / boards
+          // Attempt 2: Fallback to workspaces if available
           if (!loadedData) {
             try {
-              const { data: boardData } = await supabase
-                .from("boards")
-                .select("id, name, canvas_state(state)")
-                .eq("owner_id", user.id)
+              const { data: wsData } = await supabase
+                .from("workspaces")
+                .select("canvas_state, data, title")
+                .eq("host_id", user.id)
                 .order("updated_at", { ascending: false })
                 .limit(1)
                 .maybeSingle();
 
-              const statePayload = (boardData as any)?.canvas_state?.[0]?.state;
-              if (statePayload?.elements?.length) {
-                loadedData = statePayload;
-                if (boardData?.name && isMounted) {
-                  setBoardTitle(boardData.name);
+              const savedState = wsData?.canvas_state || wsData?.data;
+              if (savedState?.elements?.length) {
+                loadedData = savedState;
+                if (wsData?.title && isMounted) {
+                  setBoardTitle(wsData.title);
                 }
               }
-            } catch {}
+            } catch { }
           }
         }
 
@@ -2441,7 +2487,7 @@ export default function WhiteboardCanvas() {
             if (raw) {
               loadedData = JSON.parse(raw);
             }
-          } catch {}
+          } catch { }
         }
 
         if (loadedData?.elements?.length && isMounted && excalidrawAPIRef.current) {
@@ -2469,11 +2515,19 @@ export default function WhiteboardCanvas() {
     };
   }, [excalidrawAPI, activeFileId]);
 
-  // Debounced auto-save timeout ref (3000ms delay)
+  // Debounced auto-save timeout ref (2000ms delay)
   const autoSaveDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
+  useEffect(() => {
+    return () => {
+      if (autoSaveDebounceRef.current) {
+        clearTimeout(autoSaveDebounceRef.current);
+      }
+    };
+  }, []);
+
   /**
-   * Excalidraw onChange Event Handler with Debounced Cloud Auto-Save (3000ms)
+   * Excalidraw onChange Event Handler with Debounced Cloud Auto-Save (2000ms)
    */
   const handleCanvasChange = useCallback(
     (elements: readonly any[], appState: any, files: any) => {
@@ -2483,14 +2537,14 @@ export default function WhiteboardCanvas() {
       // 2. Trigger debounced multiplayer sync
       broadcastCanvasUpdate(elements, appState);
 
-      // 3. Debounced Auto-Save to Supabase Cloud (3000ms delay)
+      // 3. Debounced Auto-Save to Supabase Cloud (2000ms delay)
       if (isAutoSave) {
         if (autoSaveDebounceRef.current) {
           clearTimeout(autoSaveDebounceRef.current);
         }
         autoSaveDebounceRef.current = setTimeout(() => {
           handleSaveToCloud(false);
-        }, 3000);
+        }, 2000);
       }
     },
     [activeFileId, broadcastCanvasUpdate, isAutoSave, handleSaveToCloud]
@@ -3115,18 +3169,18 @@ export default function WhiteboardCanvas() {
   return (
     <div className="relative flex h-screen w-screen overflow-hidden bg-[#030407]">
       {/* ── Cyberpunk Canvas Background: Dark Slate to Obsidian Radial Gradient + Dotted Grid ── */}
-      <div 
+      <div
         className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#06070a] to-[#020305]"
       />
-      <div 
+      <div
         className="pointer-events-none absolute inset-0 z-0 opacity-20 transition-all duration-300"
         style={{
           backgroundImage:
             canvasGrid === "solid"
               ? "none"
               : canvasGrid === "lines"
-              ? "linear-gradient(to right, rgba(0, 245, 255, 0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 245, 255, 0.12) 1px, transparent 1px)"
-              : "radial-gradient(rgba(0, 245, 255, 0.2) 1px, transparent 1px)",
+                ? "linear-gradient(to right, rgba(0, 245, 255, 0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 245, 255, 0.12) 1px, transparent 1px)"
+                : "radial-gradient(rgba(0, 245, 255, 0.2) 1px, transparent 1px)",
           backgroundSize: canvasGrid === "lines" ? "32px 32px" : "28px 28px",
         }}
       />
@@ -3239,622 +3293,614 @@ export default function WhiteboardCanvas() {
             )}
           </AnimatePresence>
 
-        {/* Floating Toggle to Restore Sidebar when in Full Screen Mode */}
-        {!isSidebarVisible && !isPresentMode && (
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="fixed top-4 left-4 z-50 pointer-events-auto"
-          >
-            <button
-              onClick={() => setIsSidebarVisible(true)}
-              className="px-3.5 py-2 rounded-xl bg-[#09090b]/85 backdrop-blur-xl border border-white/10 hover:border-cyan-400/50 text-xs font-mono text-cyan-300 hover:text-white transition-all flex items-center gap-2 shadow-[0_4px_20px_rgba(0,0,0,0.6)] cursor-pointer group"
-              title="Exit Full Screen / Show Sidebar (Ctrl+\)"
-            >
-              <PanelLeftOpen className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
-              <span>Show Sidebar</span>
-              <span className="text-[10px] text-zinc-500 font-sans hidden sm:inline">Ctrl+\</span>
-            </button>
-          </motion.div>
-        )}
-
-        {/* Manual Save to Cloud Floating Button in Canvas UI */}
-        {!isPresentMode && (
-          <div className="fixed top-4 right-16 z-40 pointer-events-auto flex items-center gap-2">
-            <button
-              onClick={() => handleSaveToCloud(true)}
-              disabled={isSavingCloud}
-              className={`px-3 py-1.5 rounded-xl bg-[#09090b]/75 backdrop-blur-xl border border-white/10 hover:border-cyan-400/50 text-xs font-mono transition-all flex items-center gap-2 shadow-[0_4px_20px_rgba(0,0,0,0.5)] cursor-pointer ${
-                isSavingCloud ? "text-cyan-400 cursor-wait" : "text-zinc-300 hover:text-white"
-              }`}
-              title={isAutoSave ? "Manual Cloud Save (Auto-Save: Active 3s)" : "Save Canvas to Supabase Cloud"}
-            >
-              <CloudUpload className={`w-3.5 h-3.5 text-cyan-400 ${isSavingCloud ? "animate-bounce" : ""}`} />
-              <span>{isSavingCloud ? "Saving..." : "Save to Cloud"}</span>
-              {isAutoSave && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" title="Auto-Save Enabled" />
-              )}
-            </button>
-          </div>
-        )}
-
-        {/* Cloud Save Toast Notification */}
-        <AnimatePresence>
-          {cloudSaveNotice && (
+          {/* Floating Toggle to Restore Sidebar when in Full Screen Mode */}
+          {!isSidebarVisible && !isPresentMode && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-xl bg-[#09090b]/90 backdrop-blur-md border border-cyan-500/40 shadow-2xl text-cyan-300 font-mono text-xs"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="fixed top-4 left-4 z-50 pointer-events-auto"
             >
-              <Check className="w-3.5 h-3.5 text-cyan-400" />
-              <span>{cloudSaveNotice}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Live Session Alert Toast Notification */}
-        <AnimatePresence>
-          {liveNotice && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#09090b]/95 backdrop-blur-xl border border-cyan-500/40 shadow-[0_0_24px_rgba(6,182,212,0.3)] text-cyan-300 font-mono text-xs pointer-events-auto"
-            >
-              <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-              <span>{liveNotice}</span>
               <button
-                onClick={() => setLiveNotice(null)}
-                className="ml-2 p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-white/10"
+                onClick={() => setIsSidebarVisible(true)}
+                className="px-3.5 py-2 rounded-xl bg-[#09090b]/85 backdrop-blur-xl border border-white/10 hover:border-cyan-400/50 text-xs font-mono text-cyan-300 hover:text-white transition-all flex items-center gap-2 shadow-[0_4px_20px_rgba(0,0,0,0.6)] cursor-pointer group"
+                title="Exit Full Screen / Show Sidebar (Ctrl+\)"
               >
-                <X className="w-3 h-3" />
+                <PanelLeftOpen className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+                <span>Show Sidebar</span>
+                <span className="text-[10px] text-zinc-500 font-sans hidden sm:inline">Ctrl+\</span>
               </button>
             </motion.div>
           )}
-        </AnimatePresence>
 
-        {/* VS Code-Style Left Explorer Panel Drawer (Suppressed in Executive Focus Mode) */}
-        {!isPresentMode && !isExecutiveMode && (
-          <div className="pointer-events-auto">
-            <VSCodeExplorer
-              isOpen={isExplorerOpen}
-              onToggleOpen={() => setIsExplorerOpen(!isExplorerOpen)}
-              nodes={treeNodes}
-              activeFileId={activeFileId}
-              onSelectFile={handleSelectFile}
-              onCreateFile={handleCreateFile}
-              onCreateFolder={handleCreateFolder}
-              onRenameNode={handleRenameNode}
-              onDeleteNode={handleDeleteNode}
-              onImportPdfPages={handleImportPdfPages}
-              leftOffset={!isSidebarVisible ? 16 : isSidebarCollapsed ? 68 : 260}
-            />
-          </div>
-        )}
-
-        {/* Presentation Mode HUD */}
-        <div className="pointer-events-auto">
-          <PresentationModeHUD
-            isActive={isPresentMode}
-            onExit={() => setIsPresentMode(false)}
-            excalidrawAPI={excalidrawAPIRef.current}
-            onLaserMove={handleLaserMove}
-          />
-        </div>
-
-        {/* Glowing Cyan Laser Pointers for Connected Collaborators (Framer Motion) */}
-        <AnimatePresence>
-          {Object.entries(peerLasers).map(([peerId, laser]) => (
-            <motion.div
-              key={peerId}
-              className="fixed pointer-events-none z-[9999]"
-              initial={{ x: laser.x, y: laser.y, opacity: 0, scale: 0.8 }}
-              animate={{ x: laser.x, y: laser.y, opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.5 }}
-              transition={{
-                type: "spring",
-                damping: 28,
-                stiffness: 400,
-                mass: 0.6,
-              }}
-              style={{ left: 0, top: 0 }}
-            >
-              <div className="relative -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-                {/* Core Glowing Cyan Laser Dot */}
-                <div className="w-3.5 h-3.5 rounded-full bg-cyan-400 shadow-[0_0_12px_#00f5ff,0_0_24px_#00f5ff,0_0_36px_#00f5ff]" />
-                {/* Outer Ping Ring */}
-                <div className="absolute inset-[-6px] rounded-full border border-cyan-400/60 animate-ping" />
-                {/* Peer Name Tag */}
-                {laser.userName && (
-                  <div className="absolute top-5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-[#0a0a0a]/90 border border-cyan-500/40 text-[10px] text-cyan-300 font-mono font-medium shadow-[0_0_10px_rgba(0,245,255,0.25)] whitespace-nowrap">
-                    {laser.userName}
-                  </div>
+          {/* Manual Save to Cloud Floating Button in Canvas UI */}
+          {!isPresentMode && (
+            <div className="fixed top-4 right-16 z-40 pointer-events-auto flex items-center gap-2">
+              <button
+                onClick={() => handleSaveToCloud(true)}
+                disabled={isSavingCloud}
+                className={`px-3 py-1.5 rounded-xl bg-[#09090b]/75 backdrop-blur-xl border border-white/10 hover:border-cyan-400/50 text-xs font-mono transition-all flex items-center gap-2 shadow-[0_4px_20px_rgba(0,0,0,0.5)] cursor-pointer ${isSavingCloud ? "text-cyan-400 cursor-wait" : "text-zinc-300 hover:text-white"
+                  }`}
+                title={isAutoSave ? "Manual Cloud Save (Auto-Save: Active 3s)" : "Save Canvas to Supabase Cloud"}
+              >
+                <CloudUpload className={`w-3.5 h-3.5 text-cyan-400 ${isSavingCloud ? "animate-bounce" : ""}`} />
+                <span>{isSavingCloud ? "Saving..." : "Save to Cloud"}</span>
+                {isAutoSave && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" title="Auto-Save Enabled" />
                 )}
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+              </button>
+            </div>
+          )}
 
-        {/* Indexing Status Toast Notification */}
-        {indexingNotice && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black/90 border border-emerald-500/40 shadow-2xl text-emerald-400 font-mono text-xs"
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>{indexingNotice}</span>
-          </motion.div>
-        )}
+          {/* Cloud Save Toast Notification */}
+          <AnimatePresence>
+            {cloudSaveNotice && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-xl bg-[#09090b]/90 backdrop-blur-md border border-cyan-500/40 shadow-2xl text-cyan-300 font-mono text-xs"
+              >
+                <Check className="w-3.5 h-3.5 text-cyan-400" />
+                <span>{cloudSaveNotice}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-        {/* Code-on-Board Widget (Suppressed in Executive Focus Mode) */}
-        {!isPresentMode && !isExecutiveMode && (
-          <div className="pointer-events-auto relative z-[100]">
-            <CodeOnBoardWidget
-              isOpen={isCodeWidgetOpen}
-              onClose={() => setIsCodeWidgetOpen(false)}
-              onInsertToCanvas={handleInsertCodeOutput}
-              leftOffset={!isSidebarVisible ? 20 : isSidebarCollapsed ? 90 : 280}
+          {/* Live Session Alert Toast Notification */}
+          <AnimatePresence>
+            {liveNotice && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#09090b]/95 backdrop-blur-xl border border-cyan-500/40 shadow-[0_0_24px_rgba(6,182,212,0.3)] text-cyan-300 font-mono text-xs pointer-events-auto"
+              >
+                <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                <span>{liveNotice}</span>
+                <button
+                  onClick={() => setLiveNotice(null)}
+                  className="ml-2 p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-white/10"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* VS Code-Style Left Explorer Panel Drawer (Suppressed in Executive Focus Mode) */}
+          {!isPresentMode && !isExecutiveMode && (
+            <div className="pointer-events-auto">
+              <VSCodeExplorer
+                isOpen={isExplorerOpen}
+                onToggleOpen={() => setIsExplorerOpen(!isExplorerOpen)}
+                nodes={treeNodes}
+                activeFileId={activeFileId}
+                onSelectFile={handleSelectFile}
+                onCreateFile={handleCreateFile}
+                onCreateFolder={handleCreateFolder}
+                onRenameNode={handleRenameNode}
+                onDeleteNode={handleDeleteNode}
+                onImportPdfPages={handleImportPdfPages}
+                leftOffset={!isSidebarVisible ? 16 : isSidebarCollapsed ? 68 : 260}
+              />
+            </div>
+          )}
+
+          {/* Presentation Mode HUD */}
+          <div className="pointer-events-auto">
+            <PresentationModeHUD
+              isActive={isPresentMode}
+              onExit={() => setIsPresentMode(false)}
+              excalidrawAPI={excalidrawAPIRef.current}
+              onLaserMove={handleLaserMove}
             />
           </div>
-        )}
 
-        {/* Modals & Dialogs (Active clicks enabled) */}
-        <div className="pointer-events-auto">
-          {/* Cyberpunk Tiered Voice AI Panel */}
+          {/* Glowing Cyan Laser Pointers for Connected Collaborators (Framer Motion) */}
+          <AnimatePresence>
+            {Object.entries(peerLasers).map(([peerId, laser]) => (
+              <motion.div
+                key={peerId}
+                className="fixed pointer-events-none z-[9999]"
+                initial={{ x: laser.x, y: laser.y, opacity: 0, scale: 0.8 }}
+                animate={{ x: laser.x, y: laser.y, opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                transition={{
+                  type: "spring",
+                  damping: 28,
+                  stiffness: 400,
+                  mass: 0.6,
+                }}
+                style={{ left: 0, top: 0 }}
+              >
+                <div className="relative -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
+                  {/* Core Glowing Cyan Laser Dot */}
+                  <div className="w-3.5 h-3.5 rounded-full bg-cyan-400 shadow-[0_0_12px_#00f5ff,0_0_24px_#00f5ff,0_0_36px_#00f5ff]" />
+                  {/* Outer Ping Ring */}
+                  <div className="absolute inset-[-6px] rounded-full border border-cyan-400/60 animate-ping" />
+                  {/* Peer Name Tag */}
+                  {laser.userName && (
+                    <div className="absolute top-5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-[#0a0a0a]/90 border border-cyan-500/40 text-[10px] text-cyan-300 font-mono font-medium shadow-[0_0_10px_rgba(0,245,255,0.25)] whitespace-nowrap">
+                      {laser.userName}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {/* Indexing Status Toast Notification */}
+          {indexingNotice && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black/90 border border-emerald-500/40 shadow-2xl text-emerald-400 font-mono text-xs"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>{indexingNotice}</span>
+            </motion.div>
+          )}
+
+          {/* Code-on-Board Widget (Suppressed in Executive Focus Mode) */}
+          {!isPresentMode && !isExecutiveMode && (
+            <div className="pointer-events-auto relative z-[100]">
+              <CodeOnBoardWidget
+                isOpen={isCodeWidgetOpen}
+                onClose={() => setIsCodeWidgetOpen(false)}
+                onInsertToCanvas={handleInsertCodeOutput}
+                leftOffset={!isSidebarVisible ? 20 : isSidebarCollapsed ? 90 : 280}
+              />
+            </div>
+          )}
+
+          {/* Modals & Dialogs (Active clicks enabled) */}
+          <div className="pointer-events-auto">
+            {/* Cyberpunk Tiered Voice AI Panel */}
+            <VoiceAIPanel
+              isOpen={isVoicePanelOpen}
+              onClose={() => setIsVoicePanelOpen(false)}
+              excalidrawAPI={excalidrawAPIRef.current || excalidrawAPI}
+              onOpenUpgradeModal={() => {
+                setPricingModalReason("Upgrade to MasmSpace PRO for continuous dictation and multi-step complex voice commands.");
+                setShowPricingModal(true);
+              }}
+            />
+
+            {/* Glassmorphic PRO Upgrade Modal */}
+            <ProUpgradeModal
+              isOpen={showProModal}
+              onClose={() => setShowProModal(false)}
+              featureName={proFeatureName}
+            />
+
+            <BoardBrainSearch
+              isOpen={searchOpen}
+              ownerId={currentUser?.id || "00000000-0000-0000-0000-000000000000"}
+              onClose={() => setSearchOpen(false)}
+            />
+
+            <AISummaryModal
+              isOpen={modalOpen}
+              isLoading={isLoading}
+              error={error}
+              data={summaryData}
+              boardTitle={boardTitle}
+              onClose={() => setModalOpen(false)}
+              onRetry={handleSummarise}
+            />
+
+            {/* Pricing Upgrade Modal triggered on UPGRADE_REQUIRED & Quota limits */}
+            <PricingModal
+              isOpen={showPricingModal}
+              onClose={() => setShowPricingModal(false)}
+              reason={pricingModalReason}
+              onUpgradeSuccess={() => {
+                setIsProUser(true);
+                setAiUsage({ actions_used: 0, action_limit: 250, tier: "pro" });
+              }}
+            />
+
+            <SettingsModal
+              isOpen={isSettingsOpen}
+              onClose={() => setIsSettingsOpen(false)}
+              onOpenUpgradeModal={() => setShowPricingModal(true)}
+              onProUpgradeSuccess={() => {
+                setIsProUser(true);
+                setAiUsage({ actions_used: 0, action_limit: 999999, tier: "pro" });
+              }}
+              actionsUsed={aiUsage.actions_used}
+              actionLimit={aiUsage.action_limit}
+              tier={aiUsage.tier}
+              autoSave={isAutoSave}
+              onAutoSaveChange={(val) => setIsAutoSave(val)}
+              onGridTypeChange={(grid) => {
+                setCanvasGrid(grid);
+                if (excalidrawAPIRef.current) {
+                  excalidrawAPIRef.current.updateScene({
+                    appState: {
+                      gridModeEnabled: grid !== "solid",
+                    },
+                  });
+                }
+              }}
+              onThemeChange={(th) => {
+                const effectiveTheme = th === "system" ? "dark" : (th as "dark" | "light");
+                setCanvasTheme(effectiveTheme);
+                if (excalidrawAPIRef.current) {
+                  excalidrawAPIRef.current.updateScene({
+                    appState: {
+                      theme: effectiveTheme,
+                    },
+                  });
+                }
+              }}
+              onClearAllData={() => {
+                if (excalidrawAPIRef.current) {
+                  excalidrawAPIRef.current.resetScene();
+                }
+                localStorage.clear();
+              }}
+            />
+
+            <LiveShareModal
+              isOpen={isShareOpen}
+              onClose={() => setIsShareOpen(false)}
+              boardTitle={boardTitle}
+              roomId={activeRoomId || activeFileId || "session-main"}
+              isHost={true}
+              onEndSession={handleEndLiveSession}
+              onKickPeer={handleKickPeer}
+            />
+
+            {/* Help & Keyboard Shortcuts Dialog */}
+            <AnimatePresence>
+              {isHelpModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm pointer-events-auto">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="w-full max-w-lg bg-[#09090b]/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-2xl text-white flex flex-col gap-4"
+                  >
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)]">
+                          <HelpCircle className="w-4 h-4" />
+                        </div>
+                        <h3 className="font-bold text-sm text-white">MasmSpace Help & Shortcuts</h3>
+                      </div>
+                      <button
+                        onClick={() => setIsHelpModalOpen(false)}
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                        aria-label="Close Help"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3 text-xs text-zinc-300 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                          <span className="text-zinc-400">Selection Tool</span>
+                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">V / 1</kbd>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                          <span className="text-zinc-400">Draw Pen</span>
+                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">P / 7</kbd>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                          <span className="text-zinc-400">Rectangle</span>
+                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">R / 2</kbd>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                          <span className="text-zinc-400">Diamond</span>
+                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">D / 3</kbd>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                          <span className="text-zinc-400">Arrow</span>
+                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">A / 5</kbd>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                          <span className="text-zinc-400">Text Tool</span>
+                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">T / 8</kbd>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                          <span className="text-zinc-400">Undo / Redo</span>
+                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">Ctrl+Z / Ctrl+Y</kbd>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                          <span className="text-zinc-400">Delete</span>
+                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">Del / Backspace</kbd>
+                        </div>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-cyan-200 flex flex-col gap-1 text-[11px]">
+                        <div className="font-semibold text-cyan-300 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5" /> Presenter & Multiplayer Features
+                        </div>
+                        <p className="text-zinc-300 text-[10px] leading-relaxed">
+                          • Click <strong className="text-white">Present</strong> in the sidebar to activate the laser pointer and distraction-free Presentation Mode.
+                        </p>
+                        <p className="text-zinc-300 text-[10px] leading-relaxed">
+                          • Use <strong className="text-white">Share</strong> to copy the multiplayer session link for real-time collaboration with unique cursor mapping.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-2 border-t border-white/10">
+                      <button
+                        onClick={() => setIsHelpModalOpen(false)}
+                        className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs transition-colors"
+                      >
+                        Got it
+                      </button>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* ── AI Canvas Assistant: Floating Action Buttons & Glassmorphism Chatbot ── */}
+          {!isPresentMode && !isExecutiveMode && (
+            <>
+              {/* Bottom-Right Stacked Floating Container (Clean, No Overlap) */}
+              <div className="absolute bottom-6 right-6 flex flex-col items-center gap-3 z-50">
+                {/* Glowing Cyberpunk AI Assistant FAB Button */}
+                <button
+                  id="ai-chatbot-fab"
+                  onClick={() => setIsChatOpen((prev) => !prev)}
+                  className={`p-3.5 rounded-2xl backdrop-blur-xl border transition-all duration-300 shadow-2xl flex items-center justify-center pointer-events-auto group ${isChatOpen
+                      ? "bg-[#09090b]/80 border-cyan-400/60 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.45)] scale-105"
+                      : "bg-[#09090b]/60 border-white/5 text-zinc-300 hover:text-cyan-300 hover:border-cyan-400/50 hover:shadow-[0_0_16px_rgba(6,182,212,0.35)] hover:scale-105"
+                    }`}
+                  aria-label="Toggle AI Chatbot"
+                  title="AI Whiteboard Assistant"
+                >
+                  <Bot className="w-6 h-6 transition-transform duration-300 group-hover:rotate-12" />
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></span>
+                  </span>
+                </button>
+
+                {/* Help & Keyboard Shortcuts (?) Button */}
+                <button
+                  id="help-shortcuts-btn"
+                  onClick={() => {
+                    if (excalidrawAPIRef.current) {
+                      try {
+                        excalidrawAPIRef.current.setAppState({ openDialog: { name: "help" } });
+                      } catch {
+                        setIsHelpModalOpen(true);
+                      }
+                    } else {
+                      setIsHelpModalOpen(true);
+                    }
+                  }}
+                  className="p-3.5 rounded-2xl backdrop-blur-xl bg-[#09090b]/60 border border-white/10 text-zinc-300 hover:text-cyan-300 hover:border-cyan-400/50 hover:shadow-[0_0_16px_rgba(6,182,212,0.35)] hover:scale-105 transition-all duration-300 shadow-2xl flex items-center justify-center pointer-events-auto group"
+                  aria-label="Help and Shortcuts (?)"
+                  title="Help & Keyboard Shortcuts (?)"
+                >
+                  <HelpCircle className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                </button>
+              </div>
+
+              {/* Slide-in Sleek Cyberpunk Glassmorphism Chat Panel & Quick Commands */}
+              <AnimatePresence>
+                {isChatOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="fixed bottom-36 right-6 w-[calc(100vw-2rem)] sm:w-88 max-w-sm bg-[#09090b]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4 z-50 flex flex-col gap-3.5 shadow-[0_0_40px_rgba(0,0,0,0.7)] pointer-events-auto"
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-400/30 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)]">
+                          <Bot className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
+                            MasmSpace AI Agent
+                            <span className="px-1.5 py-0.5 rounded-md text-[9px] bg-cyan-500/15 text-cyan-300 border border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.3)] font-mono font-bold">
+                              PRO
+                            </span>
+                          </h3>
+                          <p className="text-[10px] text-zinc-400">Programmatic Canvas Assistant</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setIsChatOpen(false)}
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                        aria-label="Close Chat"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Chat Message History */}
+                    <div className="flex-1 max-h-48 overflow-y-auto space-y-2.5 pr-1 text-xs scrollbar-thin scrollbar-thumb-white/10">
+                      {chatMessages.map((msg, i) => (
+                        <div
+                          key={i}
+                          className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"
+                            }`}
+                        >
+                          <div
+                            className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${msg.sender === "user"
+                                ? "bg-neon-cyan/20 text-cyan-100 border border-neon-cyan/30"
+                                : "bg-white/5 text-zinc-300 border border-white/10"
+                              }`}
+                          >
+                            {msg.text}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Quick Commands Library & Favorites Section */}
+                    <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
+                      <div className="flex items-center justify-between text-[11px] font-medium text-zinc-400">
+                        <span className="flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-neon-cyan" />
+                          Quick Commands
+                        </span>
+                        <span className="text-[10px] text-zinc-500">
+                          {favorites.length} Starred
+                        </span>
+                      </div>
+
+                      {/* Glowing "Generating AI Shapes..." Spinner Loader */}
+                      {isGenerating && (
+                        <div className="flex items-center justify-center gap-2.5 py-2.5 px-3 rounded-xl bg-neon-cyan/10 border border-neon-cyan/40 text-cyan-300 text-xs font-medium animate-pulse shadow-[0_0_16px_rgba(0,245,255,0.25)]">
+                          <Loader2 className="w-4 h-4 animate-spin text-neon-cyan shrink-0" />
+                          <span className="tracking-wide">Generating AI Shapes...</span>
+                        </div>
+                      )}
+
+                      {/* Scrollable Palette Container */}
+                      <div
+                        className={`overflow-y-auto max-h-48 custom-scrollbar space-y-3 pr-1 text-xs transition-opacity duration-200 ${isGenerating ? "pointer-events-none opacity-60" : ""
+                          }`}
+                      >
+                        {/* 1. Favorites Section (only renders if there are favorited commands) */}
+                        {favorites.length > 0 && (
+                          <div className="space-y-1.5">
+                            <div className="text-[10px] font-semibold text-amber-400/90 uppercase tracking-wider flex items-center gap-1 px-1">
+                              <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                              Favorites ({favorites.length})
+                            </div>
+                            <div className="space-y-1">
+                              {QUICK_COMMANDS.filter((cmd) => favorites.includes(cmd.id)).map((cmd) => (
+                                <button
+                                  key={`fav-${cmd.id}`}
+                                  type="button"
+                                  disabled={isGenerating}
+                                  onClick={() => !isGenerating && executeCommand(cmd.actionType)}
+                                  className={`w-full flex flex-row items-center justify-between rounded-lg p-2 transition-all border ${isGenerating
+                                      ? "bg-white/5 opacity-50 cursor-not-allowed border-white/5"
+                                      : "bg-white/5 hover:bg-white/10 cursor-pointer border-white/5 hover:border-white/15 group"
+                                    }`}
+                                >
+                                  <div className="flex items-center gap-2 text-xs font-medium text-zinc-200 group-hover:text-white transition-colors">
+                                    <span className="p-1 rounded-md bg-white/5 border border-white/5">
+                                      {cmd.icon}
+                                    </span>
+                                    <span>{cmd.label}</span>
+                                  </div>
+                                  <span
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (!isGenerating) toggleFavorite(cmd.id, e);
+                                    }}
+                                    className="p-1 rounded-md hover:bg-white/10 text-zinc-400 transition-colors cursor-pointer"
+                                    title="Remove from Favorites"
+                                    aria-label="Remove from Favorites"
+                                  >
+                                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 2. All Commands Section */}
+                        <div className="space-y-1.5">
+                          <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider px-1">
+                            All Commands ({QUICK_COMMANDS.length})
+                          </div>
+                          <div className="space-y-1">
+                            {QUICK_COMMANDS.map((cmd) => {
+                              const isFav = favorites.includes(cmd.id);
+                              return (
+                                <button
+                                  key={cmd.id}
+                                  type="button"
+                                  disabled={isGenerating}
+                                  onClick={() => !isGenerating && executeCommand(cmd.actionType)}
+                                  className={`w-full flex flex-row items-center justify-between rounded-lg p-2 transition-all border ${isGenerating
+                                      ? "bg-white/5 opacity-50 cursor-not-allowed border-white/5"
+                                      : "bg-white/5 hover:bg-white/10 cursor-pointer border-white/5 hover:border-white/15 group"
+                                    }`}
+                                >
+                                  <div className="flex items-center gap-2 text-xs font-medium text-zinc-200 group-hover:text-white transition-colors">
+                                    <span className="p-1 rounded-md bg-white/5 border border-white/5">
+                                      {cmd.icon}
+                                    </span>
+                                    <span>{cmd.label}</span>
+                                  </div>
+                                  <span
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (!isGenerating) toggleFavorite(cmd.id, e);
+                                    }}
+                                    className="p-1 rounded-md hover:bg-white/10 text-zinc-400 transition-colors cursor-pointer"
+                                    title={isFav ? "Remove from Favorites" : "Add to Favorites"}
+                                    aria-label={isFav ? "Remove from Favorites" : "Add to Favorites"}
+                                  >
+                                    <Star
+                                      className={`w-3.5 h-3.5 transition-colors ${isFav
+                                          ? "fill-amber-400 text-amber-400"
+                                          : "text-zinc-500 hover:text-amber-300"
+                                        }`}
+                                    />
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Chat Input Form */}
+                    <form onSubmit={handleSendChat} className="relative flex items-center">
+                      <input
+                        type="text"
+                        value={inputMsg}
+                        disabled={isGenerating}
+                        onChange={(e) => setInputMsg(e.target.value)}
+                        placeholder={isGenerating ? "Generating AI shapes..." : "Ask AI or 'draw rectangle'..."}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-3 pr-9 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-neon-cyan/50 focus:bg-white/10 transition-colors disabled:opacity-50"
+                      />
+                      <button
+                        type="submit"
+                        className="absolute right-2 p-1.5 text-zinc-400 hover:text-neon-cyan disabled:opacity-40 transition-colors"
+                        disabled={isGenerating || !inputMsg.trim()}
+                      >
+                        {isGenerating ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-neon-cyan" />
+                        ) : (
+                          <Send className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </form>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
+          )}
+
+          {/* ── Voice AI Studio Floating Command Center (z-[100]) ── */}
           <VoiceAIPanel
+            excalidrawAPI={excalidrawAPI || excalidrawAPIRef.current}
             isOpen={isVoicePanelOpen}
             onClose={() => setIsVoicePanelOpen(false)}
-            excalidrawAPI={excalidrawAPIRef.current || excalidrawAPI}
             onOpenUpgradeModal={() => {
-              setPricingModalReason("Upgrade to MasmSpace PRO for continuous dictation and multi-step complex voice commands.");
+              setPricingModalReason(
+                "Upgrade to PRO for continuous voice dictation and multi-step complex canvas commands."
+              );
               setShowPricingModal(true);
             }}
           />
-
-          {/* Glassmorphic PRO Upgrade Modal */}
-          <ProUpgradeModal
-            isOpen={showProModal}
-            onClose={() => setShowProModal(false)}
-            featureName={proFeatureName}
-          />
-
-          <BoardBrainSearch
-            isOpen={searchOpen}
-            ownerId={currentUser?.id || "00000000-0000-0000-0000-000000000000"}
-            onClose={() => setSearchOpen(false)}
-          />
-
-          <AISummaryModal
-            isOpen={modalOpen}
-            isLoading={isLoading}
-            error={error}
-            data={summaryData}
-            boardTitle={boardTitle}
-            onClose={() => setModalOpen(false)}
-            onRetry={handleSummarise}
-          />
-
-          {/* Pricing Upgrade Modal triggered on UPGRADE_REQUIRED & Quota limits */}
-          <PricingModal
-            isOpen={showPricingModal}
-            onClose={() => setShowPricingModal(false)}
-            reason={pricingModalReason}
-            onUpgradeSuccess={() => {
-              setIsProUser(true);
-              setAiUsage({ actions_used: 0, action_limit: 250, tier: "pro" });
-            }}
-          />
-
-          <SettingsModal
-            isOpen={isSettingsOpen}
-            onClose={() => setIsSettingsOpen(false)}
-            onOpenUpgradeModal={() => setShowPricingModal(true)}
-            onProUpgradeSuccess={() => {
-              setIsProUser(true);
-              setAiUsage({ actions_used: 0, action_limit: 999999, tier: "pro" });
-            }}
-            actionsUsed={aiUsage.actions_used}
-            actionLimit={aiUsage.action_limit}
-            tier={aiUsage.tier}
-            autoSave={isAutoSave}
-            onAutoSaveChange={(val) => setIsAutoSave(val)}
-            onGridTypeChange={(grid) => {
-              setCanvasGrid(grid);
-              if (excalidrawAPIRef.current) {
-                excalidrawAPIRef.current.updateScene({
-                  appState: {
-                    gridModeEnabled: grid !== "solid",
-                  },
-                });
-              }
-            }}
-            onThemeChange={(th) => {
-              const effectiveTheme = th === "system" ? "dark" : (th as "dark" | "light");
-              setCanvasTheme(effectiveTheme);
-              if (excalidrawAPIRef.current) {
-                excalidrawAPIRef.current.updateScene({
-                  appState: {
-                    theme: effectiveTheme,
-                  },
-                });
-              }
-            }}
-            onClearAllData={() => {
-              if (excalidrawAPIRef.current) {
-                excalidrawAPIRef.current.resetScene();
-              }
-              localStorage.clear();
-            }}
-          />
-
-          <LiveShareModal
-            isOpen={isShareOpen}
-            onClose={() => setIsShareOpen(false)}
-            boardTitle={boardTitle}
-            roomId={activeRoomId || activeFileId || "session-main"}
-            isHost={true}
-            onEndSession={handleEndLiveSession}
-            onKickPeer={handleKickPeer}
-          />
-
-          {/* Help & Keyboard Shortcuts Dialog */}
-          <AnimatePresence>
-            {isHelpModalOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm pointer-events-auto">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="w-full max-w-lg bg-[#09090b]/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-2xl text-white flex flex-col gap-4"
-                >
-                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)]">
-                        <HelpCircle className="w-4 h-4" />
-                      </div>
-                      <h3 className="font-bold text-sm text-white">MasmSpace Help & Shortcuts</h3>
-                    </div>
-                    <button
-                      onClick={() => setIsHelpModalOpen(false)}
-                      className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
-                      aria-label="Close Help"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-3 text-xs text-zinc-300 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                        <span className="text-zinc-400">Selection Tool</span>
-                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">V / 1</kbd>
-                      </div>
-                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                        <span className="text-zinc-400">Draw Pen</span>
-                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">P / 7</kbd>
-                      </div>
-                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                        <span className="text-zinc-400">Rectangle</span>
-                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">R / 2</kbd>
-                      </div>
-                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                        <span className="text-zinc-400">Diamond</span>
-                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">D / 3</kbd>
-                      </div>
-                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                        <span className="text-zinc-400">Arrow</span>
-                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">A / 5</kbd>
-                      </div>
-                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                        <span className="text-zinc-400">Text Tool</span>
-                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">T / 8</kbd>
-                      </div>
-                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                        <span className="text-zinc-400">Undo / Redo</span>
-                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">Ctrl+Z / Ctrl+Y</kbd>
-                      </div>
-                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                        <span className="text-zinc-400">Delete</span>
-                        <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">Del / Backspace</kbd>
-                      </div>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-cyan-200 flex flex-col gap-1 text-[11px]">
-                      <div className="font-semibold text-cyan-300 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5" /> Presenter & Multiplayer Features
-                      </div>
-                      <p className="text-zinc-300 text-[10px] leading-relaxed">
-                        • Click <strong className="text-white">Present</strong> in the sidebar to activate the laser pointer and distraction-free Presentation Mode.
-                      </p>
-                      <p className="text-zinc-300 text-[10px] leading-relaxed">
-                        • Use <strong className="text-white">Share</strong> to copy the multiplayer session link for real-time collaboration with unique cursor mapping.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end pt-2 border-t border-white/10">
-                    <button
-                      onClick={() => setIsHelpModalOpen(false)}
-                      className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs transition-colors"
-                    >
-                      Got it
-                    </button>
-                  </div>
-                </motion.div>
-              </div>
-            )}
-          </AnimatePresence>
         </div>
-
-        {/* ── AI Canvas Assistant: Floating Action Buttons & Glassmorphism Chatbot ── */}
-        {!isPresentMode && !isExecutiveMode && (
-          <>
-            {/* Bottom-Right Stacked Floating Container (Clean, No Overlap) */}
-            <div className="absolute bottom-6 right-6 flex flex-col items-center gap-3 z-50">
-              {/* Glowing Cyberpunk AI Assistant FAB Button */}
-              <button
-                id="ai-chatbot-fab"
-                onClick={() => setIsChatOpen((prev) => !prev)}
-                className={`p-3.5 rounded-2xl backdrop-blur-xl border transition-all duration-300 shadow-2xl flex items-center justify-center pointer-events-auto group ${
-                  isChatOpen
-                    ? "bg-[#09090b]/80 border-cyan-400/60 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.45)] scale-105"
-                    : "bg-[#09090b]/60 border-white/5 text-zinc-300 hover:text-cyan-300 hover:border-cyan-400/50 hover:shadow-[0_0_16px_rgba(6,182,212,0.35)] hover:scale-105"
-                }`}
-                aria-label="Toggle AI Chatbot"
-                title="AI Whiteboard Assistant"
-              >
-                <Bot className="w-6 h-6 transition-transform duration-300 group-hover:rotate-12" />
-                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></span>
-                </span>
-              </button>
-
-              {/* Help & Keyboard Shortcuts (?) Button */}
-              <button
-                id="help-shortcuts-btn"
-                onClick={() => {
-                  if (excalidrawAPIRef.current) {
-                    try {
-                      excalidrawAPIRef.current.setAppState({ openDialog: { name: "help" } });
-                    } catch {
-                      setIsHelpModalOpen(true);
-                    }
-                  } else {
-                    setIsHelpModalOpen(true);
-                  }
-                }}
-                className="p-3.5 rounded-2xl backdrop-blur-xl bg-[#09090b]/60 border border-white/10 text-zinc-300 hover:text-cyan-300 hover:border-cyan-400/50 hover:shadow-[0_0_16px_rgba(6,182,212,0.35)] hover:scale-105 transition-all duration-300 shadow-2xl flex items-center justify-center pointer-events-auto group"
-                aria-label="Help and Shortcuts (?)"
-                title="Help & Keyboard Shortcuts (?)"
-              >
-                <HelpCircle className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-              </button>
-            </div>
-
-            {/* Slide-in Sleek Cyberpunk Glassmorphism Chat Panel & Quick Commands */}
-            <AnimatePresence>
-              {isChatOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="fixed bottom-36 right-6 w-[calc(100vw-2rem)] sm:w-88 max-w-sm bg-[#09090b]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4 z-50 flex flex-col gap-3.5 shadow-[0_0_40px_rgba(0,0,0,0.7)] pointer-events-auto"
-                >
-                  {/* Header */}
-                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-400/30 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)]">
-                        <Bot className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
-                          MasmSpace AI Agent
-                          <span className="px-1.5 py-0.5 rounded-md text-[9px] bg-cyan-500/15 text-cyan-300 border border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.3)] font-mono font-bold">
-                            PRO
-                          </span>
-                        </h3>
-                        <p className="text-[10px] text-zinc-400">Programmatic Canvas Assistant</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setIsChatOpen(false)}
-                      className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
-                      aria-label="Close Chat"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* Chat Message History */}
-                  <div className="flex-1 max-h-48 overflow-y-auto space-y-2.5 pr-1 text-xs scrollbar-thin scrollbar-thumb-white/10">
-                    {chatMessages.map((msg, i) => (
-                      <div
-                        key={i}
-                        className={`flex flex-col ${
-                          msg.sender === "user" ? "items-end" : "items-start"
-                        }`}
-                      >
-                        <div
-                          className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
-                            msg.sender === "user"
-                              ? "bg-neon-cyan/20 text-cyan-100 border border-neon-cyan/30"
-                              : "bg-white/5 text-zinc-300 border border-white/10"
-                          }`}
-                        >
-                          {msg.text}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Quick Commands Library & Favorites Section */}
-                  <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
-                    <div className="flex items-center justify-between text-[11px] font-medium text-zinc-400">
-                      <span className="flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-neon-cyan" />
-                        Quick Commands
-                      </span>
-                      <span className="text-[10px] text-zinc-500">
-                        {favorites.length} Starred
-                      </span>
-                    </div>
-
-                    {/* Glowing "Generating AI Shapes..." Spinner Loader */}
-                    {isGenerating && (
-                      <div className="flex items-center justify-center gap-2.5 py-2.5 px-3 rounded-xl bg-neon-cyan/10 border border-neon-cyan/40 text-cyan-300 text-xs font-medium animate-pulse shadow-[0_0_16px_rgba(0,245,255,0.25)]">
-                        <Loader2 className="w-4 h-4 animate-spin text-neon-cyan shrink-0" />
-                        <span className="tracking-wide">Generating AI Shapes...</span>
-                      </div>
-                    )}
-
-                    {/* Scrollable Palette Container */}
-                    <div
-                      className={`overflow-y-auto max-h-48 custom-scrollbar space-y-3 pr-1 text-xs transition-opacity duration-200 ${
-                        isGenerating ? "pointer-events-none opacity-60" : ""
-                      }`}
-                    >
-                      {/* 1. Favorites Section (only renders if there are favorited commands) */}
-                      {favorites.length > 0 && (
-                        <div className="space-y-1.5">
-                          <div className="text-[10px] font-semibold text-amber-400/90 uppercase tracking-wider flex items-center gap-1 px-1">
-                            <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                            Favorites ({favorites.length})
-                          </div>
-                          <div className="space-y-1">
-                            {QUICK_COMMANDS.filter((cmd) => favorites.includes(cmd.id)).map((cmd) => (
-                              <button
-                                key={`fav-${cmd.id}`}
-                                type="button"
-                                disabled={isGenerating}
-                                onClick={() => !isGenerating && executeCommand(cmd.actionType)}
-                                className={`w-full flex flex-row items-center justify-between rounded-lg p-2 transition-all border ${
-                                  isGenerating
-                                    ? "bg-white/5 opacity-50 cursor-not-allowed border-white/5"
-                                    : "bg-white/5 hover:bg-white/10 cursor-pointer border-white/5 hover:border-white/15 group"
-                                }`}
-                              >
-                                <div className="flex items-center gap-2 text-xs font-medium text-zinc-200 group-hover:text-white transition-colors">
-                                  <span className="p-1 rounded-md bg-white/5 border border-white/5">
-                                    {cmd.icon}
-                                  </span>
-                                  <span>{cmd.label}</span>
-                                </div>
-                                <span
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (!isGenerating) toggleFavorite(cmd.id, e);
-                                  }}
-                                  className="p-1 rounded-md hover:bg-white/10 text-zinc-400 transition-colors cursor-pointer"
-                                  title="Remove from Favorites"
-                                  aria-label="Remove from Favorites"
-                                >
-                                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                                </span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 2. All Commands Section */}
-                      <div className="space-y-1.5">
-                        <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider px-1">
-                          All Commands ({QUICK_COMMANDS.length})
-                        </div>
-                        <div className="space-y-1">
-                          {QUICK_COMMANDS.map((cmd) => {
-                            const isFav = favorites.includes(cmd.id);
-                            return (
-                              <button
-                                key={cmd.id}
-                                type="button"
-                                disabled={isGenerating}
-                                onClick={() => !isGenerating && executeCommand(cmd.actionType)}
-                                className={`w-full flex flex-row items-center justify-between rounded-lg p-2 transition-all border ${
-                                  isGenerating
-                                    ? "bg-white/5 opacity-50 cursor-not-allowed border-white/5"
-                                    : "bg-white/5 hover:bg-white/10 cursor-pointer border-white/5 hover:border-white/15 group"
-                                }`}
-                              >
-                                <div className="flex items-center gap-2 text-xs font-medium text-zinc-200 group-hover:text-white transition-colors">
-                                  <span className="p-1 rounded-md bg-white/5 border border-white/5">
-                                    {cmd.icon}
-                                  </span>
-                                  <span>{cmd.label}</span>
-                                </div>
-                                <span
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (!isGenerating) toggleFavorite(cmd.id, e);
-                                  }}
-                                  className="p-1 rounded-md hover:bg-white/10 text-zinc-400 transition-colors cursor-pointer"
-                                  title={isFav ? "Remove from Favorites" : "Add to Favorites"}
-                                  aria-label={isFav ? "Remove from Favorites" : "Add to Favorites"}
-                                >
-                                  <Star
-                                    className={`w-3.5 h-3.5 transition-colors ${
-                                      isFav
-                                        ? "fill-amber-400 text-amber-400"
-                                        : "text-zinc-500 hover:text-amber-300"
-                                    }`}
-                                  />
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Chat Input Form */}
-                  <form onSubmit={handleSendChat} className="relative flex items-center">
-                    <input
-                      type="text"
-                      value={inputMsg}
-                      disabled={isGenerating}
-                      onChange={(e) => setInputMsg(e.target.value)}
-                      placeholder={isGenerating ? "Generating AI shapes..." : "Ask AI or 'draw rectangle'..."}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-3 pr-9 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-neon-cyan/50 focus:bg-white/10 transition-colors disabled:opacity-50"
-                    />
-                    <button
-                      type="submit"
-                      className="absolute right-2 p-1.5 text-zinc-400 hover:text-neon-cyan disabled:opacity-40 transition-colors"
-                      disabled={isGenerating || !inputMsg.trim()}
-                    >
-                      {isGenerating ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-neon-cyan" />
-                      ) : (
-                        <Send className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  </form>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </>
-        )}
-
-        {/* ── Voice AI Studio Floating Command Center (z-[100]) ── */}
-        <VoiceAIPanel
-          excalidrawAPI={excalidrawAPI || excalidrawAPIRef.current}
-          isOpen={isVoicePanelOpen}
-          onClose={() => setIsVoicePanelOpen(false)}
-          onOpenUpgradeModal={() => {
-            setPricingModalReason(
-              "Upgrade to PRO for continuous voice dictation and multi-step complex canvas commands."
-            );
-            setShowPricingModal(true);
-          }}
-        />
       </div>
     </div>
-  </div>
   );
 }
