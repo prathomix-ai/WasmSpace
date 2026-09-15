@@ -112,7 +112,8 @@ async function callGemini(
   temperature: number,
   responseMimeType: "text/plain" | "application/json"
 ): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const geminiModel = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
 
   const contents = [
     {
@@ -173,6 +174,8 @@ async function callGroq(
   }
   messages.push({ role: "user", content: prompt });
 
+  const groqModel = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -181,7 +184,7 @@ async function callGroq(
     },
     signal: AbortSignal.timeout(8000),
     body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
+      model: groqModel,
       messages,
       temperature,
       max_tokens: maxTokens,

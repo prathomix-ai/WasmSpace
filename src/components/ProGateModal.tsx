@@ -4,6 +4,7 @@ import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Crown, Check, ArrowRight, X } from "lucide-react";
 import Link from "next/link";
+import { useCurrency } from "@/lib/currency";
 
 interface ProGateModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export function ProGateModal({
   onClose,
   featureName = "This feature",
 }: ProGateModalProps) {
+  const { currency } = useCurrency();
   if (!isOpen) return null;
 
   return (
@@ -65,7 +67,7 @@ export function ProGateModal({
           {/* Pro Benefits List */}
           <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-2.5">
             <div className="text-xs font-mono font-semibold uppercase text-zinc-400 tracking-wider">
-              Included in MasmSpace Pro ($5/mo or $49/yr):
+              Included in MasmSpace Pro ({currency === "INR" ? "₹420/mo or ₹4,100/yr" : "$5/mo or $49/yr"}):
             </div>
             <ul className="space-y-2 text-xs sm:text-sm text-zinc-200 font-sans">
               <li className="flex items-center gap-2.5">
@@ -94,7 +96,7 @@ export function ProGateModal({
               onClick={onClose}
               className="w-full py-3.5 rounded-2xl font-mono text-xs font-bold text-black bg-neon-cyan hover:bg-neon-cyan/90 shadow-[0_0_24px_rgba(0,245,255,0.4)] transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>Upgrade to Pro Plan ($5/mo)</span>
+              <span>Upgrade to Pro Plan ({currency === "INR" ? "₹420/mo" : "$5/mo"})</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

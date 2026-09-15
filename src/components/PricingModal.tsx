@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Crown, Check, X, Sparkles, Zap, Shield, ArrowRight } from "lucide-react";
+import { Crown, Check, X, Sparkles, Zap, Shield, ArrowRight, Globe } from "lucide-react";
 import { Checkout } from "@/components/Checkout";
+import { useCurrency } from "@/lib/currency";
 
 interface PricingModalProps {
   isOpen: boolean;
@@ -21,6 +22,11 @@ export function PricingModal({
   onUpgradeSuccess,
 }: PricingModalProps) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
+  const { currency, setCurrency, detectedCountry, getPlanDetails } = useCurrency();
+
+  const monthlyDetails = getPlanDetails("monthly");
+  const yearlyDetails = getPlanDetails("yearly");
+  const activePlanDetails = getPlanDetails(billingCycle);
 
   if (!isOpen) return null;
 
@@ -55,23 +61,55 @@ export function PricingModal({
             <X className="w-4 h-4" />
           </button>
 
-          {/* Top Badge & Header */}
-          <div className="flex items-center gap-3.5 mb-3">
-            <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 border border-cyan-400/40 flex items-center justify-center text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.4)] shrink-0">
-              <Crown className="w-6 h-6 fill-cyan-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-cyan-400">
-                  PRATHOMIX ENTERPRISE
-                </span>
-                <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold uppercase">
-                  PRO SUITE
-                </span>
+          {/* Top Badge & Header with Currency Switcher */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 border border-cyan-400/40 flex items-center justify-center text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.4)] shrink-0">
+                <Crown className="w-6 h-6 fill-cyan-400" />
               </div>
-              <h3 className="text-xl font-bold font-sans text-white tracking-tight">
-                {title}
-              </h3>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-cyan-400">
+                    PRATHOMIX ENTERPRISE
+                  </span>
+                  <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold uppercase">
+                    PRO SUITE
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold font-sans text-white tracking-tight">
+                  {title}
+                </h3>
+              </div>
+            </div>
+
+            {/* Currency Selector Pill */}
+            <div className="self-start sm:self-center flex items-center gap-1.5 p-1 rounded-xl bg-white/5 border border-white/10 text-xs font-mono">
+              <span className="px-2 py-0.5 text-[10px] text-zinc-400 flex items-center gap-1">
+                <Globe className="w-3 h-3 text-cyan-400" />
+                <span>Region:</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrency("USD")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  currency === "USD"
+                    ? "bg-cyan-500/25 text-cyan-300 border border-cyan-400/50 shadow-[0_0_10px_rgba(6,182,212,0.25)]"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                $ USD
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrency("INR")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  currency === "INR"
+                    ? "bg-emerald-500/25 text-emerald-300 border border-emerald-400/50 shadow-[0_0_10px_rgba(16,185,129,0.25)]"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                ₹ INR {detectedCountry === "IN" ? "🇮🇳" : ""}
+              </button>
             </div>
           </div>
 
@@ -92,11 +130,11 @@ export function PricingModal({
               }`}
             >
               <div className="text-xs font-semibold text-zinc-300">Monthly Plan</div>
-              <div className="text-lg font-bold text-white font-mono">$5 / month</div>
+              <div className="text-lg font-bold text-white font-mono">{monthlyDetails.formatted} / month</div>
               <div className="text-[10px] text-zinc-400">Billed monthly</div>
             </button>
 
-            {/* Yearly Option with Save 50% Badge */}
+            {/* Yearly Option with Save 18% Badge */}
             <button
               type="button"
               onClick={() => setBillingCycle("yearly")}
@@ -114,9 +152,12 @@ export function PricingModal({
                 <span>Yearly Plan</span>
               </div>
               <div className="text-lg font-bold text-white font-mono">
-                $49 <span className="text-xs font-normal text-cyan-300">/ year (≈$4.08/mo)</span>
+                {yearlyDetails.formatted}{" "}
+                <span className="text-xs font-normal text-cyan-300">
+                  / year (≈{yearlyDetails.monthlyEquivalent})
+                </span>
               </div>
-              <div className="text-[10px] text-zinc-400">Billed annually ($49)</div>
+              <div className="text-[10px] text-zinc-400">Billed annually ({yearlyDetails.formatted})</div>
             </button>
           </div>
 
@@ -190,13 +231,9 @@ export function PricingModal({
           {/* ── High-Contrast Glowing Razorpay Checkout CTA ── */}
           <Checkout
             plan={billingCycle}
-            amount={billingCycle === "yearly" ? 4900 : 500}
-            currency="USD"
-            buttonText={
-              billingCycle === "yearly"
-                ? "Upgrade to PRO — $49/yr"
-                : "Upgrade to PRO — $5/mo"
-            }
+            amount={activePlanDetails.subunits}
+            currency={currency}
+            buttonText={`Upgrade to PRO — ${activePlanDetails.label}`}
             className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-black font-extrabold font-mono text-sm tracking-tight transition-all duration-200 shadow-[0_0_30px_rgba(0,245,255,0.45)] hover:shadow-[0_0_40px_rgba(0,245,255,0.65)] hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             onSuccess={() => {
               onUpgradeSuccess?.();

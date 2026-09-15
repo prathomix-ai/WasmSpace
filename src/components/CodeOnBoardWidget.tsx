@@ -23,7 +23,7 @@ interface CodeOnBoardWidgetProps {
   leftOffset?: number;
 }
 
-export default function CodeOnBoardWidget({
+export function CodeOnBoardWidget({
   isOpen,
   onClose,
   editor,
@@ -426,13 +426,13 @@ export default function CodeOnBoardWidget({
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed z-50 code-on-board-widget glass bg-[#09090b]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col"
+        className="fixed z-[100] code-on-board-widget glass bg-[#09090b]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col"
         style={{
           left: position.x,
           top: position.y,
           width: isMinimized ? "340px" : "620px",
           maxHeight: "92vh",
-          zIndex: 50,
+          zIndex: 100,
         }}
         initial={{ opacity: 0, scale: 0.92, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -811,5 +811,74 @@ export default function CodeOnBoardWidget({
   );
 }
 
+// ── Code Studio API & Runtime Error Boundary ────────────────────────────────
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  onReset?: () => void;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+export class CodeStudioErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("[CodeStudioErrorBoundary] Runtime error caught:", error, errorInfo);
+  }
+
+  handleReset = () => {
+    this.setState({ hasError: false, error: null });
+    this.props.onReset?.();
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="fixed top-20 left-20 z-[100] w-96 p-4 rounded-2xl bg-[#09090b]/95 border border-rose-500/40 shadow-2xl backdrop-blur-2xl text-white font-mono text-xs space-y-3 pointer-events-auto">
+          <div className="flex items-center gap-2 text-rose-400 font-bold">
+            <span>⚠️</span>
+            <span>Code Studio Execution Recovered</span>
+          </div>
+          <p className="text-zinc-400 text-[11px] leading-relaxed">
+            {this.state.error?.message || "An unexpected error occurred during execution."}
+          </p>
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              onClick={this.handleReset}
+              className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-bold transition-all text-xs cursor-pointer"
+            >
+              Reset Code Studio
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Wrapped export with error boundary protection
+export function SafeCodeOnBoardWidget(props: CodeOnBoardWidgetProps) {
+  return (
+    <CodeStudioErrorBoundary onReset={props.onClose}>
+      <CodeOnBoardWidget {...props} />
+    </CodeStudioErrorBoundary>
+  );
+}
+
 // Named alias export for CodeStudio
-export { CodeOnBoardWidget as CodeStudio };
+export { SafeCodeOnBoardWidget as CodeStudio };
+export default SafeCodeOnBoardWidget;

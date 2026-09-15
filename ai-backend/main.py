@@ -375,10 +375,23 @@ async def create_razorpay_order(req: CreateOrderRequest):
         client = get_razorpay_client()
         is_yearly = req.plan.lower() == "yearly"
 
-        amount_subunits = 4900 if is_yearly else 500
-        currency = "USD"
+        # Multi-currency normalization (INR for India, USD for International)
+        currency = (req.currency or "USD").upper().strip()
+        if currency not in ("USD", "INR"):
+            currency = "USD"
 
-        receipt_id = req.receipt or f"rcpt_{req.plan}_{int(time.time())}"
+        # Determine amount in lowest subunits (* 100)
+        # USD: $5.00/mo -> 500 cents, $49.00/yr -> 4900 cents
+        # INR: ₹420.00/mo -> 42000 paise, ₹4100.00/yr -> 410000 paise
+        if req.amount and float(req.amount) > 0:
+            amount_subunits = int(req.amount)
+        else:
+            if currency == "INR":
+                amount_subunits = 410000 if is_yearly else 42000
+            else:
+                amount_subunits = 4900 if is_yearly else 500
+
+        receipt_id = req.receipt or f"rcpt_{req.plan}_{currency.lower()}_{int(time.time())}"
 
         order_data = {
             "amount": amount_subunits,
@@ -386,6 +399,7 @@ async def create_razorpay_order(req: CreateOrderRequest):
             "receipt": receipt_id,
             "notes": {
                 "plan": req.plan,
+                "currency": currency,
                 "user_email": req.user_email or "",
                 "service": "PRATHOMIX MasmSpace Pro",
             },
@@ -396,8 +410,8 @@ async def create_razorpay_order(req: CreateOrderRequest):
             "Razorpay order created: %s | Plan: %s | Amount: %d %s",
             order["id"],
             req.plan,
-            amount_subunits,
-            currency,
+            order.get("amount", amount_subunits),
+            order.get("currency", currency),
         )
 
         return JSONResponse(
@@ -419,7 +433,7 @@ async def create_razorpay_order(req: CreateOrderRequest):
             content={
                 "success": False,
                 "error": str(exc),
-                "detail": "Failed to create order via Razorpay API.",
+                "detail": f"Failed to create {currency} order via Razorpay API: {str(exc)}",
             },
         )
 

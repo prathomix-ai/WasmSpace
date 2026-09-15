@@ -32,20 +32,27 @@ import {
   Receipt,
   Download,
   LogOut,
+  Tag,
+  Clock,
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
+import { useCurrency } from "@/lib/currency";
+import { redeemPromoCode } from "@/lib/promo";
 
 export interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onClearAllData?: () => void;
   onOpenUpgradeModal?: () => void;
+  onProUpgradeSuccess?: () => void;
   actionsUsed?: number;
   actionLimit?: number;
   tier?: string;
   autoSave?: boolean;
   onAutoSaveChange?: (val: boolean) => void;
+  onGridTypeChange?: (val: "dots" | "lines" | "solid") => void;
+  onThemeChange?: (val: string) => void;
 }
 
 type TabType = "account" | "canvas" | "ai_tools" | "billing" | "privacy";
@@ -59,22 +66,22 @@ function ToggleSwitch({
   disabled = false,
 }: {
   checked: boolean;
-  onChange: (val: boolean) => void;
-  id?: string;
-  label?: string;
+  onChange: (checked: boolean) => void;
+  id: string;
+  label: string;
   disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       role="switch"
-      id={id}
-      aria-label={label || "Toggle"}
       aria-checked={checked}
+      id={id}
+      aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-cyan-400/50 ${
-        checked ? "bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]" : "bg-zinc-700/60"
+      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+        checked ? "bg-cyan-500" : "bg-zinc-700"
       } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
     >
       <span
@@ -91,17 +98,69 @@ export function SettingsModal({
   onClose,
   onClearAllData,
   onOpenUpgradeModal,
+  onProUpgradeSuccess,
   actionsUsed = 4,
   actionLimit = 15,
   tier = "free",
   autoSave: initialAutoSave,
   onAutoSaveChange,
+  onGridTypeChange,
+  onThemeChange,
 }: SettingsModalProps) {
   const { theme, setTheme } = useTheme();
+  const { currency } = useCurrency();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Active Tab state (default to "account")
   const [activeTab, setActiveTab] = useState<TabType>("account");
+
+  // Promo Code State
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [isRedeemingPromo, setIsRedeemingPromo] = useState(false);
+  const [promoStatus, setPromoStatus] = useState<{
+    type: "idle" | "success" | "error";
+    message?: string;
+  }>({ type: "idle" });
+  const [proExpiryDate, setProExpiryDate] = useState<string | null>(null);
+
+  const handleRedeemPromo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!promoCodeInput.trim() || isRedeemingPromo) return;
+
+    setIsRedeemingPromo(true);
+    setPromoStatus({ type: "idle" });
+
+    try {
+      const result = await redeemPromoCode(promoCodeInput.trim());
+
+      if (result.success) {
+        setPromoStatus({
+          type: "success",
+          message: result.message || "PRO activated for 2 months!",
+        });
+        setIsPro(true);
+        setUserTier("pro");
+        setDynamicActionLimit(999999);
+        if (result.pro_expiry_date) {
+          setProExpiryDate(result.pro_expiry_date);
+        }
+        setPromoCodeInput("");
+        onProUpgradeSuccess?.();
+      } else {
+        setPromoStatus({
+          type: "error",
+          message: result.error || "Failed to redeem promo code.",
+        });
+      }
+    } catch (err: any) {
+      setPromoStatus({
+        type: "error",
+        message: err.message || "An unexpected error occurred.",
+      });
+    } finally {
+      setIsRedeemingPromo(false);
+    }
+  };
 
   // ==========================================
   // 1. Account State
@@ -276,6 +335,10 @@ export function SettingsModal({
           setIsPro(proActive);
           setUserTier(proActive ? (rawTier === "enterprise" ? "enterprise" : "pro") : "free");
 
+          if (profile?.pro_expiry_date) {
+            setProExpiryDate(profile.pro_expiry_date);
+          }
+
           // 4. Bind dynamic usage counter
           const usedCount =
             quotaRecord?.actions_used ??
@@ -322,6 +385,9 @@ export function SettingsModal({
               setIsPro(true);
               setUserTier(pTier === "enterprise" ? "enterprise" : "pro");
               setDynamicActionLimit(999999);
+            }
+            if (parsed.pro_expiry_date) {
+              setProExpiryDate(parsed.pro_expiry_date);
             }
           }
 
@@ -523,6 +589,7 @@ export function SettingsModal({
   const handleGridTypeChange = (type: "dots" | "lines" | "solid") => {
     setGridType(type);
     localStorage.setItem("masmspace_canvas_grid", type);
+    onGridTypeChange?.(type);
     flashSaved();
   };
 
@@ -1044,11 +1111,12 @@ export function SettingsModal({
                     <Sun className="w-4 h-4 text-amber-400" />
                     <span>Canvas Theme</span>
                   </label>
-                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className="grid grid-cols-3 gap-2.5">
                     <button
                       type="button"
                       onClick={() => {
                         setTheme("dark");
+                        onThemeChange?.("dark");
                         flashSaved();
                       }}
                       className={`p-3 rounded-xl border flex flex-col items-center gap-2 font-mono text-xs transition-all cursor-pointer ${
@@ -1065,6 +1133,7 @@ export function SettingsModal({
                       type="button"
                       onClick={() => {
                         setTheme("light");
+                        onThemeChange?.("light");
                         flashSaved();
                       }}
                       className={`p-3 rounded-xl border flex flex-col items-center gap-2 font-mono text-xs transition-all cursor-pointer ${
@@ -1081,6 +1150,7 @@ export function SettingsModal({
                       type="button"
                       onClick={() => {
                         setTheme("system");
+                        onThemeChange?.("system");
                         flashSaved();
                       }}
                       className={`p-3 rounded-xl border flex flex-col items-center gap-2 font-mono text-xs transition-all cursor-pointer ${
@@ -1385,6 +1455,12 @@ export function SettingsModal({
                         <span className="px-3.5 py-2 rounded-xl text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1.5">
                           <Check className="w-4 h-4" /> Subscription Active
                         </span>
+                        {proExpiryDate && (
+                          <span className="px-3 py-2 rounded-xl text-xs font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5" />
+                            Expires: {new Date(proExpiryDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                          </span>
+                        )}
                       </div>
                     ) : (
                       <button
@@ -1396,10 +1472,73 @@ export function SettingsModal({
                         className="px-5 py-2.5 rounded-xl font-mono text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all flex items-center gap-2 cursor-pointer"
                       >
                         <CreditCard className="w-4 h-4" />
-                        <span>Upgrade to PRO ($5/mo via Razorpay)</span>
+                        <span>Upgrade to PRO ({currency === "INR" ? "₹420/mo" : "$5/mo"} via Razorpay)</span>
                       </button>
                     )}
                   </div>
+                </div>
+
+                {/* Redeem Promo Code Section */}
+                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                        <Tag className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="font-mono font-bold text-sm text-white">Redeem Promo Code</h4>
+                        <p className="text-[11px] text-zinc-400">
+                          Have a promotional voucher or partner code? Redeem it below for free PRO access.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleRedeemPromo} className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          value={promoCodeInput}
+                          onChange={(e) => setPromoCodeInput(e.target.value)}
+                          placeholder="Enter promo code (e.g. SaNdAk)"
+                          disabled={isRedeemingPromo}
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-mono text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 uppercase tracking-wider disabled:opacity-50"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={isRedeemingPromo || !promoCodeInput.trim()}
+                        className="px-5 py-2.5 rounded-xl font-mono text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(6,182,212,0.3)] shrink-0"
+                      >
+                        {isRedeemingPromo ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Applying...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Apply</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Status Feedback Toast / Banner */}
+                    {promoStatus.type === "success" && (
+                      <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono flex items-center gap-2 animate-fade-in">
+                        <Check className="w-4 h-4 shrink-0 text-emerald-400" />
+                        <span>{promoStatus.message}</span>
+                      </div>
+                    )}
+                    {promoStatus.type === "error" && (
+                      <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-mono flex items-center gap-2 animate-fade-in">
+                        <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                        <span>{promoStatus.message}</span>
+                      </div>
+                    )}
+                  </form>
                 </div>
 
                 {/* Billing History Placeholder */}

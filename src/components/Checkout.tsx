@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Sparkles, Loader2, ShieldCheck, AlertCircle, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { CurrencyCode, getPlanPrice, PRICING_CONFIG } from "@/lib/currency";
 
 declare global {
   interface Window {
@@ -13,7 +15,7 @@ declare global {
 export interface CheckoutProps {
   plan?: "monthly" | "yearly";
   amount?: number;
-  currency?: "USD" | "INR";
+  currency?: CurrencyCode;
   userEmail?: string;
   userName?: string;
   buttonText?: string;
@@ -24,7 +26,7 @@ export interface CheckoutProps {
 
 export function Checkout({
   plan = "monthly",
-  amount = 500, // 500 cents = $5 USD
+  amount,
   currency = "USD",
   userEmail,
   userName = "MasmSpace Creator",
@@ -33,6 +35,7 @@ export function Checkout({
   onSuccess,
   onError,
 }: CheckoutProps) {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successPaymentId, setSuccessPaymentId] = useState<string | null>(null);
@@ -53,11 +56,37 @@ export function Checkout({
     });
   };
 
-  // 2. Main Checkout Trigger
+  // 2. Main Checkout Trigger with Strict Session Check
   const handleCheckout = async () => {
     try {
       setIsLoading(true);
       setErrorMessage(null);
+
+      // ── STRICT AUTHENTICATION GUARD ──────────────────────────────────────────
+      const supabase = createClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+      const { data: userData } = await supabase.auth.getUser();
+      const authenticatedUser = userData?.user || session?.user;
+
+      if (!authenticatedUser) {
+        setIsLoading(false);
+        const authMsg = "Authentication required. Please log in before upgrading to PRO.";
+        setErrorMessage(authMsg);
+        onError?.(authMsg);
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("open-auth-modal"));
+          const target = window.location.pathname.startsWith("/pricing")
+            ? "/pricing"
+            : window.location.pathname + window.location.search;
+          router.push(`/login?next=${encodeURIComponent(target || "/pricing")}`);
+        }
+        return;
+      }
+
+      const activeEmail = userEmail || authenticatedUser.email || "";
+      const activeName = userName || authenticatedUser.user_metadata?.name || "MasmSpace Creator";
 
       // Dynamically load Razorpay SDK
       const scriptLoaded = await loadRazorpayScript();
@@ -70,8 +99,9 @@ export function Checkout({
       }
 
       // Step 1: Create Order via Backend API (/api/create-razorpay-order or fallback /api/create-order)
-      const orderAmount = amount || (plan === "yearly" ? 4900 : 500);
-      const orderCurrency = currency || "USD";
+      const planDetails = getPlanPrice(plan, currency);
+      const orderAmount = amount || planDetails.subunits;
+      const orderCurrency = currency;
 
       let orderRes = await fetch("/api/create-razorpay-order", {
         method: "POST",
@@ -80,7 +110,7 @@ export function Checkout({
           plan,
           amount: orderAmount,
           currency: orderCurrency,
-          user_email: userEmail,
+          user_email: activeEmail,
         }),
       });
 
@@ -92,7 +122,7 @@ export function Checkout({
             plan,
             amount: orderAmount,
             currency: orderCurrency,
-            user_email: userEmail,
+            user_email: activeEmail,
           }),
         });
       }
@@ -109,25 +139,32 @@ export function Checkout({
       }
 
       // Step 2: Open Razorpay Overlay Modal
+      const activeCurrency = orderData.currency || orderCurrency;
+      const descriptionText =
+        activeCurrency === "INR"
+          ? (plan === "yearly"
+              ? "MasmSpace Pro Annual Membership (₹4,100/yr)"
+              : "MasmSpace Pro Monthly Membership (₹420/mo)")
+          : (plan === "yearly"
+              ? "MasmSpace Pro Annual Membership ($49/yr)"
+              : "MasmSpace Pro Monthly Membership ($5/mo)");
+
       const options = {
         key:
           orderData.key_id ||
           process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
           "rzp_test_Ta2kWl9IX7CgkT",
         amount: orderData.amount || orderAmount,
-        currency: orderData.currency || orderCurrency,
+        currency: activeCurrency,
         name: "MasmSpace PRO",
-        description:
-          plan === "yearly"
-            ? "MasmSpace Pro Annual Membership ($49/yr)"
-            : "MasmSpace Pro Monthly Membership ($5/mo)",
+        description: descriptionText,
         order_id: orderData.order_id,
         theme: {
           color: "#00f5ff",
         },
         prefill: {
-          name: userName,
-          email: userEmail || "creator@masmspace.online",
+          name: activeName,
+          email: activeEmail,
         },
         modal: {
           ondismiss: function () {
@@ -216,8 +253,8 @@ export function Checkout({
     }
   };
 
-  const defaultButtonLabel =
-    plan === "yearly" ? "Upgrade to Pro — $49/yr" : "Upgrade to Pro — $5/mo";
+  const planInfo = getPlanPrice(plan, currency);
+  const defaultButtonLabel = `Upgrade to Pro — ${planInfo.label}`;
 
   if (successPaymentId) {
     return (

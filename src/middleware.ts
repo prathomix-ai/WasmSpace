@@ -49,11 +49,28 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // ── 1. Refresh & Persist User Auth Session on Every Navigation ───────────
-  // Calling getUser() validates the token with Supabase Auth and triggers cookie refresh
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // ── 1.1 Automatic Subscription Expiry Check ──────────────────────────────
+  if (user) {
+    const metaExpiry = user.user_metadata?.pro_expiry_date;
+    if (metaExpiry && new Date(metaExpiry) < new Date()) {
+      // Expired: demote to free tier in profiles
+      supabase
+        .from("profiles")
+        .update({
+          tier: "free",
+          subscription_status: "free",
+          is_pro: false,
+          pro_expiry_date: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id)
+        .then(() => {});
+    }
+  }
 
   // ── 2. Protected Route Check: /canvas/live-session (Live Collaboration) ──
   if (request.nextUrl.pathname.startsWith("/canvas/live-session")) {

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { ProBadge } from "@/components/ProBadge";
 import { createClient } from "@/lib/supabase/client";
+import { useCurrency } from "@/lib/currency";
 
 interface ProPricingCardProps {
   onUpgradeClick?: () => void;
@@ -53,10 +54,10 @@ export function ProPricingCard({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
 
-  // 2. Pricing Configuration ($5/mo and $49/yr)
-  const monthlyPrice = 5;
-  const yearlyPrice = 49;
-  const effectiveMonthly = "4.08";
+  // 2. Multi-Currency Detection and Pricing Configuration
+  const { currency, setCurrency, detectedCountry, getPlanDetails } = useCurrency();
+  const currentPlan = isYearly ? "yearly" : "monthly";
+  const planDetails = getPlanDetails(currentPlan);
 
   // Auto-dismiss toast notification after 4 seconds
   useEffect(() => {
@@ -76,62 +77,58 @@ export function ProPricingCard({
     { text: "Unlimited Infinite Canvases & Cloud Backup", hasProBadge: true },
   ];
 
-  // 3. Helper: Check if user is logged in
-  const checkUserAuthentication = async (): Promise<boolean> => {
+  // 3. Helper: Check if user is logged in via Supabase session
+  const checkUserAuthentication = async (): Promise<{
+    authenticated: boolean;
+    user?: { id: string; email?: string; name?: string };
+  }> => {
     try {
       const supabase = createClient();
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (user && user.id) return true;
-
-      // Check local storage for mock/persisted login in dev
-      const localUser =
-        typeof window !== "undefined"
-          ? (localStorage.getItem("masmspace_current_user") || localStorage.getItem("wasmspace_current_user"))
-          : null;
-      if (localUser) {
-        const parsed = JSON.parse(localUser);
-        if (parsed && parsed.email) return true;
+      if (session && session.user) {
+        return {
+          authenticated: true,
+          user: {
+            id: session.user.id,
+            email: session.user.email,
+            name:
+              session.user.user_metadata?.name ||
+              session.user.user_metadata?.full_name ||
+              "MasmSpace Creator",
+          },
+        };
       }
 
-      return false;
+      return { authenticated: false };
     } catch {
-      const localUser =
-        typeof window !== "undefined"
-          ? (localStorage.getItem("masmspace_current_user") || localStorage.getItem("wasmspace_current_user"))
-          : null;
-      return !!(localUser && JSON.parse(localUser)?.email);
+      return { authenticated: false };
     }
   };
 
-  // 4. Razorpay Standard Checkout Flow with Auth Enforcement & Subunit Calculations
+  // 4. Smart Razorpay Standard Checkout Flow with Auth Enforcement
   const handleRazorpayPayment = async () => {
     try {
       setToastMessage(null);
 
-      // ── STEP 1: ENFORCE LOGIN BEFORE PAYMENT ───────────────────────────────
-      const isAuthenticated = await checkUserAuthentication();
+      // ── STEP 1: STRICT AUTHENTICATION GUARD ───────────────────────────────
+      const authResult = await checkUserAuthentication();
 
-      if (!isAuthenticated) {
-        // Block Razorpay popup completely
-        setToastMessage("Please login to upgrade");
-
-        // Trigger the auth modal if prop provided or via custom window event
+      if (!authResult.authenticated || !authResult.user) {
+        // Logged out: Instantly redirect to login or trigger modal, aborting checkout
         if (onOpenAuth) {
           onOpenAuth();
         } else if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("open-auth-modal"));
-          // Or redirect to login route if no modal listeners
-          setTimeout(() => {
-            router.push("/login");
-          }, 800);
+          router.push("/login?next=/pricing");
         }
         return;
       }
 
-      // User is authenticated, proceed to checkout
+      // ── STEP 2: SESSION EXISTS (LOGGED IN) ──────────────────────────────────
+      // Immediately proceed without asking for login
       setIsLoading(true);
 
       // Ensure Razorpay SDK script is loaded
@@ -142,55 +139,43 @@ export function ProPricingCard({
         return;
       }
 
-      // ── STEP 2: SUBUNIT AMOUNT CALCULATION (* 100) ─────────────────────────
-      // USD Billing: $5 * 100 = 500 cents (monthly), $49 * 100 = 4900 cents (yearly)
-      const baseDollars = isYearly ? yearlyPrice : monthlyPrice;
-      const currency = "USD";
-      const amountInSubunits = baseDollars * 100;
+      // Dynamic: Uses user-detected currency (INR in India, USD internationally)
+      const amountInSubunits = planDetails.subunits;
+      const orderCurrency = currency;
+      const activeUser = authResult.user;
 
       // STEP 3: Call backend to create Razorpay Order
-      const res = await fetch("/api/create-order", {
+      let res = await fetch("/api/create-razorpay-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          plan: isYearly ? "yearly" : "monthly",
-          amount: amountInSubunits, // exact subunit amount (* 100)
-          currency,
+          plan: currentPlan,
+          amount: amountInSubunits,
+          currency: orderCurrency,
+          user_email: activeUser.email,
         }),
       });
 
       if (!res.ok) {
+        res = await fetch("/api/create-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            plan: currentPlan,
+            amount: amountInSubunits,
+            currency: orderCurrency,
+            user_email: activeUser.email,
+          }),
+        });
+      }
+
+      if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-
-        // Fallback to INR if Razorpay account has international currencies disabled
-        if (errData.code === "CURRENCY_NOT_SUPPORTED") {
-          const inrPrice = isYearly ? 4100 : 420; // $49 ≈ ₹4100, $5 ≈ ₹420
-          const inrSubunits = inrPrice * 100;
-
-          const fallbackRes = await fetch("/api/create-order", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              plan: isYearly ? "yearly" : "monthly",
-              amount: inrSubunits,
-              currency: "INR",
-            }),
-          });
-
-          if (!fallbackRes.ok) {
-            throw new Error("Unable to create order. Please check Razorpay keys.");
-          }
-
-          const fallbackOrderData = await fallbackRes.json();
-          openRazorpayModal(fallbackOrderData);
-          return;
-        }
-
         throw new Error(errData.error || "Unable to create payment order. Please try again.");
       }
 
       const orderData = await res.json();
-      openRazorpayModal(orderData);
+      openRazorpayModal(orderData, activeUser);
     } catch (error: any) {
       console.error("Razorpay payment error:", error);
       alert(error?.message || "Failed to initiate payment. Please try again.");
@@ -199,31 +184,41 @@ export function ProPricingCard({
   };
 
   // 5. Open Razorpay Modal & Verify Signature on Success
-  const openRazorpayModal = (orderData: {
-    order_id: string;
-    amount: number;
-    currency: string;
-    key_id: string;
-  }) => {
+  const openRazorpayModal = (
+    orderData: {
+      order_id: string;
+      amount: number;
+      currency: string;
+      key_id: string;
+    },
+    user?: { id: string; email?: string; name?: string }
+  ) => {
+    const activeCurrency = orderData.currency || currency;
+    const modalDescription =
+      activeCurrency === "INR"
+        ? (isYearly
+            ? "MasmSpace Pro Yearly Membership (₹4,100/year)"
+            : "MasmSpace Pro Monthly Membership (₹420/month)")
+        : (isYearly
+            ? "MasmSpace Pro Yearly Membership ($49/year)"
+            : "MasmSpace Pro Monthly Membership ($5/month)");
+
     const options = {
       key:
         process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
         orderData.key_id ||
         "rzp_test_Ta2kWl9IX7CgkT",
       amount: orderData.amount, // in subunits (* 100)
-      currency: orderData.currency || "USD",
+      currency: activeCurrency,
       name: "MasmSpace Pro",
-      description: isYearly
-        ? `MasmSpace Pro Yearly Membership ($${yearlyPrice}/year)`
-        : `MasmSpace Pro Monthly Membership ($${monthlyPrice}/month)`,
+      description: modalDescription,
       order_id: orderData.order_id,
       theme: {
         color: "#00f5ff",
       },
       prefill: {
-        name: "MasmSpace Creator",
-        email: "creator@masmspace.ai",
-        contact: "9999999999",
+        name: user?.name || "MasmSpace Creator",
+        email: user?.email || "creator@masmspace.online",
       },
       // Payment Success Callback: verify HMAC-SHA256 signature with backend
       handler: async function (response: {
@@ -391,9 +386,31 @@ export function ProPricingCard({
             </div>
           </div>
 
-          <span className="px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 tracking-wide">
-            Indie &amp; Pro
-          </span>
+          {/* Currency Switcher Pill */}
+          <div className="flex items-center gap-1 p-0.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-mono">
+            <button
+              type="button"
+              onClick={() => setCurrency("USD")}
+              className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                currency === "USD"
+                  ? "bg-cyan-500/30 text-cyan-300 font-bold border border-cyan-500/50"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              $ USD
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrency("INR")}
+              className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                currency === "INR"
+                  ? "bg-emerald-500/30 text-emerald-300 font-bold border border-emerald-500/50"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              ₹ INR {detectedCountry === "IN" ? "🇮🇳" : ""}
+            </button>
+          </div>
         </div>
 
         {/* ── Interactive Monthly / Yearly Toggle Switch ── */}
@@ -454,14 +471,14 @@ export function ProPricingCard({
             <div className="overflow-hidden min-w-[95px]">
               <AnimatePresence mode="wait">
                 <motion.span
-                  key={isYearly ? "yearly-price" : "monthly-price"}
+                  key={`${currency}-${isYearly ? "yearly-price" : "monthly-price"}`}
                   initial={{ opacity: 0, y: -12, filter: "blur(3px)" }}
                   animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                   exit={{ opacity: 0, y: 12, filter: "blur(3px)" }}
                   transition={{ duration: 0.22, ease: "easeOut" }}
                   className="inline-block text-4xl sm:text-5xl font-extrabold font-mono text-white tracking-tight drop-shadow-[0_0_16px_rgba(0,245,255,0.3)]"
                 >
-                  ${isYearly ? yearlyPrice : monthlyPrice}
+                  {planDetails.formatted}
                 </motion.span>
               </AnimatePresence>
             </div>
@@ -480,14 +497,14 @@ export function ProPricingCard({
                 </motion.span>
               </AnimatePresence>
               <span className="text-[10px] font-mono text-zinc-400">
-                {isYearly ? `(≈ $${effectiveMonthly}/mo billed annually)` : "billed monthly"}
+                {isYearly ? `(≈ ${planDetails.monthlyEquivalent} billed annually)` : "billed monthly"}
               </span>
             </div>
           </div>
 
           <p className="text-[11px] text-zinc-400 leading-snug">
             {isYearly
-              ? "All-access for 1 full year (~$4.08/mo). Clean savings for builders."
+              ? `All-access for 1 full year (~${planDetails.monthlyEquivalent}). Clean savings for builders.`
               : "Flexible month-to-month access. Cancel anytime."}
           </p>
         </div>
@@ -558,7 +575,7 @@ export function ProPricingCard({
             ) : (
               <>
                 <Sparkles className="w-4 h-4 fill-black" />
-                <span>Upgrade to Pro — ${isYearly ? `${yearlyPrice}/yr` : `${monthlyPrice}/mo`}</span>
+                <span>Upgrade to Pro — {planDetails.label}</span>
                 <ArrowRight className="w-4 h-4 text-black transition-transform group-hover:translate-x-1" />
               </>
             )}

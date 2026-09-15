@@ -4,6 +4,7 @@ import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Crown, Check, ArrowRight, X, Zap } from "lucide-react";
 import Link from "next/link";
+import { useCurrency } from "@/lib/currency";
 
 interface ProUpgradeModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export function ProUpgradeModal({
   onClose,
   featureName = "Advanced AI Tools",
 }: ProUpgradeModalProps) {
+  const { currency } = useCurrency();
   if (!isOpen) return null;
 
   return (
@@ -138,7 +140,7 @@ export function ProUpgradeModal({
               onClick={onClose}
               className="w-full py-3 px-4 rounded-xl font-sans text-xs font-bold text-zinc-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-blue-400 hover:from-cyan-300 hover:to-blue-300 shadow-[0_0_24px_rgba(6,182,212,0.4)] transition-all flex items-center justify-center gap-2 cursor-pointer group"
             >
-              <span>Upgrade Now &bull; from $5/mo</span>
+              <span>Upgrade Now &bull; from {currency === "INR" ? "₹420/mo" : "$5/mo"}</span>
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
             <p className="text-center text-[10px] font-mono text-zinc-500">

@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+export const dynamic = "force-dynamic";
 
 const AI_BACKEND_URL =
   process.env.NEXT_PUBLIC_AI_BACKEND_URL ||
@@ -8,17 +12,69 @@ const AI_BACKEND_URL =
 
 export async function POST(req: NextRequest) {
   try {
+    // ── 0. Strict Authentication Verification ────────────────────────────────
+    let authenticatedUserId: string | null = null;
+    let authenticatedUserEmail: string | null = null;
+
+    try {
+      const serverSupabase = createServerSupabaseClient();
+      const { data: { user } } = await serverSupabase.auth.getUser();
+      if (user) {
+        authenticatedUserId = user.id;
+        authenticatedUserEmail = user.email || null;
+      }
+    } catch {}
+
+    if (!authenticatedUserId) {
+      const authHeader = req.headers.get("authorization");
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        try {
+          const adminSupabase = createAdminClient();
+          const token = authHeader.replace("Bearer ", "").trim();
+          const { data: { user: tokenUser } } = await adminSupabase.auth.getUser(token);
+          if (tokenUser) {
+            authenticatedUserId = tokenUser.id;
+            authenticatedUserEmail = tokenUser.email || null;
+          }
+        } catch {}
+      }
+    }
+
+    if (!authenticatedUserId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Unauthorized: You must be logged in to create an upgrade checkout order.",
+        },
+        { status: 401 }
+      );
+    }
+
     const key_id =
       process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     const key_secret = process.env.RAZORPAY_KEY_SECRET;
 
     const body = await req.json().catch(() => ({}));
-    const { plan = "monthly", currency: _currency = "USD", receipt, user_email } = body;
+    const { plan = "monthly", currency = "USD", amount, receipt, user_email } = body;
     const isYearly = plan === "yearly";
+    const effectiveEmail = authenticatedUserEmail || user_email || "user@masmspace.online";
 
-    // ── 1. Calculate Amount in Currency Lowest Subunits (* 100) ─────────────
-    const amountInSubunits = isYearly ? 4900 : 500;
-    const rawCurrency = "USD";
+    // ── 1. Normalize Multi-Currency & Subunit Amounts (* 100) ───────────────
+    const normalizedCurrency: "USD" | "INR" =
+      String(currency).toUpperCase() === "INR" ? "INR" : "USD";
+
+    let amountInSubunits: number;
+    if (amount && Number(amount) > 0) {
+      amountInSubunits = Math.round(Number(amount));
+    } else {
+      // USD: $5/mo -> 500 cents, $49/yr -> 4900 cents
+      // INR: ₹420/mo -> 42000 paise, ₹4100/yr -> 410000 paise
+      if (normalizedCurrency === "INR") {
+        amountInSubunits = isYearly ? 410000 : 42000;
+      } else {
+        amountInSubunits = isYearly ? 4900 : 500;
+      }
+    }
 
     // ── 2. Attempt Order Creation via FastAPI Backend (Primary) ─────────────
     try {
@@ -30,9 +86,10 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({
             plan,
             amount: amountInSubunits,
-            currency: rawCurrency,
+            currency: normalizedCurrency,
             receipt,
-            user_email,
+            user_email: effectiveEmail,
+            user_id: authenticatedUserId,
           }),
           signal: AbortSignal.timeout(4000),
         }
@@ -72,16 +129,18 @@ export async function POST(req: NextRequest) {
 
     const receiptId =
       receipt ||
-      `rcpt_${plan}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      `rcpt_${plan}_${normalizedCurrency.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     const options = {
       amount: amountInSubunits,
-      currency: rawCurrency,
+      currency: normalizedCurrency,
       receipt: receiptId,
       notes: {
         plan,
-        base_price: isYearly ? 49 : 5,
-        user_email: user_email || "",
+        currency: normalizedCurrency,
+        base_price: normalizedCurrency === "INR" ? (isYearly ? 4100 : 420) : (isYearly ? 49 : 5),
+        user_email: effectiveEmail,
+        user_id: authenticatedUserId,
         service: "PRATHOMIX MasmSpace Pro",
       },
     };

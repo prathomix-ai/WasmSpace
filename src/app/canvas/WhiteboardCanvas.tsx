@@ -42,6 +42,7 @@ import LiveShareModal from "@/components/LiveShareModal";
 import LeftSidebar from "@/components/LeftSidebar";
 import ProUpgradeModal from "@/components/ProUpgradeModal";
 import PricingModal from "@/components/PricingModal";
+import VoiceAIPanel from "@/components/VoiceAIPanel";
 
 import { useVoiceControl } from "@/hooks/useVoiceControl";
 import { summarizeCanvas } from "@/lib/ai";
@@ -264,6 +265,7 @@ export default function WhiteboardCanvas() {
     action_limit: 15,
     tier: "free",
   });
+  const [isVoicePanelOpen, setIsVoicePanelOpen] = useState(false);
 
   // Sync PRO & Admin privileges from Supabase public.profiles & local storage
   useEffect(() => {
@@ -366,8 +368,19 @@ export default function WhiteboardCanvas() {
 
     syncSubscriptionTier();
 
+    const handleSubscriptionChange = () => {
+      syncSubscriptionTier();
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("masmspace_subscription_change", handleSubscriptionChange);
+    }
+
     return () => {
       isMounted = false;
+      if (typeof window !== "undefined") {
+        window.removeEventListener("masmspace_subscription_change", handleSubscriptionChange);
+      }
     };
   }, []);
 
@@ -409,6 +422,22 @@ export default function WhiteboardCanvas() {
   const [isSavingCloud, setIsSavingCloud] = useState(false);
   const [cloudSaveNotice, setCloudSaveNotice] = useState<string | null>(null);
   const [liveNotice, setLiveNotice] = useState<string | null>(null);
+
+  // Realtime canvas grid & theme preference states
+  const [canvasTheme, setCanvasTheme] = useState<"dark" | "light">(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("theme");
+      if (stored === "light" || stored === "dark") return stored;
+    }
+    return "dark";
+  });
+  const [canvasGrid, setCanvasGrid] = useState<"dots" | "lines" | "solid">(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("masmspace_canvas_grid");
+      if (stored === "dots" || stored === "lines" || stored === "solid") return stored;
+    }
+    return "dots";
+  });
 
   // Keyboard shortcut listener to toggle Full Screen (Ctrl+\ or Cmd+\)
   useEffect(() => {
@@ -1968,10 +1997,34 @@ export default function WhiteboardCanvas() {
       });
     }, 1000);
 
+    const handleBeforeUnload = () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+      if (broadcastChannelRef.current) {
+        broadcastChannelRef.current.close();
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("beforeunload", handleBeforeUnload);
+    }
+
     return () => {
       clearInterval(interval);
+      if (typeof window !== "undefined") {
+        window.removeEventListener("beforeunload", handleBeforeUnload);
+      }
       if (channel) supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
       if (bc) bc.close();
+      if (broadcastChannelRef.current) {
+        broadcastChannelRef.current.close();
+        broadcastChannelRef.current = null;
+      }
     };
   }, [activeFileId, activeRoomId, currentUser, excalidrawAPI]);
 
@@ -2312,8 +2365,8 @@ export default function WhiteboardCanvas() {
       } catch (err: any) {
         console.warn("[SaveToCloud] Error:", err?.message);
         if (isManual) {
-          setCloudSaveNotice("Save fallback active");
-          setTimeout(() => setCloudSaveNotice(null), 3000);
+          setCloudSaveNotice(`⚠️ Cloud sync notice: ${err?.message || "Saved locally to device cache"}`);
+          setTimeout(() => setCloudSaveNotice(null), 3500);
         }
       } finally {
         setIsSavingCloud(false);
@@ -2756,7 +2809,8 @@ export default function WhiteboardCanvas() {
     try {
       const elements = api.getSceneElements().filter((el: any) => !el.isDeleted);
       if (!elements || elements.length === 0) {
-        alert("Canvas is empty! Draw something first to capture a screenshot.");
+        setIndexingNotice("Canvas is empty! Draw something first to capture a screenshot.");
+        setTimeout(() => setIndexingNotice(null), 3500);
         return;
       }
 
@@ -2837,8 +2891,10 @@ export default function WhiteboardCanvas() {
         URL.revokeObjectURL(rawUrl);
       };
       img.src = rawUrl;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Screenshot capture failed:", err);
+      setIndexingNotice(`Screenshot notice: ${err?.message || "Failed to generate screenshot"}`);
+      setTimeout(() => setIndexingNotice(null), 3500);
     }
   }, [boardTitle, isProUser]);
 
@@ -3063,15 +3119,20 @@ export default function WhiteboardCanvas() {
         className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#06070a] to-[#020305]"
       />
       <div 
-        className="pointer-events-none absolute inset-0 z-0 opacity-20"
+        className="pointer-events-none absolute inset-0 z-0 opacity-20 transition-all duration-300"
         style={{
-          backgroundImage: "radial-gradient(rgba(0, 245, 255, 0.2) 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
+          backgroundImage:
+            canvasGrid === "solid"
+              ? "none"
+              : canvasGrid === "lines"
+              ? "linear-gradient(to right, rgba(0, 245, 255, 0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 245, 255, 0.12) 1px, transparent 1px)"
+              : "radial-gradient(rgba(0, 245, 255, 0.2) 1px, transparent 1px)",
+          backgroundSize: canvasGrid === "lines" ? "32px 32px" : "28px 28px",
         }}
       />
 
-      {/* ── 1. Custom Left Navigation Sidebar (Strict flex-shrink-0, no canvas overlap) ── */}
-      {!isPresentMode && isSidebarVisible && (
+      {/* ── 1. Custom Left Navigation Sidebar (Smooth CSS Transition for 100vw Canvas) ── */}
+      {!isPresentMode && (
         <LeftSidebar
           boardTitle={boardTitle}
           onBoardTitleChange={setBoardTitle}
@@ -3091,8 +3152,8 @@ export default function WhiteboardCanvas() {
           }
           onCodeStudioClick={() => setIsCodeWidgetOpen((prev) => !prev)}
           isCodeOpen={isCodeWidgetOpen}
-          onVoiceClick={toggleListening}
-          isVoiceListening={isListening}
+          onVoiceClick={() => setIsVoicePanelOpen((prev) => !prev)}
+          isVoiceListening={isVoicePanelOpen}
           onToggleExplorer={() => setIsExplorerOpen((prev) => !prev)}
           isExplorerOpen={isExplorerOpen}
           onTakeScreenshot={handleTakeScreenshot}
@@ -3105,7 +3166,7 @@ export default function WhiteboardCanvas() {
           isProUser={isProUser}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
-          onToggleSidebarVisibility={() => setIsSidebarVisible(false)}
+          onToggleSidebarVisibility={() => setIsSidebarVisible((prev) => !prev)}
           isSidebarVisible={isSidebarVisible}
           onSaveToCloud={() => handleSaveToCloud(true)}
           isSavingCloud={isSavingCloud}
@@ -3117,13 +3178,14 @@ export default function WhiteboardCanvas() {
       )}
 
       {/* ── 2. Excalidraw Canvas Wrapper (Flex-1 remaining space) ── */}
-      <div className={`flex-1 relative h-full w-full overflow-hidden z-10 ${isPresentMode ? "present-mode-active" : ""}`}>
+      <div className={`flex-1 relative h-full w-full overflow-hidden z-10 transition-all duration-300 ${isPresentMode ? "present-mode-active" : ""}`}>
         <Excalidraw
           excalidrawAPI={(api) => {
             excalidrawAPIRef.current = api;
             setExcalidrawAPI(api);
           }}
-          theme="dark"
+          theme={canvasTheme}
+          gridModeEnabled={canvasGrid !== "solid"}
           viewModeEnabled={false}
           zenModeEnabled={false}
           onChange={handleCanvasChange}
@@ -3330,7 +3392,7 @@ export default function WhiteboardCanvas() {
 
         {/* Code-on-Board Widget (Suppressed in Executive Focus Mode) */}
         {!isPresentMode && !isExecutiveMode && (
-          <div className="pointer-events-auto relative z-50">
+          <div className="pointer-events-auto relative z-[100]">
             <CodeOnBoardWidget
               isOpen={isCodeWidgetOpen}
               onClose={() => setIsCodeWidgetOpen(false)}
@@ -3342,6 +3404,17 @@ export default function WhiteboardCanvas() {
 
         {/* Modals & Dialogs (Active clicks enabled) */}
         <div className="pointer-events-auto">
+          {/* Cyberpunk Tiered Voice AI Panel */}
+          <VoiceAIPanel
+            isOpen={isVoicePanelOpen}
+            onClose={() => setIsVoicePanelOpen(false)}
+            excalidrawAPI={excalidrawAPIRef.current || excalidrawAPI}
+            onOpenUpgradeModal={() => {
+              setPricingModalReason("Upgrade to MasmSpace PRO for continuous dictation and multi-step complex voice commands.");
+              setShowPricingModal(true);
+            }}
+          />
+
           {/* Glassmorphic PRO Upgrade Modal */}
           <ProUpgradeModal
             isOpen={showProModal}
@@ -3380,11 +3453,36 @@ export default function WhiteboardCanvas() {
             isOpen={isSettingsOpen}
             onClose={() => setIsSettingsOpen(false)}
             onOpenUpgradeModal={() => setShowPricingModal(true)}
+            onProUpgradeSuccess={() => {
+              setIsProUser(true);
+              setAiUsage({ actions_used: 0, action_limit: 999999, tier: "pro" });
+            }}
             actionsUsed={aiUsage.actions_used}
             actionLimit={aiUsage.action_limit}
             tier={aiUsage.tier}
             autoSave={isAutoSave}
             onAutoSaveChange={(val) => setIsAutoSave(val)}
+            onGridTypeChange={(grid) => {
+              setCanvasGrid(grid);
+              if (excalidrawAPIRef.current) {
+                excalidrawAPIRef.current.updateScene({
+                  appState: {
+                    gridModeEnabled: grid !== "solid",
+                  },
+                });
+              }
+            }}
+            onThemeChange={(th) => {
+              const effectiveTheme = th === "system" ? "dark" : (th as "dark" | "light");
+              setCanvasTheme(effectiveTheme);
+              if (excalidrawAPIRef.current) {
+                excalidrawAPIRef.current.updateScene({
+                  appState: {
+                    theme: effectiveTheme,
+                  },
+                });
+              }
+            }}
             onClearAllData={() => {
               if (excalidrawAPIRef.current) {
                 excalidrawAPIRef.current.resetScene();
@@ -3742,6 +3840,19 @@ export default function WhiteboardCanvas() {
             </AnimatePresence>
           </>
         )}
+
+        {/* ── Voice AI Studio Floating Command Center (z-[100]) ── */}
+        <VoiceAIPanel
+          excalidrawAPI={excalidrawAPI || excalidrawAPIRef.current}
+          isOpen={isVoicePanelOpen}
+          onClose={() => setIsVoicePanelOpen(false)}
+          onOpenUpgradeModal={() => {
+            setPricingModalReason(
+              "Upgrade to PRO for continuous voice dictation and multi-step complex canvas commands."
+            );
+            setShowPricingModal(true);
+          }}
+        />
       </div>
     </div>
   </div>

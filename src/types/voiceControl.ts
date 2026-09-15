@@ -48,3 +48,48 @@ export interface VoiceCommandRule {
   patterns: RegExp[];
   actionDescription: string;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Advanced Multi-Step Action Pipeline Types (Free vs PRO)
+// ─────────────────────────────────────────────────────────────────────────────
+export type VoiceActionType =
+  | "add_shape"
+  | "add_text"
+  | "update_color"
+  | "resize_element"
+  | "delete"
+  | "duplicate"
+  | "clear_canvas"
+  | "select_all";
+
+export interface CanvasVoiceAction {
+  action: VoiceActionType;
+  type?: "rectangle" | "ellipse" | "diamond" | "arrow" | "line" | "text" | string;
+  x?: number;
+  y?: number;
+  id?: string;
+  targetId?: string;
+  shape?: "rectangle" | "ellipse" | "diamond" | "arrow" | "line";
+  text?: string;
+  color?: string; // hex or CSS color name
+  backgroundColor?: string;
+  width?: number;
+  height?: number;
+  scale?: number; // scale multiplier e.g. 2 for 2x larger
+  label?: string;
+  fontSize?: number;
+  isSelected?: boolean;
+}
+
+export interface VoiceCommandResponse {
+  success: boolean;
+  tier: "free" | "pro";
+  isPro: boolean;
+  actions: CanvasVoiceAction[];
+  rawTranscript: string;
+  requiresProForMultiStep?: boolean;
+  warning?: string;
+  error?: string;
+  code?: string;
+  latencyMs?: number;
+}

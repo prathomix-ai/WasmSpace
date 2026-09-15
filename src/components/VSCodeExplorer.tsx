@@ -81,6 +81,14 @@ export default function VSCodeExplorer({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Strict 5MB file size limit for performance & memory safety
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_FILE_SIZE) {
+      alert(`File "${file.name}" exceeds the 5MB size limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please upload a file under 5MB.`);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     try {
       setIsImportingPdf(true);
       setImportProgress({ current: 0, total: 1 });
