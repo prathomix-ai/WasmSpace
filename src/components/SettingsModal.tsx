@@ -31,6 +31,7 @@ import {
   RefreshCw,
   Receipt,
   Download,
+  Loader2,
   LogOut,
   Tag,
   Clock,
@@ -39,6 +40,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useCurrency } from "@/lib/currency";
 import { redeemPromoCode } from "@/lib/promo";
+import { downloadInvoicePdf } from "@/lib/invoicePdf";
 
 export interface SettingsModalProps {
   isOpen: boolean;
@@ -122,6 +124,29 @@ export function SettingsModal({
     message?: string;
   }>({ type: "idle" });
   const [proExpiryDate, setProExpiryDate] = useState<string | null>(null);
+
+  // Invoice PDF download state & handler
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
+
+  const handleDownloadInvoice = async (invoiceItem: {
+    id: string;
+    date: string;
+    amount: string;
+    tier?: string;
+    status?: string;
+  }) => {
+    try {
+      setDownloadingInvoiceId(invoiceItem.id);
+      await downloadInvoicePdf({
+        ...invoiceItem,
+        customerEmail: email,
+      });
+    } catch (err) {
+      console.error("[SettingsModal] Failed to download invoice PDF:", err);
+    } finally {
+      setDownloadingInvoiceId(null);
+    }
+  };
 
   const handleRedeemPromo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1563,25 +1588,47 @@ export function SettingsModal({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
-                          <tr>
-                            <td className="py-3 px-4 text-white font-medium">INV-2026-0901</td>
-                            <td className="py-3 px-4 text-zinc-400">Sep 1, 2026</td>
-                            <td className="py-3 px-4 text-white">$5.00 USD</td>
-                            <td className="py-3 px-4">
-                              <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                Paid
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-right">
-                              <button
-                                type="button"
-                                onClick={() => alert("Downloading invoice receipt...")}
-                                className="text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1 cursor-pointer"
-                              >
-                                <Download className="w-3.5 h-3.5" /> PDF
-                              </button>
-                            </td>
-                          </tr>
+                          {[
+                            {
+                              id: "INV-2026-0901",
+                              date: "Sep 1, 2026",
+                              amount: "$5.00 USD",
+                              tier: "MasmSpace PRO - 1 Month",
+                              status: "PAID",
+                            },
+                          ].map((inv) => (
+                            <tr key={inv.id}>
+                              <td className="py-3 px-4 text-white font-medium">{inv.id}</td>
+                              <td className="py-3 px-4 text-zinc-400">{inv.date}</td>
+                              <td className="py-3 px-4 text-white">{inv.amount}</td>
+                              <td className="py-3 px-4">
+                                <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                                  Paid
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                <button
+                                  type="button"
+                                  disabled={downloadingInvoiceId === inv.id}
+                                  onClick={() => handleDownloadInvoice(inv)}
+                                  className="text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs font-semibold"
+                                  title={`Download ${inv.id} PDF`}
+                                >
+                                  {downloadingInvoiceId === inv.id ? (
+                                    <>
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      <span>Generating...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Download className="w-3.5 h-3.5" />
+                                      <span>PDF</span>
+                                    </>
+                                  )}
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     ) : (
