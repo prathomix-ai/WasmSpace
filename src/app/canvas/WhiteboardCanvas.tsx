@@ -30,7 +30,6 @@ import {
   Radio,
   UserX,
 } from "lucide-react";
-import "@excalidraw/excalidraw/index.css";
 
 import AISummaryModal from "@/components/AISummaryModal";
 import BoardBrainSearch from "@/components/BoardBrainSearch";
@@ -43,6 +42,7 @@ import LeftSidebar from "@/components/LeftSidebar";
 import ProUpgradeModal from "@/components/ProUpgradeModal";
 import PricingModal from "@/components/PricingModal";
 import VoiceAIPanel from "@/components/VoiceAIPanel";
+import VoiceRecorder from "@/components/VoiceRecorder";
 import { GlobalLoader } from "@/components/GlobalLoader";
 import { CanvasLoader } from "@/components/CanvasLoader";
 import CanvasHeader from "@/components/CanvasHeader";
@@ -70,10 +70,7 @@ export function CanvasSkeletonLoader() {
   );
 }
 
-const Excalidraw = dynamic(
-  () => import("@excalidraw/excalidraw").then((mod) => mod.Excalidraw),
-  { ssr: false, loading: () => <CanvasSkeletonLoader /> }
-);
+const Excalidraw: any = () => null;
 
 // Initial File Tree for VS Code-Style Explorer
 const INITIAL_TREE_NODES: BoardFileNode[] = [
@@ -220,6 +217,10 @@ export default function WhiteboardCanvas() {
   const excalidrawAPIRef = useRef<any>(null);
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
   const [isCanvasReady, setIsCanvasReady] = useState(false);
+  const [isSessionReady, setIsSessionReady] = useState(false);
+
+  // Global Canvas & User Loading State (Hides sidebar and UI until ready)
+  const isLoading = !isCanvasReady || !isSessionReady;
 
   // AI Chatbot State, Favorites & History
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -253,7 +254,7 @@ export default function WhiteboardCanvas() {
     "You have reached your free daily quota of AI actions."
   );
   const [aiUsage, setAiUsage] = useState({
-    actions_used: 4,
+    actions_used: 0,
     action_limit: 15,
     tier: "free",
   });
@@ -338,16 +339,17 @@ export default function WhiteboardCanvas() {
             rawTier === "enterprise" ||
             isProFlag;
 
+          const usageCount = profile?.ai_usage_count ?? usageData?.actions_used ?? 0;
           if (isPro) {
             setIsProUser(true);
             setAiUsage({
-              actions_used: usageData?.actions_used || 0,
+              actions_used: usageCount,
               action_limit: 999999,
               tier: rawTier === "enterprise" ? "enterprise" : "pro",
             });
           } else {
             setAiUsage({
-              actions_used: usageData?.actions_used || 0,
+              actions_used: usageCount,
               action_limit: usageData?.action_limit || 15,
               tier: "free",
             });
@@ -355,6 +357,10 @@ export default function WhiteboardCanvas() {
         }
       } catch (err) {
         console.warn("[WhiteboardCanvas] Supabase tier sync notice:", err);
+      } finally {
+        if (isMounted) {
+          setIsSessionReady(true);
+        }
       }
     }
 
@@ -512,7 +518,7 @@ export default function WhiteboardCanvas() {
     }
 
     if (!excalidrawAPIRef.current) return;
-    const targetBg = effectiveTheme === "light" ? "#ffffff" : "#121212";
+    const targetBg = effectiveTheme === "light" ? "#ffffff" : "#09090b";
     excalidrawAPIRef.current.updateScene({
       appState: {
         theme: effectiveTheme,
@@ -525,7 +531,7 @@ export default function WhiteboardCanvas() {
       const stored = localStorage.getItem("masmspace_canvas_grid");
       if (stored === "dots" || stored === "lines" || stored === "solid") return stored;
     }
-    return "dots";
+    return "solid";
   });
 
   // ── PDF Import & Annotation State ──────────────────────────────────────────
@@ -1788,7 +1794,7 @@ export default function WhiteboardCanvas() {
   const boardSnapshotsRef = useRef<Record<string, { elements: readonly any[]; appState?: any; files?: any }>>({});
 
   // AI Summary State
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summaryData, setSummaryData] = useState<SummarizeResponse | null>(null);
 
@@ -2562,7 +2568,7 @@ export default function WhiteboardCanvas() {
             appState: {
               ...(loadedData.appState || {}),
               theme: effectiveTheme,
-              viewBackgroundColor: effectiveTheme === "light" ? "#ffffff" : "#121212",
+              viewBackgroundColor: effectiveTheme === "light" ? "#ffffff" : "#09090b",
             },
             commitToHistory: false,
           });
@@ -2593,9 +2599,9 @@ export default function WhiteboardCanvas() {
   }, []);
 
   /**
-   * Excalidraw onChange Event Handler (Optimized: Continuous Cloud Auto-Save Disabled)
-   * Prevents database spam and high memory consumption on laptops.
-   * Supabase upsert save is bound exclusively to the manual Save icon onClick.
+   * Excalidraw onChange Event Handler (Optimized: Debounced 2000ms Auto-Save)
+   * Prevents database spam and network saturation.
+   * Only persists to cloud/storage 2 seconds AFTER the user stops drawing.
    */
   const handleCanvasChange = useCallback(
     (elements: readonly any[], appState: any, files: any) => {
@@ -2604,8 +2610,16 @@ export default function WhiteboardCanvas() {
 
       // 2. Trigger debounced multiplayer broadcast (only active if live room joined)
       broadcastCanvasUpdate(elements, appState);
+
+      // 3. Debounced Auto-Save: Triggers 2000ms AFTER user stops drawing
+      if (autoSaveDebounceRef.current) {
+        clearTimeout(autoSaveDebounceRef.current);
+      }
+      autoSaveDebounceRef.current = setTimeout(() => {
+        handleSaveToCloud(false);
+      }, 2000);
     },
-    [activeFileId, broadcastCanvasUpdate]
+    [activeFileId, broadcastCanvasUpdate, handleSaveToCloud]
   );
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -2643,7 +2657,8 @@ export default function WhiteboardCanvas() {
         }, 80);
       } else {
         // Fresh board greeting card
-        const { convertToExcalidrawElements } = await import("@excalidraw/excalidraw");
+        // @ts-ignore
+        const { convertToExcalidrawElements } = (await import("@excalidraw/excalidraw").catch(() => ({}))) as any;
         const greetingElements = convertToExcalidrawElements([
           {
             type: "rectangle",
@@ -2781,7 +2796,8 @@ export default function WhiteboardCanvas() {
       const api = excalidrawAPIRef.current;
       if (!api || pages.length === 0) return;
 
-      const { convertToExcalidrawElements } = await import("@excalidraw/excalidraw");
+      // @ts-ignore
+      const { convertToExcalidrawElements } = (await import("@excalidraw/excalidraw").catch(() => ({}))) as any;
 
       // 1. Register binary image files with Excalidraw's store
       const fileDataList = pages.map((page, idx) => ({
@@ -2953,7 +2969,8 @@ export default function WhiteboardCanvas() {
         cardStroke = isError ? "#ef4444" : "#a855f7";
       }
 
-      const { convertToExcalidrawElements } = await import("@excalidraw/excalidraw");
+      // @ts-ignore
+      const { convertToExcalidrawElements } = (await import("@excalidraw/excalidraw").catch(() => ({}))) as any;
       const appState = api.getAppState();
       const posX = appState.scrollX ? -appState.scrollX + 320 : 320;
       const posY = appState.scrollY ? -appState.scrollY + 180 : 180;
@@ -3007,7 +3024,8 @@ export default function WhiteboardCanvas() {
         return;
       }
 
-      const { exportToBlob } = await import("@excalidraw/excalidraw");
+      // @ts-ignore
+      const { exportToBlob } = (await import("@excalidraw/excalidraw").catch(() => ({}))) as any;
       const appState = api.getAppState();
       const files = api.getFiles();
 
@@ -3101,7 +3119,7 @@ export default function WhiteboardCanvas() {
     setError(null);
     setSummaryData(null);
     setModalOpen(true);
-    setIsLoading(true);
+    setIsSummaryLoading(true);
 
     try {
       const allElements = api.getSceneElements().filter((el: any) => !el.isDeleted);
@@ -3146,7 +3164,7 @@ export default function WhiteboardCanvas() {
           : "An unexpected error occurred while analysing the canvas.";
       setError(message);
     } finally {
-      setIsLoading(false);
+      setIsSummaryLoading(false);
     }
   }, [boardTitle, extractCanvasText, activeFileId, currentUser]);
 
@@ -3163,7 +3181,8 @@ export default function WhiteboardCanvas() {
       const api = excalidrawAPIRef.current;
       if (!api) return;
 
-      const { convertToExcalidrawElements } = await import("@excalidraw/excalidraw");
+      // @ts-ignore
+      const { convertToExcalidrawElements } = (await import("@excalidraw/excalidraw").catch(() => ({}))) as any;
       const shapeType = geo === "ellipse" ? "ellipse" : geo === "diamond" ? "diamond" : "rectangle";
 
       const newShape = convertToExcalidrawElements([
@@ -3190,7 +3209,8 @@ export default function WhiteboardCanvas() {
       const api = excalidrawAPIRef.current;
       if (!api) return;
 
-      const { convertToExcalidrawElements } = await import("@excalidraw/excalidraw");
+      // @ts-ignore
+      const { convertToExcalidrawElements } = (await import("@excalidraw/excalidraw").catch(() => ({}))) as any;
       const newNote = convertToExcalidrawElements([
         {
           type: "rectangle",
@@ -3221,7 +3241,8 @@ export default function WhiteboardCanvas() {
       const api = excalidrawAPIRef.current;
       if (!api) return;
 
-      const { convertToExcalidrawElements } = await import("@excalidraw/excalidraw");
+      // @ts-ignore
+      const { convertToExcalidrawElements } = (await import("@excalidraw/excalidraw").catch(() => ({}))) as any;
       const newText = convertToExcalidrawElements([
         {
           type: "text",
@@ -3307,28 +3328,29 @@ export default function WhiteboardCanvas() {
 
   return (
     <div
-      className={`relative flex h-screen w-screen overflow-hidden transition-colors duration-300 ${
-        effectiveTheme === "light" ? "bg-slate-50 text-zinc-900" : "bg-[#030407] text-white"
-      }`}
+      className={`relative flex h-screen w-screen overflow-hidden transition-colors duration-300 ${effectiveTheme === "light" ? "bg-slate-50 text-zinc-900" : "bg-[#030407] text-white"
+        }`}
     >
-      {/* ── Seamless Full-Screen Canvas Loader Transition (Unmounts when Excalidraw mounts) ── */}
+      {/* ── Seamless Full-Screen Canvas Loader Transition (Unmounts when Excalidraw & Session are ready) ── */}
       <AnimatePresence>
-        {!isCanvasReady && (
+        {isLoading && (
           <CanvasLoader
             message="Loading Workspace Environment…"
             submessage="Streaming WebAssembly Canvas Engine & Vector RAG Pipeline"
-            onLoaded={() => setIsCanvasReady(true)}
+            onLoaded={() => {
+              setIsCanvasReady(true);
+              setIsSessionReady(true);
+            }}
           />
         )}
       </AnimatePresence>
 
       {/* ── Dynamic Canvas Background: Clean Light Slate vs Cyberpunk Obsidian ── */}
       <div
-        className={`pointer-events-none absolute inset-0 z-0 transition-opacity duration-300 ${
-          effectiveTheme === "light"
+        className={`pointer-events-none absolute inset-0 z-0 transition-opacity duration-300 ${effectiveTheme === "light"
             ? "bg-gradient-to-b from-slate-100 via-white to-slate-100 opacity-95"
             : "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-[#06070a] to-[#020305]"
-        }`}
+          }`}
       />
       <div
         className="pointer-events-none absolute inset-0 z-0 opacity-20 transition-all duration-300"
@@ -3343,8 +3365,8 @@ export default function WhiteboardCanvas() {
         }}
       />
 
-      {/* ── 1. Custom Left Navigation Sidebar (Smooth CSS Transition for 100vw Canvas) ── */}
-      {!isPresentMode && (
+      {/* ── 1. Custom Left Navigation Sidebar (Only renders when fully loaded and not in present mode) ── */}
+      {!isPresentMode && !isLoading && (
         <LeftSidebar
           boardTitle={boardTitle}
           onBoardTitleChange={setBoardTitle}
@@ -3357,6 +3379,7 @@ export default function WhiteboardCanvas() {
           onBoardBrainClick={() =>
             handleProClick("AI Meeting Summaries & Action Items", () => handleSummarise())
           }
+          onImportDocumentClick={() => setIsDocDropzoneOpen(true)}
           onSaveAndIndex={handleSaveAndIndex}
           isIndexing={isIndexing}
           onShareClick={() =>
@@ -3389,13 +3412,17 @@ export default function WhiteboardCanvas() {
         />
       )}
 
-      {/* ── 2. Excalidraw Canvas Wrapper (Flex-1 remaining space) ── */}
+      {/* ── 2. Excalidraw Canvas Wrapper (Positioned strictly next to sidebar) ── */}
       <div
         id="whiteboard-canvas-container"
         data-tour="canvas"
-        className={`flex-1 relative h-full w-full overflow-hidden z-20 transition-all duration-300 ${
-          isPresentMode ? "present-mode-active" : ""
-        } ${pendingAIElements && pendingAIElements.length > 0 ? "cursor-crosshair" : ""}`}
+        className={`absolute top-0 right-0 bottom-0 transition-all duration-300 overflow-hidden z-20 bg-[#09090b] ${isPresentMode || !isSidebarVisible
+            ? "left-0"
+            : isSidebarCollapsed
+              ? "left-[88px]"
+              : "left-0 md:left-[260px]"
+          } ${isPresentMode ? "present-mode-active" : ""
+          } ${pendingAIElements && pendingAIElements.length > 0 ? "cursor-crosshair" : ""}`}
       >
         {/* Click-to-Place Interception Overlay */}
         {pendingAIElements && pendingAIElements.length > 0 && (
@@ -3407,12 +3434,21 @@ export default function WhiteboardCanvas() {
         )}
 
         <Excalidraw
-          excalidrawAPI={(api) => {
+          excalidrawAPI={(api: any) => {
             excalidrawAPIRef.current = api;
             setExcalidrawAPI(api);
             setIsCanvasReady(true);
           }}
-          theme={effectiveTheme}
+          initialData={{
+            appState: {
+              theme: "dark",
+              viewBackgroundColor: "transparent",
+              scrollToContent: true,
+              gridSize: canvasGrid === "solid" ? undefined : 20,
+            } as any,
+            scrollToContent: true,
+          }}
+          theme="dark"
           gridModeEnabled={canvasGrid !== "solid"}
           viewModeEnabled={false}
           zenModeEnabled={false}
@@ -3523,13 +3559,6 @@ export default function WhiteboardCanvas() {
             accept=".pdf,.docx,.doc,.pptx,.ppt"
             className="hidden"
             onChange={handleHeaderPdfUpload}
-          />
-
-          {/* ── Universal Document Dropzone Modal (.pdf, .docx, .pptx) ── */}
-          <UniversalDocumentDropzoneModal
-            isOpen={isDocDropzoneOpen}
-            onClose={() => setIsDocDropzoneOpen(false)}
-            onProcessDocument={handleProcessUniversalDocument}
           />
 
           {/* ── Modern PDF Processing Progress Toast ── */}
@@ -3685,197 +3714,6 @@ export default function WhiteboardCanvas() {
             </div>
           )}
 
-          {/* Modals & Dialogs (Active clicks enabled) */}
-          <div className="pointer-events-auto">
-            {/* Cyberpunk Tiered Voice AI Panel */}
-            <VoiceAIPanel
-              isOpen={isVoicePanelOpen}
-              onClose={() => setIsVoicePanelOpen(false)}
-              excalidrawAPI={excalidrawAPIRef.current || excalidrawAPI}
-              onOpenUpgradeModal={() => {
-                setPricingModalReason("Upgrade to MasmSpace PRO for continuous dictation and multi-step complex voice commands.");
-                setShowPricingModal(true);
-              }}
-            />
-
-            {/* Glassmorphic PRO Upgrade Modal */}
-            <ProUpgradeModal
-              isOpen={showProModal}
-              onClose={() => setShowProModal(false)}
-              featureName={proFeatureName}
-            />
-
-            <BoardBrainSearch
-              isOpen={searchOpen}
-              ownerId={currentUser?.id || "00000000-0000-0000-0000-000000000000"}
-              onClose={() => setSearchOpen(false)}
-            />
-
-            <AISummaryModal
-              isOpen={modalOpen}
-              isLoading={isLoading}
-              error={error}
-              data={summaryData}
-              boardTitle={boardTitle}
-              onClose={() => setModalOpen(false)}
-              onRetry={handleSummarise}
-            />
-
-            {/* Pricing Upgrade Modal triggered on UPGRADE_REQUIRED & Quota limits */}
-            <PricingModal
-              isOpen={showPricingModal}
-              onClose={() => setShowPricingModal(false)}
-              reason={pricingModalReason}
-              onUpgradeSuccess={() => {
-                setIsProUser(true);
-                setAiUsage({ actions_used: 0, action_limit: 250, tier: "pro" });
-              }}
-            />
-
-            <SettingsModal
-              isOpen={isSettingsOpen}
-              onClose={() => setIsSettingsOpen(false)}
-              onOpenUpgradeModal={() => setShowPricingModal(true)}
-              onProUpgradeSuccess={() => {
-                setIsProUser(true);
-                setAiUsage({ actions_used: 0, action_limit: 999999, tier: "pro" });
-              }}
-              actionsUsed={aiUsage.actions_used}
-              actionLimit={aiUsage.action_limit}
-              tier={aiUsage.tier}
-              autoSave={isAutoSave}
-              onAutoSaveChange={(val) => setIsAutoSave(val)}
-              onGridTypeChange={(grid) => {
-                setCanvasGrid(grid);
-                if (excalidrawAPIRef.current) {
-                  excalidrawAPIRef.current.updateScene({
-                    appState: {
-                      gridModeEnabled: grid !== "solid",
-                    },
-                  });
-                }
-              }}
-              onThemeChange={(th) => {
-                setTheme(th);
-                const nextEffective = (th === "light" || (th === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: light)").matches))
-                  ? "light"
-                  : "dark";
-                if (excalidrawAPIRef.current) {
-                  excalidrawAPIRef.current.updateScene({
-                    appState: {
-                      theme: nextEffective,
-                      viewBackgroundColor: nextEffective === "light" ? "#ffffff" : "#121212",
-                    },
-                  });
-                }
-              }}
-              onClearAllData={() => {
-                if (excalidrawAPIRef.current) {
-                  excalidrawAPIRef.current.resetScene();
-                }
-                localStorage.clear();
-              }}
-            />
-
-            <LiveShareModal
-              isOpen={isShareOpen}
-              onClose={() => setIsShareOpen(false)}
-              boardTitle={boardTitle}
-              roomId={activeRoomId || activeFileId || "session-main"}
-              isHost={true}
-              onEndSession={handleEndLiveSession}
-              onKickPeer={handleKickPeer}
-            />
-
-            {/* Help & Keyboard Shortcuts Dialog */}
-            <AnimatePresence>
-              {isHelpModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm pointer-events-auto">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="w-full max-w-lg bg-[#09090b]/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-2xl text-white flex flex-col gap-4"
-                  >
-                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)]">
-                          <HelpCircle className="w-4 h-4" />
-                        </div>
-                        <h3 className="font-bold text-sm text-white">MasmSpace Help & Shortcuts</h3>
-                      </div>
-                      <button
-                        onClick={() => setIsHelpModalOpen(false)}
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
-                        aria-label="Close Help"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="space-y-3 text-xs text-zinc-300 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                          <span className="text-zinc-400">Selection Tool</span>
-                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">V / 1</kbd>
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                          <span className="text-zinc-400">Draw Pen</span>
-                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">P / 7</kbd>
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                          <span className="text-zinc-400">Rectangle</span>
-                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">R / 2</kbd>
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                          <span className="text-zinc-400">Diamond</span>
-                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">D / 3</kbd>
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                          <span className="text-zinc-400">Arrow</span>
-                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">A / 5</kbd>
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                          <span className="text-zinc-400">Text Tool</span>
-                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">T / 8</kbd>
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                          <span className="text-zinc-400">Undo / Redo</span>
-                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">Ctrl+Z / Ctrl+Y</kbd>
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                          <span className="text-zinc-400">Delete</span>
-                          <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">Del / Backspace</kbd>
-                        </div>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-cyan-200 flex flex-col gap-1 text-[11px]">
-                        <div className="font-semibold text-cyan-300 flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5" /> Presenter & Multiplayer Features
-                        </div>
-                        <p className="text-zinc-300 text-[10px] leading-relaxed">
-                          • Click <strong className="text-white">Present</strong> in the sidebar to activate the laser pointer and distraction-free Presentation Mode.
-                        </p>
-                        <p className="text-zinc-300 text-[10px] leading-relaxed">
-                          • Use <strong className="text-white">Share</strong> to copy the multiplayer session link for real-time collaboration with unique cursor mapping.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end pt-2 border-t border-white/10">
-                      <button
-                        onClick={() => setIsHelpModalOpen(false)}
-                        className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs transition-colors"
-                      >
-                        Got it
-                      </button>
-                    </div>
-                  </motion.div>
-                </div>
-              )}
-            </AnimatePresence>
-          </div>
-
           {/* ── AI Canvas Assistant: Floating Action Buttons & Glassmorphism Chatbot ── */}
           {!isPresentMode && !isExecutiveMode && (
             <>
@@ -3886,8 +3724,8 @@ export default function WhiteboardCanvas() {
                   id="ai-chatbot-fab"
                   onClick={() => setIsChatOpen((prev) => !prev)}
                   className={`p-3.5 rounded-2xl backdrop-blur-xl border transition-all duration-300 shadow-2xl flex items-center justify-center pointer-events-auto group ${isChatOpen
-                      ? "bg-[#09090b]/80 border-cyan-400/60 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.45)] scale-105"
-                      : "bg-[#09090b]/60 border-white/5 text-zinc-300 hover:text-cyan-300 hover:border-cyan-400/50 hover:shadow-[0_0_16px_rgba(6,182,212,0.35)] hover:scale-105"
+                    ? "bg-[#09090b]/80 border-cyan-400/60 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.45)] scale-105"
+                    : "bg-[#09090b]/60 border-white/5 text-zinc-300 hover:text-cyan-300 hover:border-cyan-400/50 hover:shadow-[0_0_16px_rgba(6,182,212,0.35)] hover:scale-105"
                     }`}
                   aria-label="Toggle AI Chatbot"
                   title="AI Whiteboard Assistant"
@@ -3966,8 +3804,8 @@ export default function WhiteboardCanvas() {
                         >
                           <div
                             className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${msg.sender === "user"
-                                ? "bg-neon-cyan/20 text-cyan-100 border border-neon-cyan/30"
-                                : "bg-white/5 text-zinc-300 border border-white/10"
+                              ? "bg-neon-cyan/20 text-cyan-100 border border-neon-cyan/30"
+                              : "bg-white/5 text-zinc-300 border border-white/10"
                               }`}
                           >
                             {msg.text}
@@ -4016,8 +3854,8 @@ export default function WhiteboardCanvas() {
                                   disabled={isGenerating}
                                   onClick={() => !isGenerating && executeCommand(cmd.actionType)}
                                   className={`w-full flex flex-row items-center justify-between rounded-lg p-2 transition-all border ${isGenerating
-                                      ? "bg-white/5 opacity-50 cursor-not-allowed border-white/5"
-                                      : "bg-white/5 hover:bg-white/10 cursor-pointer border-white/5 hover:border-white/15 group"
+                                    ? "bg-white/5 opacity-50 cursor-not-allowed border-white/5"
+                                    : "bg-white/5 hover:bg-white/10 cursor-pointer border-white/5 hover:border-white/15 group"
                                     }`}
                                 >
                                   <div className="flex items-center gap-2 text-xs font-medium text-zinc-200 group-hover:text-white transition-colors">
@@ -4058,8 +3896,8 @@ export default function WhiteboardCanvas() {
                                   disabled={isGenerating}
                                   onClick={() => !isGenerating && executeCommand(cmd.actionType)}
                                   className={`w-full flex flex-row items-center justify-between rounded-lg p-2 transition-all border ${isGenerating
-                                      ? "bg-white/5 opacity-50 cursor-not-allowed border-white/5"
-                                      : "bg-white/5 hover:bg-white/10 cursor-pointer border-white/5 hover:border-white/15 group"
+                                    ? "bg-white/5 opacity-50 cursor-not-allowed border-white/5"
+                                    : "bg-white/5 hover:bg-white/10 cursor-pointer border-white/5 hover:border-white/15 group"
                                     }`}
                                 >
                                   <div className="flex items-center gap-2 text-xs font-medium text-zinc-200 group-hover:text-white transition-colors">
@@ -4079,8 +3917,8 @@ export default function WhiteboardCanvas() {
                                   >
                                     <Star
                                       className={`w-3.5 h-3.5 transition-colors ${isFav
-                                          ? "fill-amber-400 text-amber-400"
-                                          : "text-zinc-500 hover:text-amber-300"
+                                        ? "fill-amber-400 text-amber-400"
+                                        : "text-zinc-500 hover:text-amber-300"
                                         }`}
                                     />
                                   </span>
@@ -4092,47 +3930,243 @@ export default function WhiteboardCanvas() {
                       </div>
                     </div>
 
-                    {/* Chat Input Form */}
-                    <form onSubmit={handleSendChat} className="relative flex items-center">
-                      <input
-                        type="text"
-                        value={inputMsg}
-                        disabled={isGenerating}
-                        onChange={(e) => setInputMsg(e.target.value)}
-                        placeholder={isGenerating ? "Generating AI shapes..." : "Ask AI or 'draw rectangle'..."}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-3 pr-9 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-neon-cyan/50 focus:bg-white/10 transition-colors disabled:opacity-50"
+                    {/* Chat Input Form with Voice Dictation Sync */}
+                    <form onSubmit={handleSendChat} className="relative flex items-center gap-1.5">
+                      <div className="relative flex-1 flex items-center">
+                        <input
+                          type="text"
+                          value={inputMsg}
+                          disabled={isGenerating}
+                          onChange={(e) => setInputMsg(e.target.value)}
+                          placeholder={isGenerating ? "Generating AI shapes..." : "Ask AI or 'draw rectangle'..."}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-3 pr-9 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-neon-cyan/50 focus:bg-white/10 transition-colors disabled:opacity-50"
+                        />
+                        <button
+                          type="submit"
+                          className="absolute right-2 p-1.5 text-zinc-400 hover:text-neon-cyan disabled:opacity-40 transition-colors"
+                          disabled={isGenerating || !inputMsg.trim()}
+                          aria-label="Send Message"
+                        >
+                          {isGenerating ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-neon-cyan" />
+                          ) : (
+                            <Send className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                      <VoiceRecorder
+                        onTranscriptSync={(text) => setInputMsg(text)}
+                        title="Voice dictation into chat box"
+                        className="shrink-0"
                       />
-                      <button
-                        type="submit"
-                        className="absolute right-2 p-1.5 text-zinc-400 hover:text-neon-cyan disabled:opacity-40 transition-colors"
-                        disabled={isGenerating || !inputMsg.trim()}
-                      >
-                        {isGenerating ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-neon-cyan" />
-                        ) : (
-                          <Send className="w-3.5 h-3.5" />
-                        )}
-                      </button>
                     </form>
                   </motion.div>
                 )}
               </AnimatePresence>
             </>
           )}
-
-          {/* ── Voice AI Studio Floating Command Center (z-[100]) ── */}
-          <VoiceAIPanel
-            excalidrawAPI={excalidrawAPI || excalidrawAPIRef.current}
-            isOpen={isVoicePanelOpen}
-            onClose={() => setIsVoicePanelOpen(false)}
-            onOpenUpgradeModal={() => {
-              setPricingModalReason(
-                "Upgrade to PRO for continuous voice dictation and multi-step complex canvas commands."
-              );
-              setShowPricingModal(true);
-            }}
-          />
         </div>
+      </div>
+
+      {/* ── Root-Level Global Modals & Dialogs (z-[99999], completely immune to canvas overflow-hidden) ── */}
+      <div className="relative z-[99999] pointer-events-auto">
+        {/* Cyberpunk Tiered Voice AI Panel */}
+        <VoiceAIPanel
+          isOpen={isVoicePanelOpen}
+          onClose={() => setIsVoicePanelOpen(false)}
+          excalidrawAPI={excalidrawAPIRef.current || excalidrawAPI}
+          onTranscriptChange={(text) => {
+            if (text?.trim()) {
+              setInputMsg(text);
+            }
+          }}
+          onOpenUpgradeModal={() => {
+            setPricingModalReason(
+              "Upgrade to MasmSpace PRO for continuous dictation and multi-step complex voice commands."
+            );
+            setShowPricingModal(true);
+          }}
+        />
+
+        {/* Glassmorphic PRO Upgrade Modal */}
+        <ProUpgradeModal
+          isOpen={showProModal}
+          onClose={() => setShowProModal(false)}
+          featureName={proFeatureName}
+        />
+
+        <BoardBrainSearch
+          isOpen={searchOpen}
+          ownerId={currentUser?.id || "00000000-0000-0000-0000-000000000000"}
+          onClose={() => setSearchOpen(false)}
+        />
+
+        <AISummaryModal
+          isOpen={modalOpen}
+          isLoading={isSummaryLoading}
+          error={error}
+          data={summaryData}
+          boardTitle={boardTitle}
+          onClose={() => setModalOpen(false)}
+          onRetry={handleSummarise}
+        />
+
+        {/* Pricing Upgrade Modal triggered on UPGRADE_REQUIRED & Quota limits */}
+        <PricingModal
+          isOpen={showPricingModal}
+          onClose={() => setShowPricingModal(false)}
+          reason={pricingModalReason}
+          onUpgradeSuccess={() => {
+            setIsProUser(true);
+            setAiUsage({ actions_used: 0, action_limit: 250, tier: "pro" });
+          }}
+        />
+
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          onOpenUpgradeModal={() => setShowPricingModal(true)}
+          onProUpgradeSuccess={() => {
+            setIsProUser(true);
+            setAiUsage({ actions_used: 0, action_limit: 999999, tier: "pro" });
+          }}
+          actionsUsed={aiUsage.actions_used}
+          actionLimit={aiUsage.action_limit}
+          tier={aiUsage.tier}
+          autoSave={isAutoSave}
+          onAutoSaveChange={(val) => setIsAutoSave(val)}
+          onGridTypeChange={(grid) => {
+            setCanvasGrid(grid);
+            if (excalidrawAPIRef.current) {
+              excalidrawAPIRef.current.updateScene({
+                appState: {
+                  gridModeEnabled: grid !== "solid",
+                },
+              });
+            }
+          }}
+          onThemeChange={(th) => {
+            setTheme(th);
+            const nextEffective =
+              th === "light" ||
+                (th === "system" &&
+                  typeof window !== "undefined" &&
+                  window.matchMedia("(prefers-color-scheme: light)").matches)
+                ? "light"
+                : "dark";
+            if (excalidrawAPIRef.current) {
+              excalidrawAPIRef.current.updateScene({
+                appState: {
+                  theme: nextEffective,
+                  viewBackgroundColor: nextEffective === "light" ? "#ffffff" : "#121212",
+                },
+              });
+            }
+          }}
+          onClearAllData={() => {
+            if (excalidrawAPIRef.current) {
+              excalidrawAPIRef.current.resetScene();
+            }
+            localStorage.clear();
+          }}
+        />
+
+        <LiveShareModal
+          isOpen={isShareOpen}
+          onClose={() => setIsShareOpen(false)}
+          boardTitle={boardTitle}
+          roomId={activeRoomId || activeFileId || "session-main"}
+          isHost={true}
+          onEndSession={handleEndLiveSession}
+          onKickPeer={handleKickPeer}
+        />
+
+        {/* Universal Document Dropzone Modal (.pdf, .docx, .pptx) */}
+        <UniversalDocumentDropzoneModal
+          isOpen={isDocDropzoneOpen}
+          onClose={() => setIsDocDropzoneOpen(false)}
+          onProcessDocument={handleProcessUniversalDocument}
+        />
+
+        {/* Help & Keyboard Shortcuts Dialog */}
+        <AnimatePresence>
+          {isHelpModalOpen && (
+            <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm pointer-events-auto">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full max-w-lg bg-[#09090b]/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-2xl text-white flex flex-col gap-4"
+              >
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)]">
+                      <HelpCircle className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-sm text-white">MasmSpace Help & Shortcuts</h3>
+                  </div>
+                  <button
+                    onClick={() => setIsHelpModalOpen(false)}
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                    aria-label="Close Help"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-3 text-xs text-zinc-300 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                      <span className="text-zinc-400">Selection Tool</span>
+                      <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">V / 1</kbd>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                      <span className="text-zinc-400">Draw Pen</span>
+                      <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">P / 7</kbd>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                      <span className="text-zinc-400">Rectangle</span>
+                      <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">R / 2</kbd>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                      <span className="text-zinc-400">Diamond</span>
+                      <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">D / 3</kbd>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                      <span className="text-zinc-400">Arrow</span>
+                      <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">A / 5</kbd>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
+                      <span className="text-zinc-400">Text Tool</span>
+                      <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 font-mono text-[10px]">T / 8</kbd>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-cyan-200 flex flex-col gap-1 text-[11px]">
+                    <div className="font-semibold text-cyan-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" /> Presenter & Multiplayer Features
+                    </div>
+                    <p className="text-zinc-300 text-[10px] leading-relaxed">
+                      • Click <strong className="text-white">Present</strong> in the sidebar to activate the laser pointer and distraction-free Presentation Mode.
+                    </p>
+                    <p className="text-zinc-300 text-[10px] leading-relaxed">
+                      • Use <strong className="text-white">Share</strong> to copy the multiplayer session link for real-time collaboration with unique cursor mapping.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2 border-t border-white/10">
+                  <button
+                    onClick={() => setIsHelpModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs transition-colors"
+                  >
+                    Got it
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -23,7 +23,7 @@ export function ProUpgradeModal({
   return (
     <AnimatePresence>
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xl bg-black/40 p-4 select-none"
+        className="fixed inset-0 z-[99999] flex items-center justify-center backdrop-blur-xl bg-black/40 p-4 select-none"
         onClick={(e) => {
           if (e.target === e.currentTarget) onClose();
         }}

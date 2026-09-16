@@ -228,14 +228,24 @@ body {
 }
 
 /* ── Canvas Wrappers (Excalidraw & tldraw) ────────────────────────── */
-.tldraw-wrapper,
-.excalidraw-wrapper {
+.tldraw-wrapper {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
   z-index: 0;
   overflow: hidden;
+}
+
+.excalidraw-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: hidden;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* ── Excalidraw Dark Mode & Cyberpunk Glassmorphism Theme Overrides ──────── */
@@ -254,7 +264,15 @@ body {
   --color-surface-low: #09090b !important;
 }
 
-/* 1. Cyberpunk Dotted Grid Canvas Pattern & Deep Slate Radial Gradient */
+/* 1. Canvas Container: Strictly NO blur/filters */
+.excalidraw,
+.excalidraw .excalidraw-container,
+#whiteboard-canvas-container {
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 .excalidraw .excalidraw-container {
   background-color: #030407 !important;
   background-image:
@@ -263,28 +281,22 @@ body {
   background-size: 100% 100%, 28px 28px !important;
 }
 
-/* 2. Floating Glass Panels for all Excalidraw Containers */
-.excalidraw .Island {
-  background-color: rgba(9, 9, 11, 0.6) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: 1rem !important;
-  /* rounded-2xl */
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.6) !important;
-}
-
-/* 3. Floating Top Canvas Toolbar — locked, always on top, offset from our custom navbar */
+/* 2. Floating Top Canvas Toolbar — locked, centered, properly sized */
 .excalidraw .App-toolbar-container {
   top: 16px !important;
   z-index: 40 !important;
   pointer-events: auto !important;
 }
 
-/* Push the top action-bar row (undo/redo/zoom) safely below our custom navbar overlay */
 .excalidraw .layer-ui__wrapper .App-menu_top {
-  margin-top: 3rem !important;
-  z-index: 40 !important;
+  width: auto !important;
+  margin: 0 auto !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .excalidraw .App-toolbar {
@@ -355,8 +367,10 @@ body {
   position: fixed !important;
   bottom: 96px !important;
   left: 20px !important;
-  transform: none !important;             /* ← kills any legacy translate3d from old dragging */
-  z-index: 9999 !important;              /* Above canvas drawings, below our modals */
+  transform: none !important;
+  /* ← kills any legacy translate3d from old dragging */
+  z-index: 9999 !important;
+  /* Above canvas drawings, below our modals */
 
   /* Premium glassmorphism panel */
   background: rgba(9, 9, 15, 0.82) !important;
@@ -1901,4 +1915,135 @@ body {
 .driver-popover,
 .masmspace-tour-popover {
   z-index: 10000001 !important;
+}
+
+/* ── Excalidraw Premium Dark Theme Overrides (Zero Canvas Blur) ────────────── */
+.excalidraw .layer-ui__wrapper .App-menu_top {
+  width: auto !important;
+  margin: 0 auto !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.excalidraw .layer-ui__wrapper .FixedSideContainer {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.excalidraw .layer-ui__wrapper .App-toolbar,
+.excalidraw .layer-ui__wrapper .scroll-back-to-content {
+  background-color: rgba(9, 9, 11, 0.75) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ── Hide Unnecessary Native UI (Excalidraw Help Icon) ────────────────────── */
+.excalidraw .layer-ui__wrapper .help-icon {
+  display: none !important;
+}
+
+/* ── Global Z-Index & Escape Overflow Fix for All Modals & Popups ───────── */
+.modal-backdrop,
+.modal-panel,
+div:has(> [role="dialog"]),
+[role="dialog"],
+[aria-modal="true"],
+.pricing-modal,
+.pro-modal,
+.settings-modal,
+.share-modal,
+.search-modal {
+  z-index: 99999 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PRATHOMIX React Flow (@xyflow/react) Dark Engine & Blueprint Theme
+   ═══════════════════════════════════════════════════════════════════════════ */
+.react-flow.dark {
+  background-color: #09090b !important;
+}
+
+.react-flow__handle {
+  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.react-flow__handle:hover {
+  transform: scale(1.3);
+}
+
+.react-flow__edge-path {
+  stroke-linecap: round;
+  transition: stroke 0.2s ease, stroke-width 0.2s ease;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #22d3ee !important;
+  stroke-width: 2.5px !important;
+  filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.6));
+}
+
+.react-flow__controls {
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(24, 24, 27, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: #a1a1aa !important;
+  fill: #a1a1aa !important;
+  transition: all 0.15s ease;
+}
+
+.react-flow__controls-button:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #06b6d4 !important;
+  fill: #06b6d4 !important;
+}
+
+.react-flow__minimap {
+  background-color: rgba(18, 18, 21, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.react-flow__minimap-mask {
+  fill: rgba(9, 9, 11, 0.75) !important;
+  stroke: rgba(6, 182, 212, 0.4) !important;
+  stroke-width: 1.5px;
+}
+
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200% !important;
+  animation: gradient-flow 4s ease infinite !important;
 }

@@ -125,6 +125,7 @@ export interface VoiceAIPanelProps {
   className?: string;
   isOpen?: boolean;
   onClose?: () => void;
+  onTranscriptChange?: (transcript: string) => void;
 }
 
 export function VoiceAIPanelInner({
@@ -133,6 +134,7 @@ export function VoiceAIPanelInner({
   className = "",
   isOpen = true,
   onClose,
+  onTranscriptChange,
 }: VoiceAIPanelProps) {
   // ── 1. Speech Recognition & UI State ────────────────────────────────────────
   const [isListening, setIsListening] = useState<boolean>(false);
@@ -282,7 +284,13 @@ export function VoiceAIPanelInner({
         }
       }
 
-      setLiveTranscript(finalSpeech || interim);
+      const currentTranscript = finalSpeech || interim;
+      setLiveTranscript(currentTranscript);
+
+      // Sync transcribed text with external Chat/Command input box
+      if (onTranscriptChange && currentTranscript.trim()) {
+        onTranscriptChange(currentTranscript);
+      }
 
       if (finalSpeech.trim()) {
         handleVoiceSubmission(finalSpeech.trim());
@@ -307,7 +315,7 @@ export function VoiceAIPanelInner({
         setIsListening(false);
         setContinuousMode(false);
         pushToast(
-          "Microphone access blocked. Click the lock or camera icon in your address bar to allow permissions.",
+          "Microphone access denied. Please allow it in browser settings.",
           "error"
         );
         return;
@@ -370,7 +378,8 @@ export function VoiceAIPanelInner({
       if (!Array.isArray(actions) || actions.length === 0) return;
 
       try {
-        const { convertToExcalidrawElements } = await import("@excalidraw/excalidraw");
+        // @ts-ignore
+        const { convertToExcalidrawElements } = (await import("@excalidraw/excalidraw").catch(() => ({}))) as any;
 
         // Safe scene fetching
         let currentElements: any[] = [];
@@ -759,9 +768,31 @@ export function VoiceAIPanelInner({
   };
 
   // ── 7. Mic Toggle Controls ──────────────────────────────────────────────────
-  const startListening = () => {
-    if (!speechSupported) {
-      pushToast("Speech Recognition is not supported in this browser. Use Chrome or Edge.", "error");
+  const startListening = async () => {
+    if (
+      !speechSupported ||
+      (typeof window !== "undefined" &&
+        !window.SpeechRecognition &&
+        !(window as any).webkitSpeechRecognition)
+    ) {
+      pushToast(
+        "Speech Recognition is not supported in this browser. Please use Chrome, Edge, or Safari.",
+        "error"
+      );
+      return;
+    }
+
+    // Wrap the microphone request in a try...catch block
+    try {
+      if (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    } catch (micErr: any) {
+      console.warn("[VoiceAI] Mic permission error:", micErr);
+      setIsListening(false);
+      isListeningRef.current = false;
+      pushToast("Microphone access denied. Please allow it in browser settings.", "error");
       return;
     }
 
@@ -770,8 +801,11 @@ export function VoiceAIPanelInner({
       setLiveTranscript("");
       setRecognizedActions([]);
       recognitionRef.current?.start();
-    } catch (err) {
+    } catch (err: any) {
       console.warn("[VoiceAI] Speech start notice:", err);
+      if (err?.name === "NotAllowedError" || String(err).toLowerCase().includes("denied")) {
+        pushToast("Microphone access denied. Please allow it in browser settings.", "error");
+      }
     }
   };
 

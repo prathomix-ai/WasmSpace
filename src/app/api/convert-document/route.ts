@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsPDF } from "jspdf";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 /**
  * Universal Document Converter API Route
  * Converts .docx, .pptx, and .doc files to PDF for seamless Excalidraw whiteboard rendering.

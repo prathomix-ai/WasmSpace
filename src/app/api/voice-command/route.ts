@@ -3,6 +3,9 @@ import { createClient } from "@supabase/supabase-js";
 import { executeWithLoadBalancer } from "@/lib/ai-balancer";
 import { CanvasVoiceAction, VoiceCommandResponse } from "@/types/voiceControl";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Supabase Admin Client for Tier & Quota Verification
 // ─────────────────────────────────────────────────────────────────────────────

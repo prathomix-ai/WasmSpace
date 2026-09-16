@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 const ALLOWED_ADMIN_EMAILS = [
   "admin@prathomix.tech",

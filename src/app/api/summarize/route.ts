@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 const AI_BACKEND_URL =
   process.env.NEXT_PUBLIC_AI_BACKEND_URL ||
   process.env.AI_BACKEND_URL ||

@@ -1,12 +1,14 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { streamText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { getRotatedApiKey, getRotatedKeyDetails } from "@/utils/apiRotator";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. Edge Runtime Configuration (Sub-50ms Global Cold Starts, Zero Server Bottlenecks)
+// 1. Dynamic Execution & Cache Neutralization (Prevents Multi-Tenant State Bleeding)
 // ─────────────────────────────────────────────────────────────────────────────
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 export const runtime = "edge";
 
 const SUPABASE_URL =
@@ -21,11 +23,11 @@ const SUPABASE_KEY =
 
 /**
  * Master Scaled AI Generation & Chatbot Endpoint
- * Handles 300+ concurrent users with:
- * - Edge execution
- * - 10-key pseudo-round-robin load balancing
- * - Strict atomic quota management (150 for PRO, 10 for Free)
- * - Vercel AI SDK readable data stream output (prevents 504 gateway timeouts)
+ * Handles concurrent users with:
+ * - Zero multi-tenant cache bleeding (force-dynamic & force-no-store)
+ * - Strict Supabase auth verification
+ * - Tiered quota enforcement (300 for PRO/24h, 15 for Free lifetime)
+ * - Vercel AI SDK readable data stream output
  */
 export async function POST(req: NextRequest) {
   try {
@@ -47,13 +49,13 @@ export async function POST(req: NextRequest) {
         : "");
 
     if (!userPrompt || typeof userPrompt !== "string" || userPrompt.trim().length === 0) {
-      return new Response(
-        JSON.stringify({ error: "Prompt or message content is required." }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+      return NextResponse.json(
+        { error: "Prompt or message content is required." },
+        { status: 400 }
       );
     }
 
-    // ── 2. Initialize Edge Supabase Client ───────────────────────────────────
+    // ── 2. Initialize Supabase Client ─────────────────────────────────────────
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: {
         autoRefreshToken: false,
@@ -61,43 +63,94 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // ── 3. Resolve Target User ID ────────────────────────────────────────────
-    let userId: string | null = bodyUserId || req.headers.get("x-user-id");
+    // ── 3. Strictly Fetch Authenticated User FIRST ─────────────────────────────
+    let token: string | null = null;
+    const authHeader = req.headers.get("authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.replace("Bearer ", "").trim();
+    }
 
-    // Fallback: Resolve via Authorization Bearer token
-    if (!userId) {
-      const authHeader = req.headers.get("authorization");
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        const token = authHeader.replace("Bearer ", "").trim();
-        try {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser(token);
-          if (user?.id) userId = user.id;
-        } catch (authErr) {
-          console.warn("[/api/generate] Bearer token resolution notice:", authErr);
+    // Fallback: parse access token from cookies if Bearer header is missing
+    if (!token) {
+      const cookieHeader = req.headers.get("cookie") || "";
+      const cookieParts = cookieHeader.split("; ").filter(Boolean);
+      for (const part of cookieParts) {
+        const [k, ...rest] = part.split("=");
+        const v = decodeURIComponent(rest.join("="));
+        if (k.includes("-auth-token") || k === "sb-access-token") {
+          try {
+            const parsed = JSON.parse(v);
+            token = parsed?.access_token || (Array.isArray(parsed) ? parsed[0] : v);
+            if (token) break;
+          } catch {
+            token = v;
+            break;
+          }
         }
       }
     }
 
-    if (!userId) {
-      return new Response(
-        JSON.stringify({
-          error: "Unauthorized: Missing user authentication credentials.",
-        }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
+    // Strictly fetch the authenticated user FIRST
+    const {
+      data: { user },
+    } = await supabase.auth.getUser(token || undefined);
+
+    // If no user, return 401 Unauthorized
+    if (!user || !user.id) {
+      return NextResponse.json(
+        { error: "Unauthorized: Missing user authentication credentials." },
+        { status: 401 }
       );
     }
 
-    // ── 4. Quota Verification (150 for PRO, 10 for Free) ─────────────────────
-    const { data: profile, error: profileErr } = await supabase
+    const userId = user.id;
+
+    // ── 4. Fetch User-Specific Quota & PRO Status ─────────────────────────────
+    // Query STRICTLY filters by current user's ID (.eq('user_id', user.id) with fallback to .eq('id', user.id))
+    let { data: profile, error: profileErr } = await supabase
       .from("profiles")
-      .select("id, is_pro, role, tier, subscription_status, ai_usage_count")
-      .eq("id", userId)
+      .select("id, is_pro, role, tier, subscription_status, ai_usage_count, updated_at, created_at")
+      .eq("user_id", user.id)
       .maybeSingle();
 
-    if (profileErr) {
-      console.error("[/api/generate] Profile lookup error:", profileErr);
+    if (profileErr || !profile) {
+      const idFallback = await supabase
+        .from("profiles")
+        .select("id, is_pro, role, tier, subscription_status, ai_usage_count, updated_at, created_at")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (idFallback.data) {
+        profile = idFallback.data;
+      }
+    }
+
+    // Auto-create default profile with 0 usage if row does not exist yet (fresh signup)
+    if (!profile) {
+      const userEmail = user.email || req.headers.get("x-user-email") || "user@masmspace.app";
+      const { data: newProfile } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            id: userId,
+            email: userEmail,
+            ai_usage_count: 0,
+            tier: "free",
+            subscription_status: "free",
+            is_pro: false,
+          },
+          { onConflict: "id" }
+        )
+        .select()
+        .maybeSingle();
+
+      profile = newProfile || {
+        id: userId,
+        is_pro: false,
+        role: "user",
+        tier: "free",
+        subscription_status: "free",
+        ai_usage_count: 0,
+      };
     }
 
     const isPro = Boolean(
@@ -110,30 +163,61 @@ export async function POST(req: NextRequest) {
       profile?.subscription_status === "active"
     );
 
-    // Strict quota ceiling: 150 for PRO, 10 for Free
-    const quotaLimit = isPro ? 150 : 10;
-    const currentUsage = profile?.ai_usage_count || 0;
+    let currentUsage = typeof profile?.ai_usage_count === "number" ? profile.ai_usage_count : 0;
+    const quotaLimit = isPro ? 300 : 15;
 
-    // Check quota ceiling
-    if (currentUsage >= quotaLimit) {
-      return new Response(
-        JSON.stringify({
-          error: "Limit Exceeded. Your AI quota resets at midnight and noon.",
-          limit: quotaLimit,
-          usage: currentUsage,
-          isPro,
-        }),
-        {
-          status: 429,
-          headers: {
-            "Content-Type": "application/json",
-            "Retry-After": "43200", // 12 hours in seconds
+    // ── 5. Accurate Tiered AI Quota Logic ────────────────────────────────────
+    // Free User: Maximum 15 total lifetime uses
+    // Pro User: 300 uses per 24 hours
+    if (isPro) {
+      // 24-Hour Reset window verification for PRO users
+      const lastResetStr = profile?.updated_at || profile?.created_at;
+      const lastResetTime = lastResetStr ? new Date(lastResetStr).getTime() : 0;
+      const now = Date.now();
+      const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+      if (lastResetTime > 0 && now - lastResetTime > TWENTY_FOUR_HOURS_MS) {
+        // 24 hours have elapsed: reset daily usage to 0
+        currentUsage = 0;
+        await supabase
+          .from("profiles")
+          .update({
+            ai_usage_count: 0,
+            updated_at: new Date(now).toISOString(),
+          })
+          .eq("id", userId);
+      }
+
+      if (currentUsage >= 300) {
+        return NextResponse.json(
+          {
+            error: "PRO daily quota reached (300/300 uses). Resets every 24 hours.",
+            code: "DAILY_QUOTA_EXCEEDED",
+            tier: "pro",
+            actions_used: currentUsage,
+            action_limit: 300,
+            reset_in_hours: Math.max(0, Math.ceil((TWENTY_FOUR_HOURS_MS - (now - lastResetTime)) / (1000 * 60 * 60))),
           },
-        }
-      );
+          { status: 429 }
+        );
+      }
+    } else {
+      // Free users: strict lifetime limit of 15 total AI generation uses
+      if (currentUsage >= 15) {
+        return NextResponse.json(
+          {
+            error: "Free tier quota exhausted (15/15 total uses). Upgrade to PRO to unlock 300 daily generations.",
+            code: "UPGRADE_REQUIRED",
+            tier: "free",
+            actions_used: currentUsage,
+            action_limit: 15,
+          },
+          { status: 403 }
+        );
+      }
     }
 
-    // ── 5. Atomic Usage Increment BEFORE Generation (Prevents Race Conditions) ─
+    // ── 6. Atomic Usage Increment BEFORE Generation (Prevents Race Conditions) ─
     // Call Supabase RPC 'increment_ai_usage'
     let rpcError = null;
     const rpc1 = await supabase.rpc("increment_ai_usage", { p_user_id: userId });
@@ -225,6 +309,131 @@ export async function POST(req: NextRequest) {
         error: error.message || "Internal server error occurred during AI generation.",
       }),
       { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * GET /api/generate
+ * Returns current authenticated user's tiered AI quota status:
+ * - Free: 15 lifetime uses
+ * - Pro: 300 uses per 24 hours
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    let token: string | null = null;
+    const authHeader = req.headers.get("authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.replace("Bearer ", "").trim();
+    }
+
+    if (!token) {
+      const cookieHeader = req.headers.get("cookie") || "";
+      const cookieParts = cookieHeader.split("; ").filter(Boolean);
+      for (const part of cookieParts) {
+        const [k, ...rest] = part.split("=");
+        const v = decodeURIComponent(rest.join("="));
+        if (k.includes("-auth-token") || k === "sb-access-token") {
+          try {
+            const parsed = JSON.parse(v);
+            token = parsed?.access_token || (Array.isArray(parsed) ? parsed[0] : v);
+            if (token) break;
+          } catch {
+            token = v;
+            break;
+          }
+        }
+      }
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser(token || undefined);
+
+    if (!user || !user.id) {
+      return NextResponse.json({
+        authenticated: false,
+        tier: "free",
+        isPro: false,
+        used: 0,
+        limit: 15,
+        remaining: 15,
+        formatted: "0/15 Free Uses",
+      });
+    }
+
+    let { data: profile } = await supabase
+      .from("profiles")
+      .select("id, is_pro, role, tier, subscription_status, ai_usage_count, updated_at, created_at")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!profile) {
+      const idFallback = await supabase
+        .from("profiles")
+        .select("id, is_pro, role, tier, subscription_status, ai_usage_count, updated_at, created_at")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (idFallback.data) profile = idFallback.data;
+    }
+
+    const isPro = Boolean(
+      profile?.is_pro === true ||
+      profile?.role === "pro" ||
+      profile?.role === "admin" ||
+      profile?.tier === "pro" ||
+      profile?.tier === "enterprise" ||
+      profile?.subscription_status === "pro" ||
+      profile?.subscription_status === "active"
+    );
+
+    let used = typeof profile?.ai_usage_count === "number" ? profile.ai_usage_count : 0;
+    const limit = isPro ? 300 : 15;
+
+    // Verify 24h reset for PRO
+    if (isPro) {
+      const lastResetStr = profile?.updated_at || profile?.created_at;
+      const lastResetTime = lastResetStr ? new Date(lastResetStr).getTime() : 0;
+      const now = Date.now();
+      if (lastResetTime > 0 && now - lastResetTime > 24 * 60 * 60 * 1000) {
+        used = 0;
+      }
+    }
+
+    const remaining = Math.max(0, limit - used);
+    const formatted = isPro ? `${used}/300 Daily Pro Uses` : `${used}/15 Free Uses`;
+
+    return NextResponse.json({
+      authenticated: true,
+      tier: isPro ? "pro" : "free",
+      isPro,
+      used,
+      limit,
+      remaining,
+      formatted,
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      {
+        authenticated: false,
+        tier: "free",
+        isPro: false,
+        used: 0,
+        limit: 15,
+        remaining: 15,
+        formatted: "0/15 Free Uses",
+        error: error.message,
+      },
+      { status: 200 }
     );
   }
 }

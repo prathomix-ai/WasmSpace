@@ -10,10 +10,10 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.70",
-    "@excalidraw/excalidraw": "^0.18.1",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
     "@tldraw/tldraw": "^5.4.0",
+    "@xyflow/react": "^12.11.6",
     "ai": "^7.0.101",
     "driver.js": "^1.8.0",
     "framer-motion": "^13.2.0",

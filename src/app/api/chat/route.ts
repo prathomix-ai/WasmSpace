@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { executeWithLoadBalancer, TaskMode } from "@/lib/ai-balancer";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 /**
  * ─────────────────────────────────────────────────────────────────────────────
  * POST /api/chat

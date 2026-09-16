@@ -28,16 +28,19 @@ import {
   Database,
   Maximize2,
   CloudUpload,
+  FileUp,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface LeftSidebarProps {
   boardTitle: string;
   onBoardTitleChange: (title: string) => void;
+  activeTab?: string;
   // Core Action Handlers
   onPresentClick: () => void;
   onSearchClick: () => void;
   onBoardBrainClick: () => void;
+  onImportDocumentClick?: () => void;
   onSaveAndIndex?: () => void;
   isIndexing?: boolean;
   onShareClick: () => void;
@@ -81,6 +84,7 @@ export function LeftSidebar({
   onPresentClick,
   onSearchClick,
   onBoardBrainClick,
+  onImportDocumentClick,
   onSaveAndIndex,
   isIndexing = false,
   onShareClick,
@@ -105,6 +109,7 @@ export function LeftSidebar({
   onToggleExecutiveMode,
   onSelectPenTool,
   onAddStickyNote,
+  activeTab = "canvas",
 }: LeftSidebarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -242,18 +247,28 @@ export function LeftSidebar({
     </span>
   );
 
+  // Navigation item class generator with left border glow on active state
+  const getNavItemClass = (tabId: string) => {
+    const isActive = activeTab === tabId;
+    return `flex items-center w-full text-sm font-medium rounded-lg transition-all duration-300 cursor-pointer border ${
+      isActive
+        ? "border-l-2 border-cyan-400 bg-gradient-to-r from-cyan-500/10 to-transparent text-white border-y-transparent border-r-transparent shadow-[inset_0_0_12px_rgba(6,182,212,0.1)]"
+        : "text-slate-300 hover:text-white hover:border-l-2 hover:border-cyan-400/60 hover:bg-gradient-to-r hover:from-cyan-500/10 hover:to-transparent border-transparent"
+    } ${isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"}`;
+  };
+
   return (
     <>
       {/* ── 1. Desktop & Tablet Sidebar Container with Smooth Distraction-Free Transition ── */}
       <aside
         id="app-left-sidebar"
         data-tour="sidebar"
-        className={`hidden md:flex flex-col flex-shrink-0 relative z-50 overflow-y-auto custom-scrollbar my-3 ml-3 h-[calc(100vh-1.5rem)] bg-[#09090b]/60 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.7),0_0_80px_rgba(6,182,212,0.04)] select-none transition-all duration-300 ease-in-out ${
+        className={`hidden md:flex flex-col flex-shrink-0 relative z-50 overflow-y-auto custom-scrollbar h-screen bg-[#09090b] border-r border-white/5 select-none transition-all duration-300 ease-in-out ${
           !isSidebarVisible
             ? "-translate-x-[calc(100%+2rem)] opacity-0 pointer-events-none !w-0 !m-0 !p-0 overflow-hidden"
             : isCollapsed
             ? "translate-x-0 opacity-100 w-[76px] p-2.5 gap-3"
-            : "translate-x-0 opacity-100 w-64 p-3.5 gap-3.5"
+            : "translate-x-0 opacity-100 w-[260px] p-3.5 gap-3.5"
         }`}
       >
         {/* ── 1. Header: Logo & Collapse Button ── */}
@@ -277,6 +292,7 @@ export function LeftSidebar({
                     width={32}
                     height={32}
                     className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.5)]"
+                    priority
                   />
                 </div>
                 <span className="font-bold text-white tracking-tight font-sans text-base">
@@ -328,6 +344,7 @@ export function LeftSidebar({
                     width={32}
                     height={32}
                     className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.5)]"
+                    priority
                   />
                 </div>
               </Link>
@@ -516,9 +533,7 @@ export function LeftSidebar({
                 type="button"
                 id="sidebar-btn-present"
                 onClick={() => handleGatedAction("Laser Presentation Mode", onPresentClick)}
-                className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
-                  isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
-                }`}
+                className={getNavItemClass("present")}
                 onMouseEnter={(e) =>
                   showTooltip("Present Mode", e.currentTarget, {
                     subtext: "Laser pointer & Slide deck view",
@@ -539,9 +554,7 @@ export function LeftSidebar({
                 type="button"
                 id="sidebar-btn-search"
                 onClick={() => handleGatedAction("Canvas Vector RAG Search", onSearchClick)}
-                className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
-                  isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
-                }`}
+                className={getNavItemClass("search")}
                 onMouseEnter={(e) =>
                   showTooltip("Search Canvas", e.currentTarget, {
                     subtext: "Semantic vector RAG indexing",
@@ -563,9 +576,7 @@ export function LeftSidebar({
                 id="sidebar-btn-board-brain"
                 onClick={() => handleGatedAction("AI Meeting Summaries & Action Items", onBoardBrainClick)}
                 disabled={isSummarising}
-                className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer disabled:opacity-50 group ${
-                  isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
-                }`}
+                className={`${getNavItemClass("brain")} ${isSummarising ? "opacity-50" : ""}`}
                 onMouseEnter={(e) =>
                   showTooltip("Board Brain AI", e.currentTarget, {
                     subtext: "AI action items & meeting summaries",
@@ -590,9 +601,7 @@ export function LeftSidebar({
                   id="sidebar-btn-save-index"
                   onClick={onSaveAndIndex}
                   disabled={isIndexing}
-                  className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer disabled:opacity-50 group ${
-                    isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
-                  } ${isIndexing ? "cursor-wait" : ""}`}
+                  className={`${getNavItemClass("save")} ${isIndexing ? "cursor-wait" : ""}`}
                   onMouseEnter={(e) =>
                     showTooltip("Save & Index Canvas", e.currentTarget, {
                       subtext: "Index canvas text for vector RAG",
@@ -613,14 +622,33 @@ export function LeftSidebar({
                 </button>
               )}
 
+              {/* Import Document (PDF/PPT) */}
+              {onImportDocumentClick && (
+                <button
+                  type="button"
+                  id="sidebar-btn-import-doc"
+                  onClick={onImportDocumentClick}
+                  className={getNavItemClass("import")}
+                  onMouseEnter={(e) =>
+                    showTooltip("Import Document (PDF/PPT)", e.currentTarget, {
+                      subtext: "Render PDF, PPTX, or DOCX onto canvas",
+                    })
+                  }
+                  onMouseLeave={hideTooltip}
+                >
+                  <div className="flex items-center gap-3">
+                    <FileUp className="w-5 h-5 text-purple-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(168,85,247,0.6)] transition-all shrink-0" />
+                    {!isCollapsed && <span>Import Document</span>}
+                  </div>
+                </button>
+              )}
+
               {/* Share (PRO) */}
               <button
                 type="button"
                 id="sidebar-btn-share"
                 onClick={() => handleGatedAction("Live Multiplayer Collaboration", onShareClick)}
-                className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
-                  isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
-                }`}
+                className={getNavItemClass("share")}
                 onMouseEnter={(e) =>
                   showTooltip("Live Multiplayer Collaboration", e.currentTarget, {
                     subtext: "Real-time sync with peer cursors",
@@ -896,7 +924,7 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-upgrade-pro"
               onClick={onOpenProModal}
-              className={`relative overflow-hidden flex items-center w-full rounded-xl bg-gradient-to-r from-cyan-600/30 via-blue-600/25 to-purple-700/30 hover:from-cyan-500/45 hover:via-blue-600/38 hover:to-purple-600/45 border border-cyan-400/60 text-cyan-200 text-sm font-bold shadow-[0_0_24px_rgba(6,182,212,0.4),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_0_40px_rgba(6,182,212,0.65)] animate-[glow-breathe_4s_ease-in-out_infinite] transition-all duration-300 cursor-pointer group ${
+              className={`relative overflow-hidden flex items-center w-full rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 animate-gradient border border-cyan-400/60 text-white text-sm font-bold shadow-[0_0_25px_rgba(99,102,241,0.4)] hover:shadow-[0_0_40px_rgba(6,182,212,0.7)] transition-all duration-300 cursor-pointer group ${
                 isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
               }`}
               onMouseEnter={(e) =>
@@ -998,6 +1026,7 @@ export function LeftSidebar({
               width={24}
               height={24}
               className="w-6 h-6 object-contain drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]"
+              priority
             />
             <span className="font-bold text-white tracking-tight text-xs">MasmSpace</span>
           </Link>
@@ -1132,6 +1161,7 @@ export function LeftSidebar({
                   width={28}
                   height={28}
                   className="w-7 h-7 object-contain"
+                  priority
                 />
                 <span className="font-bold text-white text-sm">MasmSpace Menu</span>
               </div>
@@ -1311,9 +1341,9 @@ export function LeftSidebar({
                     onOpenProModal();
                     setMobileMenuOpen(false);
                   }}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/40 text-cyan-300 font-bold text-xs shadow-lg cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 animate-gradient border border-cyan-400/40 text-white font-bold text-xs shadow-[0_0_20px_rgba(99,102,241,0.4)] cursor-pointer"
                 >
-                  <Crown className="w-4 h-4 fill-cyan-400 text-cyan-400" />
+                  <Crown className="w-4 h-4 fill-white text-white" />
                   <span>GET PRO ACCESS</span>
                 </button>
               )}

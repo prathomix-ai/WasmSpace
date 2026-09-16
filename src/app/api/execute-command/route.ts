@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getProviderKeys } from "@/lib/ai-balancer";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Supabase Admin Client for Quota Management
 // ─────────────────────────────────────────────────────────────────────────────
@@ -140,7 +143,19 @@ export async function POST(req: NextRequest) {
     const cleanEmail = (userEmail || "").trim().toLowerCase();
     const isAdmin = cleanEmail === "admin@prathomix.tech";
 
-    // ── 1. Check Supabase Quota Limits (Skip for admin@prathomix.tech) ──
+    // ── 1. Resolve Authenticated User & Check Quota ──
+    let authenticatedUserId: string | null = userId || null;
+    const authHeader = req.headers.get("authorization");
+    if (authHeader && authHeader.startsWith("Bearer ") && supabaseAdmin) {
+      try {
+        const token = authHeader.replace("Bearer ", "").trim();
+        const { data: authData } = await supabaseAdmin.auth.getUser(token);
+        if (authData?.user?.id) {
+          authenticatedUserId = authData.user.id;
+        }
+      } catch {}
+    }
+
     let currentUsage = {
       actions_used: 0,
       action_limit: 15,
@@ -151,19 +166,32 @@ export async function POST(req: NextRequest) {
     if (!isAdmin) {
       if (supabaseAdmin) {
         try {
-          // Find or create quota record
-          let { data: quota } = await supabaseAdmin
-            .from("ai_usage_limits")
-            .select("*")
-            .or(`user_email.eq.${cleanEmail}${userId ? `,user_id.eq.${userId}` : ""}`)
-            .maybeSingle();
+          // Find quota record strictly by user ID first, fallback to user_email
+          let quota = null;
+          if (authenticatedUserId) {
+            const res = await supabaseAdmin
+              .from("ai_usage_limits")
+              .select("*")
+              .eq("user_id", authenticatedUserId)
+              .maybeSingle();
+            quota = res.data;
+          }
+
+          if (!quota) {
+            const res = await supabaseAdmin
+              .from("ai_usage_limits")
+              .select("*")
+              .eq("user_email", cleanEmail)
+              .maybeSingle();
+            quota = res.data;
+          }
 
           if (!quota) {
             const { data: newQuota, error: insertErr } = await supabaseAdmin
               .from("ai_usage_limits")
               .insert({
                 user_email: cleanEmail,
-                user_id: userId || null,
+                user_id: authenticatedUserId || null,
                 tier: "free",
                 actions_used: 0,
                 action_limit: 15,
@@ -189,23 +217,18 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Check fallback store if present
-      if (localQuotaStore.has(cleanEmail)) {
-        currentUsage = localQuotaStore.get(cleanEmail)!;
-      }
-
       // Check quota threshold: If actions_used >= action_limit, return 403 UPGRADE_REQUIRED
       if (currentUsage.actions_used >= currentUsage.action_limit) {
         return NextResponse.json(
           {
-            error: "Daily AI Action Limit Reached",
+            error: currentUsage.tier === "pro" ? "PRO Limit Reached" : "Free Limit Reached. Upgrade to PRO.",
             code: "UPGRADE_REQUIRED",
             tier: currentUsage.tier,
             actions_used: currentUsage.actions_used,
             action_limit: currentUsage.action_limit,
             reset_at: currentUsage.reset_at,
           },
-          { status: 403 }
+          { status: currentUsage.tier === "pro" ? 429 : 403 }
         );
       }
     }
@@ -325,17 +348,26 @@ export async function POST(req: NextRequest) {
     // ── 4. Increment Actions Used in Supabase & Local Store ──
     if (!isAdmin) {
       currentUsage.actions_used += 1;
-      localQuotaStore.set(cleanEmail, currentUsage);
 
       if (supabaseAdmin) {
         try {
-          await supabaseAdmin
-            .from("ai_usage_limits")
-            .update({
-              actions_used: currentUsage.actions_used,
-              updated_at: new Date().toISOString(),
-            })
-            .or(`user_email.eq.${cleanEmail}${userId ? `,user_id.eq.${userId}` : ""}`);
+          if (authenticatedUserId) {
+            await supabaseAdmin
+              .from("ai_usage_limits")
+              .update({
+                actions_used: currentUsage.actions_used,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("user_id", authenticatedUserId);
+          } else {
+            await supabaseAdmin
+              .from("ai_usage_limits")
+              .update({
+                actions_used: currentUsage.actions_used,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("user_email", cleanEmail);
+          }
         } catch (dbErr) {
           console.warn("Supabase increment error:", dbErr);
         }

@@ -17,7 +17,7 @@ interface PricingModalProps {
 export function PricingModal({
   isOpen,
   onClose,
-  title = "Unlock PRATHOMIX PRO",
+  title = "Unlock MASMSPACE PRO",
   reason = "You have reached your free daily quota of AI actions.",
   onUpgradeSuccess,
 }: PricingModalProps) {
@@ -40,7 +40,7 @@ export function PricingModal({
   return (
     <AnimatePresence>
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xl select-none"
+        className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xl select-none"
         onClick={(e) => {
           if (e.target === e.currentTarget) onClose();
         }}

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 const AI_BACKEND_URL =
   process.env.NEXT_PUBLIC_AI_BACKEND_URL ||
   process.env.AI_BACKEND_URL ||

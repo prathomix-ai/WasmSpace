@@ -402,11 +402,33 @@ export function useVoiceControl(events: UseVoiceControlEvents) {
   }, [classifyIntent, executeIntent, isListening]);
 
   // Start listening
-  const startListening = useCallback(() => {
-    if (!recognitionRef.current) {
-      if (!isSupported) {
-        setStatus("unsupported");
+  const startListening = useCallback(async () => {
+    if (typeof window === "undefined") return;
+
+    const SpeechRec =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRec) {
+      setIsSupported(false);
+      setStatus("unsupported");
+      return;
+    }
+
+    // Wrap the microphone request in a try...catch block
+    try {
+      if (navigator?.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
       }
+    } catch (micErr) {
+      console.warn("[useVoiceControl] Microphone access denied:", micErr);
+      setStatus("permission_denied");
+      setIsListening(false);
+      return;
+    }
+
+    if (!recognitionRef.current) {
       return;
     }
 
@@ -417,7 +439,7 @@ export function useVoiceControl(events: UseVoiceControlEvents) {
     } catch {
       // already started
     }
-  }, [isSupported]);
+  }, []);
 
   // Stop listening
   const stopListening = useCallback(() => {

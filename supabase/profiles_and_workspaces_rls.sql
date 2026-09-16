@@ -15,9 +15,32 @@ create table if not exists public.profiles (
   used_promo_codes text[] default '{}',
   avatar_url text,
   full_name text,
+  ai_usage_count int not null default 0,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+-- Ensure column exists on already created tables
+alter table public.profiles add column if not exists ai_usage_count int not null default 0;
+
+-- Atomic increment RPC function
+create or replace function public.increment_ai_usage(p_user_id uuid)
+returns int
+language plpgsql
+security definer
+as $$
+declare
+  v_new_count int;
+begin
+  update public.profiles
+  set ai_usage_count = coalesce(ai_usage_count, 0) + 1,
+      updated_at = now()
+  where id = p_user_id
+  returning ai_usage_count into v_new_count;
+  
+  return coalesce(v_new_count, 1);
+end;
+$$;
 
 -- Enable RLS on profiles
 alter table public.profiles enable row level security;
