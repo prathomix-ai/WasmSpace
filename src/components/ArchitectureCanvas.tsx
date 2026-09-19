@@ -23,7 +23,8 @@ import "@xyflow/react/dist/style.css";
 import CustomTechNode, { CustomTechNodeData } from "@/components/CustomTechNode";
 import GroupNode from "@/components/GroupNode";
 import BottomToolbar, { CanvasToolMode } from "@/components/BottomToolbar";
-import DrawingOverlay from "@/components/DrawingOverlay";
+import DrawingOverlay, { DrawingStroke, StrokePoint, getSvgPathFromPoints, pointsToSvgPath } from "@/components/DrawingOverlay";
+import DrawingNode from "@/components/DrawingNode";
 import AlignmentGuides, { AlignmentGuideLine } from "@/components/AlignmentGuides";
 import AICoPilotDrawer from "@/components/AICoPilotDrawer";
 import CanvasContextMenu from "@/components/CanvasContextMenu";
@@ -65,6 +66,7 @@ function ArchitectureCanvasInner({
       groupNode: GroupNode,
       documentPageNode: DocumentPageNode,
       imageNode: DocumentPageNode,
+      drawingNode: DrawingNode,
     }),
     []
   );
@@ -72,6 +74,8 @@ function ArchitectureCanvasInner({
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<any>>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initialEdges);
   const [activeToolMode, setActiveToolMode] = useState<CanvasToolMode>("select");
+  const [drawingColor, setDrawingColor] = useState<string>("#06b6d4");
+  const [drawingWidth, setDrawingWidth] = useState<number>(3);
   const [isAICoPilotOpen, setIsAICoPilotOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isShapesMenuOpen, setIsShapesMenuOpen] = useState(false);
@@ -107,6 +111,86 @@ function ArchitectureCanvasInner({
   const pushHistorySnapshot = useCallback(() => {
     setHistory((prev) => [...prev.slice(-30), { nodes: [...nodes], edges: [...edges] }]);
   }, [nodes, edges]);
+
+  // Freehand Drawing Stroke Completion Handler: converts SVG stroke into a React Flow Node
+  const handleStrokeComplete = useCallback(
+    (stroke: DrawingStroke) => {
+      if (!stroke.points || stroke.points.length === 0) return;
+
+      pushHistorySnapshot();
+
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+
+      for (const pt of stroke.points) {
+        if (pt.x < minX) minX = pt.x;
+        if (pt.x > maxX) maxX = pt.x;
+        if (pt.y < minY) minY = pt.y;
+        if (pt.y > maxY) maxY = pt.y;
+      }
+
+      const padding = Math.max(stroke.width * 2, 16);
+      const posX = minX - padding;
+      const posY = minY - padding;
+      const boxWidth = Math.max(maxX - minX + padding * 2, padding * 2);
+      const boxHeight = Math.max(maxY - minY + padding * 2, padding * 2);
+
+      const relativePoints: StrokePoint[] = stroke.points.map((p) => ({
+        x: p.x - posX,
+        y: p.y - posY,
+        pressure: p.pressure,
+      }));
+
+      const pathD = getSvgPathFromPoints(relativePoints, stroke.width, stroke.tool);
+
+      const newDrawingNode: Node<any> = {
+        id: stroke.id || `drawing-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        type: "drawingNode",
+        position: { x: posX, y: posY },
+        data: {
+          path: pathD,
+          color: stroke.color,
+          width: stroke.width,
+          opacity: stroke.opacity,
+          tool: stroke.tool,
+          originalPoints: stroke.points,
+          boxWidth,
+          boxHeight,
+        },
+        style: {
+          width: boxWidth,
+          height: boxHeight,
+        },
+      };
+
+      setNodes((prev) => [...prev, newDrawingNode]);
+    },
+    [pushHistorySnapshot, setNodes]
+  );
+
+  // Freehand Drag-Eraser Handler: removes drawing nodes under eraser coordinate
+  const handleEraseAtPoint = useCallback(
+    (pt: StrokePoint) => {
+      setNodes((nds) =>
+        nds.filter((n) => {
+          if (n.type !== "drawingNode") return true;
+          const originalPoints = (n.data as any)?.originalPoints as StrokePoint[] | undefined;
+          if (!originalPoints) {
+            const nx = n.position.x;
+            const ny = n.position.y;
+            const nw = (n.data as any)?.boxWidth || 50;
+            const nh = (n.data as any)?.boxHeight || 50;
+            return !(pt.x >= nx - 15 && pt.x <= nx + nw + 15 && pt.y >= ny - 15 && pt.y <= ny + nh + 15);
+          }
+          const isNear = originalPoints.some((p) => Math.hypot(p.x - pt.x, p.y - pt.y) < 22);
+          return !isNear;
+        })
+      );
+    },
+    [setNodes]
+  );
 
   // Multi-Page Document Importer (PDFs, Images, DOCX, PPTX)
   const processDocumentImport = useCallback(
@@ -701,6 +785,9 @@ function ArchitectureCanvasInner({
 
   // High-contrast Minimap node blip coloring for effortless visual navigation
   const getMinimapNodeColor = useCallback((node: Node<any>) => {
+    if (node.type === "drawingNode") {
+      return (node.data as any)?.color || "#06b6d4";
+    }
     if (node.type === "groupNode") {
       return "#0284c7"; // Distinct group boundary color
     }
@@ -722,6 +809,9 @@ function ArchitectureCanvasInner({
   }, []);
 
   const getMinimapNodeStrokeColor = useCallback((node: Node<any>) => {
+    if (node.type === "drawingNode") {
+      return (node.data as any)?.color || "#06b6d4";
+    }
     if (node.selected) {
       return "#ffffff";
     }
@@ -1499,7 +1589,7 @@ function ArchitectureCanvasInner({
         onEdgeClick={handleEdgeClick}
         onNodeDrag={handleNodeDrag}
         onNodeDragStop={handleNodeDragStop}
-        snapToGrid={isSnappingEnabled}
+        snapToGrid={isSnappingEnabled && activeToolMode !== "pen" && activeToolMode !== "highlighter"}
         snapGrid={[12, 12]}
         nodeTypes={nodeTypes}
         colorMode="dark"
@@ -1606,43 +1696,52 @@ function ArchitectureCanvasInner({
         </Panel>
 
         {/* ── Complete Drawing Layer (Pen, Highlighter, Eraser, Laser Pointer) ── */}
-        <DrawingOverlay activeTool={activeToolMode} />
+        <DrawingOverlay
+          activeTool={activeToolMode}
+          penColor={drawingColor}
+          penWidth={drawingWidth}
+          highlighterColor={drawingColor}
+          onStrokeComplete={handleStrokeComplete}
+          onEraseStroke={handleEraseAtPoint}
+        />
 
         {/* ── Smart Alignment Guides (Center: Blue, Edge: Red) ── */}
         <AlignmentGuides guides={alignmentGuides} />
       </ReactFlow>
 
-      {/* ── Success Toast for Synthesized Topologies ── */}
+      {/* ── Success Toast for Synthesized Topologies & Actions (Bottom-Right) ── */}
       {synthesizeNotification && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none animate-in fade-in slide-in-from-top-3 duration-200">
-          <div className="flex items-center gap-2.5 bg-[#09090b]/95 backdrop-blur-2xl border border-cyan-400/50 rounded-2xl px-5 py-2.5 text-xs text-white shadow-[0_0_30px_rgba(6,182,212,0.35)] font-mono">
-            <CheckCircle className="w-4 h-4 text-cyan-400" />
+        <div className="fixed bottom-6 right-6 z-[99999] pointer-events-none animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <div className="flex items-center gap-2.5 bg-[#09090b]/95 backdrop-blur-2xl border border-cyan-400/50 rounded-2xl px-5 py-3 text-xs text-white shadow-[0_0_30px_rgba(6,182,212,0.35)] font-mono">
+            <CheckCircle className="w-4 h-4 text-cyan-400 shrink-0" />
             <span>{synthesizeNotification}</span>
           </div>
         </div>
       )}
 
       {/* ── Enterprise Apple-Style Floating Top Toolbar Wrapped in High Z-Index ── */}
-      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-auto">
-        <BottomToolbar
-          activeMode={activeToolMode}
-          onSelectMode={(mode) => {
-            if (["rectangle", "circle", "diamond", "cylinder", "cloud", "folder"].includes(mode)) {
-              handleAddShape(mode as any);
-              setActiveToolMode("select");
-            } else {
-              setActiveToolMode(mode);
-            }
-          }}
-          onToggleAICoPilot={() => setIsAICoPilotOpen((prev) => !prev)}
-          isAICoPilotOpen={isAICoPilotOpen}
-          onFitView={() => fitView({ padding: 0.25 })}
-          onOpenSettings={externalOpenSettings || (() => setIsSettingsModalOpen(true))}
-          onAddShape={handleAddShape}
-          isShapesMenuOpen={isShapesMenuOpen}
-          onToggleShapesMenu={() => setIsShapesMenuOpen((prev) => !prev)}
-        />
-      </div>
+      <BottomToolbar
+        activeMode={activeToolMode}
+        strokeColor={drawingColor}
+        onChangeStrokeColor={setDrawingColor}
+        strokeWidth={drawingWidth}
+        onChangeStrokeWidth={setDrawingWidth}
+        onSelectMode={(mode) => {
+          if (["rectangle", "circle", "diamond", "cylinder", "cloud", "folder"].includes(mode)) {
+            handleAddShape(mode as any);
+            setActiveToolMode("select");
+          } else {
+            setActiveToolMode(mode);
+          }
+        }}
+        onToggleAICoPilot={() => setIsAICoPilotOpen((prev) => !prev)}
+        isAICoPilotOpen={isAICoPilotOpen}
+        onFitView={() => fitView({ padding: 0.25 })}
+        onOpenSettings={externalOpenSettings || (() => setIsSettingsModalOpen(true))}
+        onAddShape={handleAddShape}
+        isShapesMenuOpen={isShapesMenuOpen}
+        onToggleShapesMenu={() => setIsShapesMenuOpen((prev) => !prev)}
+      />
 
       {/* ── Enterprise Settings Modal (Strict Quota, Reset Countdown & Shortcuts) ── */}
       <SettingsModal

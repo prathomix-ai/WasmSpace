@@ -2,12 +2,14 @@
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { useReactFlow, useViewport } from "@xyflow/react";
+import { getStroke } from "perfect-freehand";
 
 export type DrawingTool = "select" | "pan" | "pen" | "highlighter" | "eraser" | "laser";
 
 export interface StrokePoint {
   x: number;
   y: number;
+  pressure?: number;
 }
 
 export interface DrawingStroke {
@@ -31,12 +33,85 @@ interface DrawingOverlayProps {
   penWidth?: number;
   highlighterColor?: string;
   onStrokeComplete?: (stroke: DrawingStroke) => void;
+  onEraseStroke?: (pt: StrokePoint) => void;
 }
 
 /**
- * Generate smooth SVG path data from an array of coordinates using quadratic Bezier curves
+ * Natural handwriting and smooth chisel stroke options for perfect-freehand
  */
-function pointsToSvgPath(points: StrokePoint[]): string {
+export const getFreehandStrokeOptions = (
+  width: number,
+  tool: "pen" | "highlighter" = "pen"
+) => {
+  if (tool === "highlighter") {
+    return {
+      size: Math.max(width * 2.8, 20),
+      thinning: 0.1,
+      smoothing: 0.7,
+      streamline: 0.5,
+      simulatePressure: false,
+    };
+  }
+  return {
+    size: Math.max(width * 1.8, 3.5),
+    thinning: 0.3,
+    smoothing: 0.6,
+    streamline: 0.5,
+    simulatePressure: true,
+  };
+};
+
+/**
+ * Converts outline polygon points from perfect-freehand into a smooth closed SVG path
+ */
+export function getSvgPathFromStroke(stroke: number[][], closed = true): string {
+  const len = stroke.length;
+  if (!len) return "";
+
+  const a = stroke[0];
+  const b = stroke[1];
+
+  if (len === 1) {
+    return `M ${a[0]} ${a[1]} A 0.5 0.5 0 0 1 ${a[0]} ${a[1] + 0.1} Z`;
+  }
+
+  if (len === 2) {
+    return `M ${a[0]} ${a[1]} L ${b[0]} ${b[1]} Z`;
+  }
+
+  let d = `M ${a[0]} ${a[1]} Q ${(a[0] + b[0]) / 2} ${(a[1] + b[1]) / 2} ${b[0]} ${b[1]}`;
+
+  for (let i = 2; i < len; i++) {
+    const prev = stroke[i - 1];
+    const curr = stroke[i];
+    d += ` Q ${prev[0]} ${prev[1]} ${(prev[0] + curr[0]) / 2} ${(prev[1] + curr[1]) / 2}`;
+  }
+
+  if (closed) {
+    d += " Z";
+  }
+
+  return d;
+}
+
+/**
+ * Generate a smooth continuous SVG path directly from recorded points using perfect-freehand
+ */
+export function getSvgPathFromPoints(
+  points: StrokePoint[],
+  width: number,
+  tool: "pen" | "highlighter" = "pen"
+): string {
+  if (points.length === 0) return "";
+  const rawPoints = points.map((p) => [p.x, p.y, p.pressure ?? 0.5]);
+  const stroke = getStroke(rawPoints, getFreehandStrokeOptions(width, tool));
+  return getSvgPathFromStroke(stroke);
+}
+
+/**
+ * Legacy smooth quadratic bezier fallback
+ */
+export function pointsToSvgPath(points: StrokePoint[]): string {
   if (points.length === 0) return "";
   if (points.length === 1) {
     return `M ${points[0].x} ${points[0].y} L ${points[0].x + 0.1} ${points[0].y + 0.1}`;
@@ -94,6 +169,7 @@ export default function DrawingOverlay({
   penWidth = 3,
   highlighterColor = "#facc15",
   onStrokeComplete,
+  onEraseStroke,
 }: DrawingOverlayProps) {
   const { screenToFlowPosition } = useReactFlow();
   const { x, y, zoom } = useViewport();
@@ -131,15 +207,18 @@ export default function DrawingOverlay({
     return () => cancelAnimationFrame(animationFrameId);
   }, [activeTool]);
 
-  // Convert screen coordinates to canvas flow coordinates
-  const getFlowCoordinates = useCallback(
+  // Convert screen coordinates to RAW canvas flow coordinates (strictly bypassing any grid snapping)
+  const getRawFlowCoordinates = useCallback(
     (e: React.PointerEvent): StrokePoint => {
-      return screenToFlowPosition({
-        x: e.clientX,
-        y: e.clientY,
-      });
+      const rect = svgRef.current?.getBoundingClientRect();
+      const offsetX = e.clientX - (rect?.left ?? 0);
+      const offsetY = e.clientY - (rect?.top ?? 0);
+      const flowX = (offsetX - x) / zoom;
+      const flowY = (offsetY - y) / zoom;
+      const pressure = e.pressure > 0 ? e.pressure : 0.5;
+      return { x: flowX, y: flowY, pressure };
     },
-    [screenToFlowPosition]
+    [x, y, zoom]
   );
 
   // Check if a point is near a stroke for erasing
@@ -155,10 +234,11 @@ export default function DrawingOverlay({
     if (!isDrawingActive || e.button !== 0) return;
     (e.target as Element).setPointerCapture?.(e.pointerId);
     isDrawingRef.current = true;
-    const pt = getFlowCoordinates(e);
+    const pt = getRawFlowCoordinates(e);
 
     if (activeTool === "eraser") {
       setStrokes((prev) => prev.filter((s) => !isPointNearStroke(pt, s)));
+      onEraseStroke?.(pt);
       return;
     }
 
@@ -182,7 +262,7 @@ export default function DrawingOverlay({
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDrawingActive) return;
-    const pt = getFlowCoordinates(e);
+    const pt = getRawFlowCoordinates(e);
 
     if (activeTool === "laser") {
       setLaserCursor(pt);
@@ -194,6 +274,7 @@ export default function DrawingOverlay({
 
     if (activeTool === "eraser") {
       setStrokes((prev) => prev.filter((s) => !isPointNearStroke(pt, s)));
+      onEraseStroke?.(pt);
       return;
     }
 
@@ -217,8 +298,11 @@ export default function DrawingOverlay({
     isDrawingRef.current = false;
 
     if (currentStroke && currentStroke.points.length > 0) {
-      setStrokes((prev) => [...prev, currentStroke]);
-      onStrokeComplete?.(currentStroke);
+      if (onStrokeComplete) {
+        onStrokeComplete(currentStroke);
+      } else {
+        setStrokes((prev) => [...prev, currentStroke]);
+      }
       setCurrentStroke(null);
     }
   };
@@ -259,17 +343,18 @@ export default function DrawingOverlay({
 
       {/* Synchronize drawings with React Flow viewport */}
       <g transform={`translate(${x}, ${y}) scale(${zoom})`}>
-        {/* ── Persisted Completed Strokes ── */}
+        {/* ── Persisted Completed Strokes (Fallback) ── */}
         {strokes.map((stroke) => (
           <path
             key={stroke.id}
-            d={pointsToSvgPath(stroke.points)}
-            stroke={stroke.color}
-            strokeWidth={activeTool === "eraser" ? Math.max(stroke.width, 16) : stroke.width}
-            strokeOpacity={stroke.opacity}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
+            d={getSvgPathFromPoints(stroke.points, stroke.width, stroke.tool)}
+            fill={stroke.color}
+            opacity={stroke.opacity}
+            style={
+              stroke.tool === "highlighter"
+                ? { mixBlendMode: "screen", filter: `drop-shadow(0 0 6px ${stroke.color})` }
+                : { filter: `drop-shadow(0 0 1px ${stroke.color}80)` }
+            }
             className={activeTool === "eraser" ? "pointer-events-auto cursor-cell hover:opacity-40" : "pointer-events-none"}
             onClick={(e) => {
               if (activeTool === "eraser") {
@@ -280,16 +365,17 @@ export default function DrawingOverlay({
           />
         ))}
 
-        {/* ── Live In-Progress Stroke ── */}
-        {currentStroke && (
+        {/* ── Live In-Progress Smooth Stroke (perfect-freehand) ── */}
+        {currentStroke && currentStroke.points.length > 0 && (
           <path
-            d={pointsToSvgPath(currentStroke.points)}
-            stroke={currentStroke.color}
-            strokeWidth={currentStroke.width}
-            strokeOpacity={currentStroke.opacity}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
+            d={getSvgPathFromPoints(currentStroke.points, currentStroke.width, currentStroke.tool)}
+            fill={currentStroke.color}
+            opacity={currentStroke.opacity}
+            style={
+              currentStroke.tool === "highlighter"
+                ? { mixBlendMode: "screen", filter: `drop-shadow(0 0 6px ${currentStroke.color})` }
+                : { filter: `drop-shadow(0 0 1px ${currentStroke.color}80)` }
+            }
           />
         )}
 

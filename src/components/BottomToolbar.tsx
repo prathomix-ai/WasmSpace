@@ -52,7 +52,26 @@ export interface BottomToolbarProps {
   onAddShape?: (shapeType: "rectangle" | "circle" | "diamond" | "cylinder" | "cloud" | "folder") => void;
   isShapesMenuOpen?: boolean;
   onToggleShapesMenu?: () => void;
+  strokeColor?: string;
+  onChangeStrokeColor?: (color: string) => void;
+  strokeWidth?: number;
+  onChangeStrokeWidth?: (width: number) => void;
 }
+
+export const STYLING_COLORS = [
+  { label: "White", hex: "#ffffff" },
+  { label: "Cyan", hex: "#06b6d4" },
+  { label: "Rose", hex: "#f43f5e" },
+  { label: "Emerald", hex: "#10b981" },
+  { label: "Amber", hex: "#f59e0b" },
+  { label: "Purple", hex: "#a855f7" },
+];
+
+export const THICKNESS_OPTIONS = [
+  { label: "Thin", size: 2, desc: "2px" },
+  { label: "Medium", size: 4, desc: "4px" },
+  { label: "Thick", size: 8, desc: "8px" },
+];
 
 interface DockTool {
   id: CanvasToolMode;
@@ -72,7 +91,27 @@ export default function BottomToolbar({
   onAddShape,
   isShapesMenuOpen: externalShapesOpen,
   onToggleShapesMenu,
+  strokeColor = "#06b6d4",
+  onChangeStrokeColor,
+  strokeWidth = 3,
+  onChangeStrokeWidth,
 }: BottomToolbarProps) {
+  const [internalColor, setInternalColor] = useState("#06b6d4");
+  const [internalWidth, setInternalWidth] = useState(3);
+
+  const currentColor = strokeColor !== undefined ? strokeColor : internalColor;
+  const currentWidth = strokeWidth !== undefined ? strokeWidth : internalWidth;
+
+  const handleColorChange = (c: string) => {
+    setInternalColor(c);
+    onChangeStrokeColor?.(c);
+  };
+
+  const handleWidthChange = (w: number) => {
+    setInternalWidth(w);
+    onChangeStrokeWidth?.(w);
+  };
+
   const [internalShapesOpen, setInternalShapesOpen] = useState(false);
   const shapesMenuRef = useRef<HTMLDivElement>(null);
 
@@ -278,9 +317,10 @@ export default function BottomToolbar({
   };
 
   return (
-    /* ── High Z-Index Container: Guarantees toolbar & dropdowns are NEVER blocked ── */
-    <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[9999] pointer-events-auto select-none">
-      <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#09090b]/90 backdrop-blur-2xl border border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.8)] pointer-events-auto">
+    /* ── Compact Fixed Toolbar Container ── */
+    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] w-max pointer-events-auto select-none flex flex-col items-center">
+      {/* ── Main Toolbar: Fixed Compact Uniform Sizing (h-14 px-4 py-2 w-max) ── */}
+      <div className="w-max h-14 px-4 py-2 flex items-center justify-center gap-2 bg-[#09090b]/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl pointer-events-auto">
         {/* Group 1: Navigation Tools */}
         <div className="flex items-center gap-1">
           {navigationTools.map(renderToolButton)}
@@ -449,6 +489,74 @@ export default function BottomToolbar({
           )}
         </div>
       </div>
+
+      {/* ── Dynamic Freehand & Highlighter Styling Popover (Color & Stroke Width) ── */}
+      {(activeMode === "pen" || activeMode === "highlighter") && (
+        <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 flex items-center gap-4 p-2 bg-[#18181b]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.85),0_0_20px_rgba(6,182,212,0.15)] z-[9999] pointer-events-auto animate-in fade-in slide-in-from-top-2 duration-150 whitespace-nowrap">
+          {/* Colors Section */}
+          <div className="flex items-center gap-1.5 px-1">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 mr-1 hidden sm:inline-block">
+              Color
+            </span>
+            {STYLING_COLORS.map((col) => {
+              const isSelected = currentColor.toLowerCase() === col.hex.toLowerCase();
+              return (
+                <button
+                  key={col.hex}
+                  type="button"
+                  onClick={() => handleColorChange(col.hex)}
+                  title={col.label}
+                  className={`relative w-6 h-6 rounded-full transition-all duration-150 cursor-pointer flex items-center justify-center ${
+                    isSelected
+                      ? "ring-2 ring-cyan-400 ring-offset-2 ring-offset-[#18181b] scale-110 shadow-[0_0_12px_rgba(6,182,212,0.6)]"
+                      : "hover:scale-110 opacity-80 hover:opacity-100"
+                  }`}
+                  style={{ backgroundColor: col.hex }}
+                >
+                  {isSelected && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-black/70 shadow-sm" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Divider */}
+          <div className="w-px h-5 bg-white/10" />
+
+          {/* Thickness Section */}
+          <div className="flex items-center gap-1 px-1">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 mr-1 hidden sm:inline-block">
+              Width
+            </span>
+            {THICKNESS_OPTIONS.map((opt) => {
+              const isSelected = currentWidth === opt.size;
+              return (
+                <button
+                  key={opt.size}
+                  type="button"
+                  onClick={() => handleWidthChange(opt.size)}
+                  title={`${opt.label} (${opt.desc})`}
+                  className={`flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer ${
+                    isSelected
+                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_10px_rgba(6,182,212,0.3)] font-semibold"
+                      : "text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent"
+                  }`}
+                >
+                  <span
+                    className="rounded-full bg-current transition-all"
+                    style={{
+                      width: Math.max(opt.size * 1.5, 3),
+                      height: Math.max(opt.size * 1.5, 3),
+                    }}
+                  />
+                  <span>{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
