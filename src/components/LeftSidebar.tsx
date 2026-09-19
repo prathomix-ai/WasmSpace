@@ -34,6 +34,8 @@ import {
   Info,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import ProUpgradeModal from "@/components/ProUpgradeModal";
+import SettingsModal from "@/components/SettingsModal";
 
 interface LeftSidebarProps {
   boardTitle: string;
@@ -56,8 +58,8 @@ interface LeftSidebarProps {
   onToggleExplorer: () => void;
   isExplorerOpen?: boolean;
   onTakeScreenshot: () => void;
-  onOpenSettings: () => void;
-  onOpenProModal: () => void;
+  onOpenSettings?: () => void;
+  onOpenProModal?: () => void;
   isSummarising?: boolean;
   isProUser?: boolean;
   isCollapsed: boolean;
@@ -120,6 +122,10 @@ export function LeftSidebar({
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasProSubscription, setHasProSubscription] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Modals state
+  const [isProModalOpen, setIsProModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // PRO Gating Feedback Toast
   const [proToast, setProToast] = useState<string | null>(null);
@@ -256,7 +262,8 @@ export function LeftSidebar({
     if (!effectiveIsPro) {
       setProToast(`Upgrade to PRO: ${featureName} is exclusive to PRO subscribers.`);
       setTimeout(() => setProToast(null), 4000);
-      onOpenProModal();
+      setIsProModalOpen(true);
+      onOpenProModal?.();
       return;
     }
     actionFn?.();
@@ -939,7 +946,7 @@ export function LeftSidebar({
                 type="button"
                 id="sidebar-btn-settings"
                 onClick={() => {
-                  showToast("Opening Settings & Shortcuts...", "info");
+                  setIsSettingsOpen(true);
                   onOpenSettings?.();
                 }}
                 className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
@@ -1021,12 +1028,8 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-upgrade-pro"
               onClick={() => {
-                showToast("Opening MasmSpace PRO Upgrade Plans...", "pro");
-                if (onOpenProModal) {
-                  onOpenProModal();
-                } else {
-                  window.location.href = "/pricing";
-                }
+                setIsProModalOpen(true);
+                onOpenProModal?.();
               }}
               className={`relative overflow-hidden flex items-center w-full rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 animate-gradient border border-cyan-400/60 text-white text-sm font-bold shadow-[0_0_25px_rgba(99,102,241,0.4)] hover:shadow-[0_0_40px_rgba(6,182,212,0.7)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer group ${
                 isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
@@ -1205,7 +1208,10 @@ export function LeftSidebar({
           </button>
           <button
             type="button"
-            onClick={onOpenSettings}
+            onClick={() => {
+              setIsSettingsOpen(true);
+              onOpenSettings?.();
+            }}
             className="p-1.5 rounded-lg text-zinc-300 hover:bg-white/10 transition-colors cursor-pointer"
             title="Settings"
             aria-label="Settings"
@@ -1270,7 +1276,10 @@ export function LeftSidebar({
         {/* Settings */}
         <button
           type="button"
-          onClick={onOpenSettings}
+          onClick={() => {
+            setIsSettingsOpen(true);
+            onOpenSettings?.();
+          }}
           className="flex flex-col items-center justify-center gap-1 py-1 px-2.5 rounded-xl text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
           title="Settings"
         >
@@ -1345,7 +1354,8 @@ export function LeftSidebar({
               <button
                 type="button"
                 onClick={() => {
-                  onOpenSettings();
+                  setIsSettingsOpen(true);
+                  onOpenSettings?.();
                   setMobileMenuOpen(false);
                 }}
                 className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl font-medium text-zinc-200 hover:bg-white/10 transition-colors cursor-pointer"
@@ -1487,7 +1497,8 @@ export function LeftSidebar({
                 <button
                   type="button"
                   onClick={() => {
-                    onOpenProModal();
+                    setIsProModalOpen(true);
+                    onOpenProModal?.();
                     setMobileMenuOpen(false);
                   }}
                   className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 animate-gradient border border-cyan-400/40 text-white font-bold text-xs shadow-[0_0_20px_rgba(99,102,241,0.4)] cursor-pointer"
@@ -1499,6 +1510,18 @@ export function LeftSidebar({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── 6. Modals ── */}
+      {isProModalOpen && (
+        <ProUpgradeModal onClose={() => setIsProModalOpen(false)} />
+      )}
+
+      {isSettingsOpen && !onOpenSettings && (
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+        />
       )}
     </>
   );

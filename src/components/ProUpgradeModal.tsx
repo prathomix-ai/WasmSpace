@@ -1,150 +1,175 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Crown, Check, ArrowRight, X, Zap } from "lucide-react";
+import {
+  Crown,
+  Check,
+  ArrowRight,
+  X,
+  Zap,
+  Sparkles,
+  FileText,
+  Brain,
+  Shield,
+} from "lucide-react";
 import Link from "next/link";
 import { useCurrency } from "@/lib/currency";
 
-interface ProUpgradeModalProps {
-  isOpen: boolean;
+export interface ProUpgradeModalProps {
+  isOpen?: boolean;
   onClose: () => void;
   featureName?: string;
 }
 
 export function ProUpgradeModal({
-  isOpen,
+  isOpen = true,
   onClose,
-  featureName = "Advanced AI Tools",
+  featureName,
 }: ProUpgradeModalProps) {
   const { currency } = useCurrency();
+
+  // Handle ESC key press to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
     <AnimatePresence>
+      {/* Modal Overlay */}
       <div
-        className="fixed inset-0 z-[99999] flex items-center justify-center backdrop-blur-xl bg-black/40 p-4 select-none"
+        className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 select-none"
         onClick={(e) => {
           if (e.target === e.currentTarget) onClose();
         }}
         role="dialog"
         aria-modal="true"
+        aria-labelledby="pro-upgrade-title"
       >
+        {/* Modal Card (Premium Glassmorphism) */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.94, y: 16 }}
+          initial={{ opacity: 0, scale: 0.94, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.94, y: 16 }}
-          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-[95%] md:max-w-2xl mx-auto rounded-3xl bg-zinc-950/85 backdrop-blur-2xl border-2 border-cyan-500/50 shadow-[0_0_50px_rgba(6,182,212,0.3)] p-5 sm:p-7 text-white overflow-hidden"
+          exit={{ opacity: 0, scale: 0.94, y: 20 }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-[#09090b] border border-white/10 rounded-2xl p-8 max-w-md w-full shadow-[0_0_50px_rgba(139,92,246,0.15)] relative overflow-hidden"
         >
-          {/* Ambient Glow accents */}
-          <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-cyan-500/20 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-48 h-48 rounded-full bg-blue-600/20 blur-3xl pointer-events-none" />
+          {/* Ambient Glows */}
+          <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-violet-600/20 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-20 -left-20 w-48 h-48 rounded-full bg-cyan-500/20 blur-3xl pointer-events-none" />
 
-          {/* Close ('X') Button */}
+          {/* Close Button (X icon) */}
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-all cursor-pointer z-10"
+            className="absolute top-4 right-4 p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer z-10"
             aria-label="Close modal"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
 
-          {/* Header Badge & Crown */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-11 h-11 rounded-2xl bg-cyan-500/15 border border-cyan-400/40 flex items-center justify-center text-cyan-400 shadow-[0_0_16px_rgba(6,182,212,0.35)] shrink-0">
-              <Crown className="w-5 h-5 fill-cyan-400" />
+          {/* Crown Badge */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600/20 to-cyan-500/20 border border-violet-500/30 flex items-center justify-center text-violet-400 shadow-[0_0_20px_rgba(139,92,246,0.3)] shrink-0">
+              <Crown className="w-6 h-6 fill-violet-400 text-violet-400" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-cyan-400">
-                  MasmSpace PRO
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-[10px] font-mono font-bold tracking-widest uppercase bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+                  MASMSPACE PRO
                 </span>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold uppercase">
-                  Locked
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30 font-semibold uppercase">
+                  ELITE
                 </span>
               </div>
-              <h3 className="text-lg font-bold font-sans text-white tracking-tight">
-                Unlock {featureName}
-              </h3>
+              <h2
+                id="pro-upgrade-title"
+                className="text-xl font-bold font-sans text-white tracking-tight leading-none"
+              >
+                Upgrade to MasmSpace PRO
+              </h2>
             </div>
           </div>
 
-          {/* Compelling Value Proposition */}
-          <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed mb-4">
-            Upgrade to <strong className="text-cyan-400">MasmSpace PRO</strong> to get unlimited access to advanced AI intelligence, real-time cloud sync, and clean watermark-free exports.
+          {/* Value Prop Subtext */}
+          <p className="text-sm text-zinc-300 leading-relaxed mb-6 font-normal">
+            {featureName ? (
+              <>
+                Unlock <strong className="text-white font-medium">{featureName}</strong> and take your architecture canvas to elite levels.
+              </>
+            ) : (
+              "Unlock 300 AI Prompts/day, PDF Imports, and more."
+            )}
           </p>
 
-          {/* Feature List */}
-          <div className="p-4 rounded-2xl bg-[#09090b]/60 backdrop-blur-xl border border-white/10 mb-5 shadow-[0_0_24px_rgba(0,0,0,0.3)]">
-            <div className="text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-2 pb-2.5 mb-3 border-b border-white/5">
-              <Zap className="w-3.5 h-3.5 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] shrink-0" />
-              <span className="bg-gradient-to-r from-cyan-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent font-extrabold tracking-wider">
-                EVERYTHING INCLUDED IN PRATHOMIX PRO:
-              </span>
+          {/* Engaging Feature Highlights */}
+          <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 mb-6 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-md bg-violet-500/20 text-violet-400 flex items-center justify-center shrink-0 mt-0.5">
+                <Sparkles className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-white">300 AI Prompts / day</p>
+                <p className="text-[11px] text-zinc-400">Gemini 1.5 Pro & Groq Llama-3.3 architecture generation</p>
+              </div>
             </div>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] shrink-0 mt-0.5" strokeWidth={2.5} />
-                <div className="leading-snug">
-                  <span className="font-semibold text-white text-xs">🧠 Unlimited &apos;Board Brain&apos; Intelligence</span>{" "}
-                  <span className="text-xs text-gray-400 font-normal block">
-                    (Instant canvas summaries powered by Gemini 1.5 Pro &amp; Groq Llama-3.3)
-                  </span>
-                </div>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] shrink-0 mt-0.5" strokeWidth={2.5} />
-                <div className="leading-snug">
-                  <span className="font-semibold text-white text-xs">⚡ Massive AI Action Limits</span>{" "}
-                  <span className="text-xs text-gray-400 font-normal block">
-                    (Up to 500 daily requests for vector search, coding, and voice AI)
-                  </span>
-                </div>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] shrink-0 mt-0.5" strokeWidth={2.5} />
-                <div className="leading-snug">
-                  <span className="font-semibold text-white text-xs">🎨 Pristine 4K Exports</span>{" "}
-                  <span className="text-xs text-gray-400 font-normal block">
-                    (Crystal-clear, watermark-free downloads for professional presentations)
-                  </span>
-                </div>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] shrink-0 mt-0.5" strokeWidth={2.5} />
-                <div className="leading-snug">
-                  <span className="font-semibold text-white text-xs">🌐 Elite Multiplayer &amp; Presenter Tools</span>{" "}
-                  <span className="text-xs text-gray-400 font-normal block">
-                    (Unlock live laser pointers, admin controls, and seamless sync)
-                  </span>
-                </div>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] shrink-0 mt-0.5" strokeWidth={2.5} />
-                <div className="leading-snug">
-                  <span className="font-semibold text-white text-xs">🛡️ Priority 24/7 VIP Support</span>{" "}
-                  <span className="text-xs text-gray-400 font-normal block">
-                    (Direct access to the PRATHOMIX engineering team)
-                  </span>
-                </div>
-              </li>
-            </ul>
+
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-md bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 mt-0.5">
+                <FileText className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-white">PDF & Universal Document Imports</p>
+                <p className="text-[11px] text-zinc-400">Convert specs and system diagrams instantly to graph nodes</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                <Brain className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-white">Full Board Brain RAG & 4K Exports</p>
+                <p className="text-[11px] text-zinc-400">Semantic vector indexing and watermark-free presentation exports</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-md bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                <Shield className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-white">Live Multiplayer & VIP Priority</p>
+                <p className="text-[11px] text-zinc-400">Real-time laser pointers, session sync & priority cloud backup</p>
+              </div>
+            </div>
           </div>
 
-          {/* CTA Button */}
-          <div className="space-y-2">
+          {/* Action Button & Pricing */}
+          <div className="space-y-3">
             <Link
-              href="/#pricing"
+              href="/pricing"
               onClick={onClose}
-              className="w-full py-3 px-4 rounded-xl font-sans text-xs font-bold text-zinc-950 bg-gradient-to-r from-cyan-400 via-cyan-300 to-blue-400 hover:from-cyan-300 hover:to-blue-300 shadow-[0_0_24px_rgba(6,182,212,0.4)] transition-all flex items-center justify-center gap-2 cursor-pointer group"
+              className="w-full py-3.5 px-5 rounded-xl font-sans text-sm font-bold text-white bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:from-violet-500 hover:via-indigo-500 hover:to-cyan-400 shadow-[0_0_25px_rgba(139,92,246,0.35)] hover:shadow-[0_0_35px_rgba(6,182,212,0.5)] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer group"
             >
-              <span>Upgrade Now &bull; from {currency === "INR" ? "₹149/mo" : "$5/mo"}</span>
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+              <span>Upgrade Now</span>
+              <span className="text-white/80 font-normal text-xs">
+                &bull; {currency === "INR" ? "₹149/mo" : "$5/mo"}
+              </span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <p className="text-center text-[10px] font-mono text-zinc-500">
-              Cancel anytime. Instant activation.
+
+            <p className="text-center text-[11px] font-mono text-zinc-500">
+              Cancel anytime &bull; Instant activation &bull; 100% money-back guarantee
             </p>
           </div>
         </motion.div>
