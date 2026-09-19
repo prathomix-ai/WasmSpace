@@ -401,15 +401,33 @@ export async function GET(req: NextRequest) {
     let used = typeof profile?.ai_usage_count === "number" ? profile.ai_usage_count : 0;
     const limit = isPro ? 300 : 15;
 
-    // Verify 24h reset for PRO
+    // Verify 24h reset cycle & calculate countdown
+    const now = Date.now();
+    const lastResetStr = profile?.updated_at || profile?.created_at;
+    const lastResetTime = lastResetStr ? new Date(lastResetStr).getTime() : 0;
+    const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
     if (isPro) {
-      const lastResetStr = profile?.updated_at || profile?.created_at;
-      const lastResetTime = lastResetStr ? new Date(lastResetStr).getTime() : 0;
-      const now = Date.now();
-      if (lastResetTime > 0 && now - lastResetTime > 24 * 60 * 60 * 1000) {
+      if (lastResetTime > 0 && now - lastResetTime > TWENTY_FOUR_HOURS_MS) {
         used = 0;
       }
     }
+
+    // Calculate time until next reset (24h from last activity or next midnight)
+    let msUntilReset = 0;
+    if (lastResetTime > 0) {
+      const elapsed = (now - lastResetTime) % TWENTY_FOUR_HOURS_MS;
+      msUntilReset = TWENTY_FOUR_HOURS_MS - elapsed;
+    } else {
+      const midnight = new Date();
+      midnight.setHours(24, 0, 0, 0);
+      msUntilReset = Math.max(0, midnight.getTime() - now);
+    }
+
+    const nextResetTime = new Date(now + msUntilReset).toISOString();
+    const hoursLeft = Math.floor(msUntilReset / (1000 * 60 * 60));
+    const minsLeft = Math.floor((msUntilReset % (1000 * 60 * 60)) / (1000 * 60));
+    const resetCountdown = `Quota resets in ${hoursLeft}h ${minsLeft}m`;
 
     const remaining = Math.max(0, limit - used);
     const formatted = isPro ? `${used}/300 Daily Pro Uses` : `${used}/15 Free Uses`;
@@ -422,6 +440,9 @@ export async function GET(req: NextRequest) {
       limit,
       remaining,
       formatted,
+      nextResetTime,
+      msUntilReset,
+      resetCountdown,
     });
   } catch (error: any) {
     return NextResponse.json(

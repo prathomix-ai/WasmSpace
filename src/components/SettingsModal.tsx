@@ -35,6 +35,8 @@ import {
   LogOut,
   Tag,
   Clock,
+  Keyboard,
+  Zap,
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
@@ -57,7 +59,7 @@ export interface SettingsModalProps {
   onThemeChange?: (val: string) => void;
 }
 
-type TabType = "account" | "canvas" | "ai_tools" | "billing" | "privacy";
+type TabType = "account" | "canvas" | "ai_tools" | "billing" | "privacy" | "shortcuts";
 
 // Reusable animated Toggle Switch component
 function ToggleSwitch({
@@ -127,6 +129,10 @@ export function SettingsModal({
 
   // Invoice PDF download state & handler
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
+
+  // AI Quota & Live Dynamic Countdown State
+  const [nextResetTime, setNextResetTime] = useState<string | null>(null);
+  const [resetCountdown, setResetCountdown] = useState<string>("Quota resets in 24h 00m");
 
   const handleDownloadInvoice = async (invoiceItem: {
     id: string;
@@ -383,6 +389,24 @@ export function SettingsModal({
         console.warn("[SettingsModal] Supabase profile fetch notice:", err);
       }
 
+      // Strictly fetch per-profile quota & countdown from dynamic /api/generate
+      try {
+        const quotaRes = await fetch("/api/generate?action=quota");
+        if (quotaRes.ok) {
+          const qData = await quotaRes.json();
+          if (typeof qData.used === "number") setDynamicActionsUsed(qData.used);
+          if (typeof qData.limit === "number") setDynamicActionLimit(qData.limit);
+          if (qData.isPro) {
+            setIsPro(true);
+            setUserTier("pro");
+          }
+          if (qData.nextResetTime) setNextResetTime(qData.nextResetTime);
+          if (qData.resetCountdown) setResetCountdown(qData.resetCountdown);
+        }
+      } catch (qErr) {
+        console.warn("[SettingsModal] Strict quota fetch notice:", qErr);
+      }
+
       // Load local storage preferences
       if (typeof window !== "undefined" && isMounted) {
         try {
@@ -480,6 +504,22 @@ export function SettingsModal({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
+
+  // Dynamic live countdown timer calculating time until next 24h quota reset
+  useEffect(() => {
+    if (!nextResetTime) return;
+    const calculateCountdown = () => {
+      const now = Date.now();
+      const target = new Date(nextResetTime).getTime();
+      const diff = Math.max(0, target - now);
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      setResetCountdown(`Quota resets in ${hours}h ${mins}m`);
+    };
+    calculateCountdown();
+    const timerId = setInterval(calculateCountdown, 30000);
+    return () => clearInterval(timerId);
+  }, [nextResetTime]);
 
   if (!isOpen) return null;
 
@@ -794,6 +834,19 @@ export function SettingsModal({
               <span>Privacy &amp; MP</span>
             </button>
 
+            {/* 6. Keyboard Shortcuts */}
+            <button
+              onClick={() => setActiveTab("shortcuts")}
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-mono text-xs font-semibold transition-all duration-200 w-full text-left whitespace-nowrap cursor-pointer ${
+                activeTab === "shortcuts"
+                  ? "bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.25)]"
+                  : "text-zinc-400 hover:text-zinc-100 hover:bg-white/5"
+              }`}
+            >
+              <Keyboard className="w-4 h-4 shrink-0" />
+              <span>Shortcuts</span>
+            </button>
+
             {/* Mobile Sign Out Button */}
             <button
               type="button"
@@ -821,8 +874,12 @@ export function SettingsModal({
                     {isPro ? "PRO ACTIVE" : "FREE PLAN"}
                   </span>
                 </div>
-                <div className="text-[10px] text-zinc-500 font-mono">
-                  Actions: {dynamicActionsUsed}/{isPro ? "Unlimited" : dynamicActionLimit}
+                <div className="text-[10px] text-zinc-400 font-mono flex items-center justify-between">
+                  <span>Quota: {dynamicActionsUsed}/{isPro ? 300 : dynamicActionLimit}</span>
+                </div>
+                <div className="text-[9px] text-amber-300 font-mono flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5 text-amber-400 shrink-0" />
+                  <span className="truncate">{resetCountdown}</span>
                 </div>
               </div>
 
@@ -848,10 +905,72 @@ export function SettingsModal({
             {activeTab === "account" && (
               <div className="space-y-6 animate-fade-in">
                 <div>
-                  <h3 className="font-mono font-bold text-base tracking-tight text-white">Account Details</h3>
+                  <h3 className="font-mono font-bold text-base tracking-tight text-white">Account &amp; AI Usage</h3>
                   <p className="text-xs text-zinc-400">
-                    Manage your personal identity, avatar image, and credentials.
+                    Manage your personal profile, active AI generation limits, and credentials.
                   </p>
+                </div>
+
+                {/* ── Strict Per-Profile AI Quota & Dynamic Countdown HUD Card ── */}
+                <div className="p-5 rounded-2xl bg-gradient-to-br from-cyan-950/25 via-[#121217] to-indigo-950/25 border border-cyan-500/30 shadow-[0_0_30px_rgba(6,182,212,0.15)] space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-cyan-500/15 text-cyan-400 border border-cyan-400/30 shadow-[0_0_12px_rgba(6,182,212,0.2)]">
+                        <Zap className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                          AI Generation Quota
+                        </h4>
+                        <p className="text-[11px] text-zinc-400">
+                          {isPro
+                            ? "300 Generations / 24-Hour Cycle (Strictly per Profile)"
+                            : "15 Free Lifetime Generations (Strictly per Profile)"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:items-end">
+                      <span className="text-sm font-mono font-bold text-cyan-300">
+                        {dynamicActionsUsed}/{isPro ? 300 : dynamicActionLimit} {isPro ? "Daily Pro Uses" : "Free Uses"}
+                      </span>
+                      <span className="text-[11px] font-mono text-amber-300 flex items-center gap-1.5 mt-0.5">
+                        <Clock className="w-3 h-3 text-amber-400" />
+                        <span>{resetCountdown}</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Quota Progress Bar */}
+                  <div className="w-full h-2 rounded-full bg-white/5 border border-white/10 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-teal-400 to-indigo-500 transition-all duration-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.round(
+                            (dynamicActionsUsed / (isPro ? 300 : dynamicActionLimit || 15)) * 100
+                          )
+                        )}%`,
+                      }}
+                    />
+                  </div>
+
+                  {!isPro && onOpenUpgradeModal && (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1">
+                      <span className="text-zinc-400 text-[11px]">
+                        Need continuous daily cloud architecture &amp; code generation?
+                      </span>
+                      <button
+                        type="button"
+                        onClick={onOpenUpgradeModal}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold transition-all cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                      >
+                        <Crown className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Upgrade to PRO (300/Day)</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Avatar Section */}
@@ -1705,6 +1824,83 @@ export function SettingsModal({
                   </div>
                   <p className="text-xs text-zinc-400 leading-relaxed">
                     MasmSpace transmits collaborative strokes through encrypted WebSockets. Your canvas assets and code studio files remain private to invited board members.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================= */}
+            {/* SECTION 6: KEYBOARD SHORTCUTS                                 */}
+            {/* ============================================================= */}
+            {activeTab === "shortcuts" && (
+              <div className="space-y-6 animate-fade-in">
+                <div>
+                  <h3 className="font-mono font-bold text-base tracking-tight text-white flex items-center gap-2">
+                    <Keyboard className="w-5 h-5 text-amber-400" />
+                    <span>Canvas Keyboard Shortcuts</span>
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    Boost your whiteboard workflow with rapid keyboard hotkeys, shape drawers, and history undo controls.
+                  </p>
+                </div>
+
+                {/* Shortcuts Table */}
+                <div className="rounded-2xl bg-white/[0.02] border border-white/10 overflow-hidden shadow-2xl">
+                  <div className="px-5 py-3 bg-white/[0.04] border-b border-white/10 flex items-center justify-between text-[11px] font-mono font-bold text-zinc-400 uppercase tracking-wider">
+                    <span>Tool / Command</span>
+                    <span>Shortcut Key</span>
+                  </div>
+
+                  <div className="divide-y divide-white/5">
+                    {[
+                      { action: "Select / Pointer Mode", key: "V", category: "Navigation", icon: "cursor" },
+                      { action: "Pan Canvas / Hand Tool", key: "H", category: "Navigation", icon: "hand" },
+                      { action: "Freehand Pen (Draw)", key: "P", category: "Drawing", icon: "pen" },
+                      { action: "Stroke Eraser", key: "E", category: "Drawing", icon: "eraser" },
+                      { action: "Neon Highlighter", key: "Shift + H", category: "Drawing", icon: "highlighter" },
+                      { action: "Laser Pointer", key: "L", category: "Presentation", icon: "laser" },
+                      { action: "Shapes & Architecture Menu", key: "S", category: "Architecture", icon: "shapes" },
+                      { action: "Text Architecture Note", key: "T", category: "Annotation", icon: "text" },
+                      { action: "Sticky Note", key: "N", category: "Annotation", icon: "stickyNote" },
+                      { action: "Undo Last Action", key: "Ctrl + Z / ⌘Z", category: "Edit & History", icon: "undo" },
+                      { action: "Copy Selected Node(s)", key: "Ctrl + C / ⌘C", category: "Edit & History", icon: "copy" },
+                      { action: "Paste Copied Node(s)", key: "Ctrl + V / ⌘V", category: "Edit & History", icon: "paste" },
+                      { action: "Group into Boundary (VPC)", key: "Ctrl + G / ⌘G", category: "Architecture", icon: "group" },
+                      { action: "Fit Blueprint to Screen", key: "F", category: "View", icon: "fit" },
+                      { action: "Cancel Tool / Reset to Pointer", key: "Esc", category: "General", icon: "esc" },
+                    ].map((shortcut, idx) => (
+                      <div
+                        key={idx}
+                        className="px-5 py-3 flex items-center justify-between hover:bg-white/[0.03] transition-colors group"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-zinc-200 group-hover:text-cyan-300 transition-colors">
+                            {shortcut.action}
+                          </span>
+                          <span className="text-[10px] text-zinc-500 font-mono">
+                            {shortcut.category}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {shortcut.key.split(" / ").map((k, kIdx) => (
+                            <React.Fragment key={kIdx}>
+                              {kIdx > 0 && <span className="text-[10px] text-zinc-600">or</span>}
+                              <kbd className="px-2.5 py-1 rounded-lg bg-[#181820] border border-white/20 text-cyan-300 font-mono text-xs font-bold shadow-[0_2px_6px_rgba(0,0,0,0.5)]">
+                                {k}
+                              </kbd>
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Pro Tip Callout */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/30 to-indigo-950/30 border border-cyan-400/30 text-xs text-zinc-300 flex items-start gap-3 shadow-[0_0_20px_rgba(6,182,212,0.1)]">
+                  <Sparkles className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                  <p className="leading-relaxed">
+                    <strong className="text-cyan-300 font-semibold">Pro Tip:</strong> Shortcuts are active globally across the canvas whenever you are not actively typing inside a text or sticky note editor. Press <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-cyan-300 font-mono text-[10px]">S</kbd> anytime to open the architecture shapes library.
                   </p>
                 </div>
               </div>

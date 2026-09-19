@@ -32,6 +32,72 @@ export const AI_PROMPT_CATEGORIES = [
 ] as const;
 
 export const AI_PROMPT_LIBRARY: AIPromptItem[] = [
+  // ── Requested Daily-Use Featured Commands ──
+  {
+    id: "daily-user-login-sequence",
+    title: "Basic User Login Sequence",
+    prompt: "Basic User Login Sequence",
+    category: "Cybersecurity",
+    complexity: "Beginner",
+    tags: ["Auth", "JWT", "Session", "Security", "Login"],
+  },
+  {
+    id: "daily-forgot-password-flow",
+    title: "Forgot Password Flow",
+    prompt: "Forgot Password Flow",
+    category: "Cybersecurity",
+    complexity: "Beginner",
+    tags: ["Auth", "Password Reset", "Email", "Token"],
+  },
+  {
+    id: "daily-rest-crud-architecture",
+    title: "REST API CRUD Architecture",
+    prompt: "REST API CRUD Architecture",
+    category: "Microservices",
+    complexity: "Beginner",
+    tags: ["REST", "API", "CRUD", "FastAPI", "Express"],
+  },
+  {
+    id: "daily-ecommerce-cart-flow",
+    title: "Simple E-commerce Cart Flow",
+    prompt: "Simple E-commerce Cart Flow",
+    category: "Fintech",
+    complexity: "Intermediate",
+    tags: ["E-commerce", "Cart", "Checkout", "Inventory"],
+  },
+  {
+    id: "daily-blog-database-schema",
+    title: "Blog Database Schema",
+    prompt: "Blog Database Schema",
+    category: "Databases",
+    complexity: "Beginner",
+    tags: ["Database", "SQL", "Postgres", "Schema", "Tables"],
+  },
+  {
+    id: "daily-k8s-topology",
+    title: "Scalable Kubernetes Cluster Topology",
+    prompt: "Design a scalable Kubernetes cluster topology",
+    category: "DevOps",
+    complexity: "Enterprise",
+    tags: ["Kubernetes", "K8s", "Ingress", "Pods", "Microservices"],
+  },
+  {
+    id: "daily-stripe-webhook",
+    title: "Stripe Webhook Payment Flow",
+    prompt: "Map out a Stripe webhook payment flow",
+    category: "Fintech",
+    complexity: "Intermediate",
+    tags: ["Stripe", "Webhooks", "Payments", "Idempotency", "Queue"],
+  },
+  {
+    id: "daily-redis-pubsub",
+    title: "Redis Pub/Sub Caching Architecture",
+    prompt: "Create a Redis Pub/Sub caching architecture",
+    category: "Databases",
+    complexity: "Advanced",
+    tags: ["Redis", "PubSub", "Cache", "Realtime", "In-Memory"],
+  },
+
   // ── 1. Cloud Architecture ──
   {
     id: "cloud-1",

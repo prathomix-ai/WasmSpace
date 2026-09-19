@@ -19,6 +19,7 @@ import {
   Globe,
   DollarSign,
   Activity,
+  Star,
 } from "lucide-react";
 import {
   AI_PROMPT_LIBRARY,
@@ -35,6 +36,7 @@ export interface AIPromptModalProps {
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   All: <Sparkles className="w-3.5 h-3.5 text-cyan-400" />,
+  Favorites: <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />,
   "Cloud Architecture": <Cloud className="w-3.5 h-3.5 text-blue-400" />,
   Microservices: <Layers className="w-3.5 h-3.5 text-cyan-400" />,
   Databases: <Database className="w-3.5 h-3.5 text-emerald-400" />,
@@ -68,11 +70,43 @@ export default function AIPromptModal({
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Filtered prompts based on category and search query
+  // Favorites System synced with localStorage
+  const [favoritedPromptIds, setFavoritedPromptIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored =
+        localStorage.getItem("favorited_prompt_ids") ||
+        localStorage.getItem("masmspace_favorite_prompts");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const toggleFavorite = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setFavoritedPromptIds((prev) => {
+      const isFav = prev.includes(id);
+      const next = isFav ? prev.filter((item) => item !== id) : [...prev, id];
+      try {
+        localStorage.setItem("favorited_prompt_ids", JSON.stringify(next));
+        localStorage.setItem("masmspace_favorite_prompts", JSON.stringify(next));
+      } catch (err) {
+        console.error("Failed to save favorited prompts:", err);
+      }
+      return next;
+    });
+  };
+
+  // Filtered prompts with favorites pinned to top
   const filteredPrompts = useMemo(() => {
-    return AI_PROMPT_LIBRARY.filter((item) => {
+    const list = AI_PROMPT_LIBRARY.filter((item) => {
       const matchesCategory =
-        selectedCategory === "All" || item.category === selectedCategory;
+        selectedCategory === "All"
+          ? true
+          : selectedCategory === "Favorites"
+          ? favoritedPromptIds.includes(item.id)
+          : item.category === selectedCategory;
       const query = searchQuery.toLowerCase().trim();
       if (!query) return matchesCategory;
 
@@ -83,7 +117,16 @@ export default function AIPromptModal({
 
       return matchesCategory && matchesSearch;
     });
-  }, [searchQuery, selectedCategory]);
+
+    // Pinned favorites to the absolute top of the list
+    return [...list].sort((a, b) => {
+      const aFav = favoritedPromptIds.includes(a.id);
+      const bFav = favoritedPromptIds.includes(b.id);
+      if (aFav && !bFav) return -1;
+      if (!aFav && bFav) return 1;
+      return 0;
+    });
+  }, [searchQuery, selectedCategory, favoritedPromptIds]);
 
   const handleCopy = (item: AIPromptItem) => {
     navigator.clipboard.writeText(item.prompt);
@@ -196,14 +239,15 @@ export default function AIPromptModal({
         {/* ── Category Tabs & Search Bar ── */}
         <div className="px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-white/5 bg-[#0f0f14]/50">
           {/* Scrollable Category Filter Pills */}
+          {/* Scrollable Category Filter Pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 custom-scrollbar">
-            {AI_PROMPT_CATEGORIES.map((cat) => {
+            {["All", "Favorites", ...AI_PROMPT_CATEGORIES.filter((c) => c !== "All")].map((cat) => {
               const isActive = selectedCategory === cat;
               return (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
                     isActive
                       ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
                       : "bg-white/5 text-zinc-400 hover:text-zinc-200 hover:bg-white/10 border border-transparent"
@@ -211,6 +255,9 @@ export default function AIPromptModal({
                 >
                   {CATEGORY_ICONS[cat]}
                   <span>{cat}</span>
+                  {cat === "Favorites" && (
+                    <span className="text-[10px] opacity-70">({favoritedPromptIds.length})</span>
+                  )}
                 </button>
               );
             })}
@@ -240,21 +287,49 @@ export default function AIPromptModal({
               </p>
             </div>
           ) : (
-            filteredPrompts.map((item) => (
-              <div
-                key={item.id}
-                className="group relative flex flex-col justify-between rounded-xl bg-[#18181f]/60 hover:bg-[#18181f]/90 border border-white/5 hover:border-cyan-400/40 p-4 transition-all duration-200 shadow-md hover:shadow-[0_0_20px_rgba(6,182,212,0.12)]"
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 border border-white/10 text-cyan-300">
-                        {item.category}
-                      </span>
-                      <span className="text-[10px] font-mono text-zinc-500">
-                        {item.complexity}
-                      </span>
-                    </div>
+            filteredPrompts.map((item) => {
+              const isFavorited = favoritedPromptIds.includes(item.id);
+
+              return (
+                <div
+                  key={item.id}
+                  className={`group relative flex flex-col justify-between rounded-xl border p-4 transition-all duration-200 shadow-md ${
+                    isFavorited
+                      ? "bg-[#181612]/80 border-amber-400/40 shadow-[0_0_20px_rgba(251,191,36,0.1)]"
+                      : "bg-[#18181f]/60 hover:bg-[#18181f]/90 border-white/5 hover:border-cyan-400/40 hover:shadow-[0_0_20px_rgba(6,182,212,0.12)]"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => toggleFavorite(item.id, e)}
+                          className={`p-1 rounded-md transition-colors cursor-pointer ${
+                            isFavorited
+                              ? "text-amber-400 bg-amber-400/15 border border-amber-400/30"
+                              : "text-zinc-500 hover:text-amber-400 hover:bg-white/5"
+                          }`}
+                          title={isFavorited ? "Pinned to Top" : "Star to pin to top"}
+                        >
+                          <Star
+                            className={`w-3.5 h-3.5 ${
+                              isFavorited ? "fill-amber-400 text-amber-400" : ""
+                            }`}
+                          />
+                        </button>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 border border-white/10 text-cyan-300">
+                          {item.category}
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-500">
+                          {item.complexity}
+                        </span>
+                        {isFavorited && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-400/15 text-amber-300 border border-amber-400/30">
+                            Pinned
+                          </span>
+                        )}
+                      </div>
 
                     <div className="flex items-center gap-1">
                       <button
@@ -321,9 +396,10 @@ export default function AIPromptModal({
                   </button>
                 </div>
               </div>
-            ))
-          )}
-        </div>
+            );
+          })
+        )}
+      </div>
 
         {/* ── Footer ── */}
         <div className="px-6 py-3 border-t border-white/10 bg-[#121217]/80 flex items-center justify-between text-xs text-zinc-400">

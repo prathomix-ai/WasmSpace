@@ -44,6 +44,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const formatParam = (formData.get("format") as string | null) || req.nextUrl.searchParams.get("format");
+    const wantsImages =
+      formatParam === "images" ||
+      req.headers.get("accept")?.includes("application/json");
+
     const convertApiSecret = process.env.CONVERTAPI_SECRET || process.env.CONVERT_API_KEY;
 
     // 2. Enterprise Cloud Conversion via ConvertAPI if API Secret is configured
@@ -54,7 +59,9 @@ export async function POST(req: NextRequest) {
         convertFormData.append("File", blob, fileName);
         convertFormData.append("StoreFile", "true");
 
-        const convertUrl = `https://v2.convertapi.com/convert/${fileExt}/to/pdf?Secret=${convertApiSecret}`;
+        // If client specifically requests image array, convert to PNG directly
+        const targetFormat = wantsImages ? "png" : "pdf";
+        const convertUrl = `https://v2.convertapi.com/convert/${fileExt}/to/${targetFormat}?Secret=${convertApiSecret}`;
         const response = await fetch(convertUrl, {
           method: "POST",
           body: convertFormData,
@@ -63,8 +70,28 @@ export async function POST(req: NextRequest) {
         if (response.ok) {
           const result = await response.json();
           if (result.Files && result.Files.length > 0) {
-            const firstFile = result.Files[0];
+            if (wantsImages && targetFormat === "png") {
+              const pages: string[] = [];
+              for (const f of result.Files) {
+                if (f.FileData) {
+                  pages.push(`data:image/png;base64,${f.FileData}`);
+                } else if (f.Url) {
+                  const dlRes = await fetch(f.Url);
+                  const dlBuf = Buffer.from(await dlRes.arrayBuffer());
+                  pages.push(`data:image/png;base64,${dlBuf.toString("base64")}`);
+                }
+              }
+              if (pages.length > 0) {
+                return NextResponse.json({
+                  success: true,
+                  pages,
+                  pageCount: pages.length,
+                  fileName,
+                });
+              }
+            }
 
+            const firstFile = result.Files[0];
             if (firstFile.FileData) {
               const convertedPdfBuffer = Buffer.from(firstFile.FileData, "base64");
               return new NextResponse(convertedPdfBuffer, {
@@ -183,6 +210,16 @@ export async function POST(req: NextRequest) {
     }
 
     const outputBuffer = Buffer.from(doc.output("arraybuffer"));
+
+    if (wantsImages) {
+      return NextResponse.json({
+        success: true,
+        isPdf: true,
+        pdfBase64: outputBuffer.toString("base64"),
+        pageCount: totalSlides,
+        fileName,
+      });
+    }
 
     return new NextResponse(outputBuffer, {
       headers: {

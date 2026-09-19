@@ -18,12 +18,18 @@ import {
   Type,
   Copy,
   Trash2,
+  Square,
+  Circle,
+  Diamond,
+  Cylinder,
+  Folder,
 } from "lucide-react";
 
 export interface CustomTechNodeData {
   title: string;
   subtitle?: string;
   description?: string;
+  shape?: "rectangle" | "circle" | "diamond" | "cylinder" | "cloud" | "folder";
   category?:
     | "gateway"
     | "service"
@@ -33,6 +39,13 @@ export interface CustomTechNodeData {
     | "security"
     | "storage"
     | "queue"
+    | "diamond"
+    | "decision"
+    | "cylinder"
+    | "folder"
+    | "cloud"
+    | "circle"
+    | "rectangle"
     | string;
   icon?: string;
   status?: "active" | "healthy" | "warning" | "error" | "offline";
@@ -153,10 +166,22 @@ const getCategoryIcon = (category?: string, iconName?: string) => {
   }
 
   switch (category?.toLowerCase()) {
+    case "diamond":
+    case "decision":
+      return <Diamond className="w-4 h-4 text-amber-400" />;
+    case "cylinder":
+    case "database":
+      return <Cylinder className="w-4 h-4 text-emerald-400" />;
+    case "cloud":
+      return <Cloud className="w-4 h-4 text-sky-400" />;
+    case "folder":
+      return <Folder className="w-4 h-4 text-indigo-400" />;
+    case "circle":
+      return <Circle className="w-4 h-4 text-cyan-400" />;
+    case "rectangle":
+      return <Square className="w-4 h-4 text-cyan-400" />;
     case "gateway":
       return <Globe className="w-4 h-4 text-cyan-400" />;
-    case "database":
-      return <Database className="w-4 h-4 text-emerald-400" />;
     case "cache":
       return <Flame className="w-4 h-4 text-amber-400" />;
     case "ai":
@@ -502,14 +527,35 @@ const CustomTechNode = ({ id, data, selected }: NodeProps) => {
         </button>
       </NodeToolbar>
 
-      {/* ── Main Node Body with Dynamic Color Styling ── */}
+      {/* ── Main Node Body with Dynamic Color Styling & Shape Contours ── */}
       <div
-        className={`relative group min-w-[240px] max-w-[320px] rounded-xl transition-all duration-200 backdrop-blur-md border ${
+        className={`relative group min-w-[240px] max-w-[320px] ${
+          (nodeData.shape === "circle" || category === "circle")
+            ? "rounded-3xl"
+            : (nodeData.shape === "diamond" || category === "diamond" || category === "decision")
+            ? "rounded-2xl border-amber-500/40"
+            : (nodeData.shape === "folder" || category === "folder")
+            ? "rounded-xl pt-5"
+            : "rounded-xl"
+        } transition-all duration-200 backdrop-blur-md border ${
           editingField ? "select-text" : "select-none"
         } ${selected ? `${theme.selectedBorder} ${theme.selectedGlow}` : `${theme.border} ${theme.glow}`} ${
           theme.bg
         } text-white p-4`}
       >
+        {/* Top Folder Tab when shape is folder */}
+        {(nodeData.shape === "folder" || category === "folder") && (
+          <div className="absolute -top-2.5 left-4 px-2 py-0.5 rounded-t-md bg-[#181820] border-t border-x border-white/20 text-[9px] font-mono text-indigo-300 flex items-center gap-1 shadow-sm">
+            <Folder className="w-2.5 h-2.5" />
+            <span>Folder / Subnet</span>
+          </div>
+        )}
+
+        {/* Cylinder Database top oval contour when shape is cylinder */}
+        {(nodeData.shape === "cylinder" || category === "cylinder" || category === "database") && (
+          <div className="absolute top-1 left-1/2 -translate-x-1/2 w-28 h-1 rounded-full bg-emerald-400/30 blur-[1px]" />
+        )}
+
         {/* Top Glass Glow Gradient Line */}
         <div
           className={`absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r ${theme.topLine} rounded-t-xl`}

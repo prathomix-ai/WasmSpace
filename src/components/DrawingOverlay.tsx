@@ -28,6 +28,7 @@ interface LaserPoint {
 interface DrawingOverlayProps {
   activeTool: DrawingTool | string;
   penColor?: string;
+  penWidth?: number;
   highlighterColor?: string;
   onStrokeComplete?: (stroke: DrawingStroke) => void;
 }
@@ -90,6 +91,7 @@ function laserPointsToSvgPaths(points: LaserPoint[]): string[] {
 export default function DrawingOverlay({
   activeTool,
   penColor = "#06b6d4",
+  penWidth = 3,
   highlighterColor = "#facc15",
   onStrokeComplete,
 }: DrawingOverlayProps) {
@@ -153,7 +155,6 @@ export default function DrawingOverlay({
     if (!isDrawingActive || e.button !== 0) return;
     (e.target as Element).setPointerCapture?.(e.pointerId);
     isDrawingRef.current = true;
-
     const pt = getFlowCoordinates(e);
 
     if (activeTool === "eraser") {
@@ -172,7 +173,7 @@ export default function DrawingOverlay({
       tool: activeTool === "highlighter" ? "highlighter" : "pen",
       points: [pt],
       color: activeTool === "highlighter" ? highlighterColor : penColor,
-      width: activeTool === "highlighter" ? 22 : 3,
+      width: activeTool === "highlighter" ? 22 : penWidth,
       opacity: activeTool === "highlighter" ? 0.38 : 1,
     };
 

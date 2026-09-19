@@ -29,6 +29,9 @@ import {
   Maximize2,
   CloudUpload,
   FileUp,
+  Sparkles,
+  CheckCircle2,
+  Info,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -41,6 +44,7 @@ interface LeftSidebarProps {
   onSearchClick: () => void;
   onBoardBrainClick: () => void;
   onImportDocumentClick?: () => void;
+  onImportDocument?: (file: File) => void;
   onSaveAndIndex?: () => void;
   isIndexing?: boolean;
   onShareClick: () => void;
@@ -85,6 +89,7 @@ export function LeftSidebar({
   onSearchClick,
   onBoardBrainClick,
   onImportDocumentClick,
+  onImportDocument,
   onSaveAndIndex,
   isIndexing = false,
   onShareClick,
@@ -119,9 +124,48 @@ export function LeftSidebar({
   // PRO Gating Feedback Toast
   const [proToast, setProToast] = useState<string | null>(null);
 
+  // Floating Toast Feedback State for Instant Button Click Confirmation
+  const [toast, setToast] = useState<{
+    id: number;
+    message: string;
+    type: "info" | "success" | "pro";
+  } | null>(null);
+
+  const showToast = (
+    message: string,
+    type: "info" | "success" | "pro" = "info"
+  ) => {
+    setToast({ id: Date.now(), message, type });
+  };
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3200);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
   // Floating Portal Tooltip State (immune to overflow-y-auto clipping)
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Hidden File Input for Document Importer
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportButtonClick = () => {
+    if (onImportDocumentClick) {
+      onImportDocumentClick();
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onImportDocument) {
+      onImportDocument(file);
+    }
+    e.target.value = "";
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -259,13 +303,13 @@ export function LeftSidebar({
 
   return (
     <>
-      {/* ── 1. Desktop & Tablet Sidebar Container with Smooth Distraction-Free Transition ── */}
+      {/* ── 1. Desktop & Tablet Sidebar Container with Strict Z-Index & Layout Isolation ── */}
       <aside
         id="app-left-sidebar"
         data-tour="sidebar"
-        className={`hidden md:flex flex-col flex-shrink-0 relative z-50 overflow-y-auto custom-scrollbar h-screen bg-[#09090b] border-r border-white/5 select-none transition-all duration-300 ease-in-out ${
+        className={`hidden md:flex flex-col flex-shrink-0 fixed top-0 left-0 h-screen z-[99999] bg-[#09090b] pointer-events-auto overflow-y-auto custom-scrollbar border-r border-white/10 select-none transition-all duration-300 ease-in-out ${
           !isSidebarVisible
-            ? "-translate-x-[calc(100%+2rem)] opacity-0 pointer-events-none !w-0 !m-0 !p-0 overflow-hidden"
+            ? "-translate-x-full opacity-0 pointer-events-none !w-0 overflow-hidden"
             : isCollapsed
             ? "translate-x-0 opacity-100 w-[76px] p-2.5 gap-3"
             : "translate-x-0 opacity-100 w-[260px] p-3.5 gap-3.5"
@@ -528,11 +572,16 @@ export function LeftSidebar({
           <div className="bg-[#09090b]/60 backdrop-blur-2xl border border-white/8 rounded-2xl py-3.5 px-2 flex flex-col gap-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
             {/* ── Primary Tools (Present to Voice AI) ── */}
             <div className="flex flex-col gap-1.5">
-              {/* Present (PRO) */}
+              {/* Present */}
               <button
                 type="button"
                 id="sidebar-btn-present"
-                onClick={() => handleGatedAction("Laser Presentation Mode", onPresentClick)}
+                onClick={() => {
+                  showToast("Opening Laser Presentation Mode...", "info");
+                  if (onPresentClick) {
+                    handleGatedAction("Laser Presentation Mode", onPresentClick);
+                  }
+                }}
                 className={getNavItemClass("present")}
                 onMouseEnter={(e) =>
                   showTooltip("Present Mode", e.currentTarget, {
@@ -549,11 +598,16 @@ export function LeftSidebar({
                 {!isCollapsed && !effectiveIsPro && <ProBadge />}
               </button>
 
-              {/* Search (PRO) */}
+              {/* Search */}
               <button
                 type="button"
                 id="sidebar-btn-search"
-                onClick={() => handleGatedAction("Canvas Vector RAG Search", onSearchClick)}
+                onClick={() => {
+                  showToast("Opening Canvas Vector RAG Search...", "info");
+                  if (onSearchClick) {
+                    handleGatedAction("Canvas Vector RAG Search", onSearchClick);
+                  }
+                }}
                 className={getNavItemClass("search")}
                 onMouseEnter={(e) =>
                   showTooltip("Search Canvas", e.currentTarget, {
@@ -570,11 +624,16 @@ export function LeftSidebar({
                 {!isCollapsed && !effectiveIsPro && <ProBadge />}
               </button>
 
-              {/* Board Brain (PRO) */}
+              {/* Board Brain */}
               <button
                 type="button"
                 id="sidebar-btn-board-brain"
-                onClick={() => handleGatedAction("AI Meeting Summaries & Action Items", onBoardBrainClick)}
+                onClick={() => {
+                  showToast("Opening Board Brain AI Action Items...", "info");
+                  if (onBoardBrainClick) {
+                    handleGatedAction("AI Meeting Summaries & Action Items", onBoardBrainClick);
+                  }
+                }}
                 disabled={isSummarising}
                 className={`${getNavItemClass("brain")} ${isSummarising ? "opacity-50" : ""}`}
                 onMouseEnter={(e) =>
@@ -599,7 +658,10 @@ export function LeftSidebar({
                 <button
                   type="button"
                   id="sidebar-btn-save-index"
-                  onClick={onSaveAndIndex}
+                  onClick={() => {
+                    showToast("Indexing canvas nodes for Vector RAG...", "info");
+                    onSaveAndIndex();
+                  }}
                   disabled={isIndexing}
                   className={`${getNavItemClass("save")} ${isIndexing ? "cursor-wait" : ""}`}
                   onMouseEnter={(e) =>
@@ -622,32 +684,48 @@ export function LeftSidebar({
                 </button>
               )}
 
-              {/* Import Document (PDF/PPT) */}
-              {onImportDocumentClick && (
-                <button
-                  type="button"
-                  id="sidebar-btn-import-doc"
-                  onClick={onImportDocumentClick}
-                  className={getNavItemClass("import")}
-                  onMouseEnter={(e) =>
-                    showTooltip("Import Document (PDF/PPT)", e.currentTarget, {
-                      subtext: "Render PDF, PPTX, or DOCX onto canvas",
-                    })
-                  }
-                  onMouseLeave={hideTooltip}
-                >
-                  <div className="flex items-center gap-3">
-                    <FileUp className="w-5 h-5 text-purple-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(168,85,247,0.6)] transition-all shrink-0" />
-                    {!isCollapsed && <span>Import Document</span>}
-                  </div>
-                </button>
-              )}
+              {/* Import Document (PDF/DOCX/PPTX/Images) */}
+              <button
+                type="button"
+                id="sidebar-btn-import-doc"
+                onClick={() => {
+                  showToast("Select document (.pdf, .docx, .pptx, image) to import...", "info");
+                  handleImportButtonClick();
+                }}
+                className={getNavItemClass("import")}
+                onMouseEnter={(e) =>
+                  showTooltip("Import Document", e.currentTarget, {
+                    subtext: "Render PDF, DOCX, PPTX, or Image onto canvas",
+                  })
+                }
+                onMouseLeave={hideTooltip}
+              >
+                <div className="flex items-center gap-3">
+                  <FileUp className="w-5 h-5 text-purple-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(168,85,247,0.6)] transition-all shrink-0" />
+                  {!isCollapsed && <span>Import Document</span>}
+                </div>
+              </button>
 
-              {/* Share (PRO) */}
+              {/* Hidden file input for document importer */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf, .docx, .pptx, image/*"
+                className="hidden"
+                style={{ display: "none" }}
+                onChange={handleFileInputChange}
+              />
+
+              {/* Share */}
               <button
                 type="button"
                 id="sidebar-btn-share"
-                onClick={() => handleGatedAction("Live Multiplayer Collaboration", onShareClick)}
+                onClick={() => {
+                  showToast("Opening Live Multiplayer Collaboration...", "info");
+                  if (onShareClick) {
+                    handleGatedAction("Live Multiplayer Collaboration", onShareClick);
+                  }
+                }}
                 className={getNavItemClass("share")}
                 onMouseEnter={(e) =>
                   showTooltip("Live Multiplayer Collaboration", e.currentTarget, {
@@ -668,7 +746,10 @@ export function LeftSidebar({
               <button
                 type="button"
                 id="sidebar-btn-code"
-                onClick={onCodeStudioClick}
+                onClick={() => {
+                  showToast("Toggling Code Studio Multi-Language Editor...", "info");
+                  onCodeStudioClick?.();
+                }}
                 className={`flex items-center w-full text-sm font-medium rounded-lg transition-all duration-300 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 } ${
@@ -698,7 +779,10 @@ export function LeftSidebar({
               <button
                 type="button"
                 id="sidebar-btn-voice-robot"
-                onClick={onVoiceClick}
+                onClick={() => {
+                  showToast(isVoiceListening ? "Voice AI capture stopped" : "Voice AI Listening...", "info");
+                  onVoiceClick?.();
+                }}
                 className={`flex items-center w-full text-sm font-medium rounded-lg transition-all duration-300 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 } ${
@@ -746,7 +830,10 @@ export function LeftSidebar({
               <button
                 type="button"
                 id="sidebar-btn-files"
-                onClick={onToggleExplorer}
+                onClick={() => {
+                  showToast("Toggling Project Files Explorer...", "info");
+                  onToggleExplorer?.();
+                }}
                 className={`flex items-center w-full text-sm font-medium rounded-lg transition-all duration-300 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 } ${
@@ -771,7 +858,10 @@ export function LeftSidebar({
               <button
                 type="button"
                 id="sidebar-btn-screenshot"
-                onClick={onTakeScreenshot}
+                onClick={() => {
+                  showToast("Capturing high-resolution canvas snapshot...", "success");
+                  onTakeScreenshot?.();
+                }}
                 className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 }`}
@@ -816,7 +906,10 @@ export function LeftSidebar({
                 <button
                   type="button"
                   id="sidebar-btn-save-cloud"
-                  onClick={onSaveToCloud}
+                  onClick={() => {
+                    showToast("Saving whiteboard scene to cloud...", "info");
+                    onSaveToCloud();
+                  }}
                   disabled={isSavingCloud}
                   className={`flex items-center w-full text-sm font-medium text-cyan-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
                     isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
@@ -845,7 +938,10 @@ export function LeftSidebar({
               <button
                 type="button"
                 id="sidebar-btn-settings"
-                onClick={onOpenSettings}
+                onClick={() => {
+                  showToast("Opening Settings & Shortcuts...", "info");
+                  onOpenSettings?.();
+                }}
                 className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 }`}
@@ -867,6 +963,7 @@ export function LeftSidebar({
                 type="button"
                 id="sidebar-btn-toggle-exec"
                 onClick={() => {
+                  showToast("Toggling Executive Focus Mode (100vw)...", "info");
                   if (onToggleSidebarVisibility) {
                     onToggleSidebarVisibility();
                   } else if (onToggleExecutiveMode) {
@@ -923,8 +1020,15 @@ export function LeftSidebar({
             <button
               type="button"
               id="sidebar-btn-upgrade-pro"
-              onClick={onOpenProModal}
-              className={`relative overflow-hidden flex items-center w-full rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 animate-gradient border border-cyan-400/60 text-white text-sm font-bold shadow-[0_0_25px_rgba(99,102,241,0.4)] hover:shadow-[0_0_40px_rgba(6,182,212,0.7)] transition-all duration-300 cursor-pointer group ${
+              onClick={() => {
+                showToast("Opening MasmSpace PRO Upgrade Plans...", "pro");
+                if (onOpenProModal) {
+                  onOpenProModal();
+                } else {
+                  window.location.href = "/pricing";
+                }
+              }}
+              className={`relative overflow-hidden flex items-center w-full rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 animate-gradient border border-cyan-400/60 text-white text-sm font-bold shadow-[0_0_25px_rgba(99,102,241,0.4)] hover:shadow-[0_0_40px_rgba(6,182,212,0.7)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer group ${
                 isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
               }`}
               onMouseEnter={(e) =>
@@ -948,7 +1052,7 @@ export function LeftSidebar({
         </div>
       </aside>
 
-      {/* ── 2. Floating Cyberpunk Toast Notification for Gated Action Interceptions ── */}
+      {/* ── 2. Floating Cyberpunk Toast Notifications ── */}
       <AnimatePresence>
         {proToast && (
           <motion.div
@@ -971,8 +1075,53 @@ export function LeftSidebar({
             <button
               type="button"
               onClick={() => setProToast(null)}
-              className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               aria-label="Dismiss alert"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+
+        {toast && (
+          <motion.div
+            key={toast.id}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className={`fixed bottom-6 left-6 z-[999999] max-w-sm px-4 py-3 rounded-2xl backdrop-blur-2xl border shadow-[0_12px_40px_rgba(0,0,0,0.9),0_0_25px_rgba(6,182,212,0.3)] text-xs flex items-center gap-3 select-none pointer-events-auto transition-all ${
+              toast.type === "pro"
+                ? "bg-[#09090b]/95 border-cyan-400/60 text-cyan-200"
+                : toast.type === "success"
+                ? "bg-[#09090b]/95 border-emerald-400/60 text-emerald-200"
+                : "bg-[#09090b]/95 border-cyan-500/40 text-zinc-200"
+            }`}
+          >
+            <div
+              className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                toast.type === "pro"
+                  ? "bg-cyan-500/20 text-cyan-400"
+                  : toast.type === "success"
+                  ? "bg-emerald-500/20 text-emerald-400"
+                  : "bg-cyan-500/20 text-cyan-400"
+              }`}
+            >
+              {toast.type === "pro" ? (
+                <Crown className="w-4 h-4 text-cyan-400 animate-pulse" />
+              ) : toast.type === "success" ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              ) : (
+                <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
+              )}
+            </div>
+            <div className="flex-1 font-medium text-xs leading-snug">
+              {toast.message}
+            </div>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              aria-label="Dismiss toast"
             >
               <X className="w-3.5 h-3.5" />
             </button>
