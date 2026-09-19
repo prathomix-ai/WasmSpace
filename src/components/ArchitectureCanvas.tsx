@@ -1624,8 +1624,10 @@ function ArchitectureCanvasInner({
 
         {/* ── React Flow Zoom & Navigation Controls ── */}
         <Controls
+          position="bottom-left"
           showInteractive={false}
-          className="!bg-[#18181b]/90 !backdrop-blur-md !border !border-white/10 !rounded-xl !p-1 !shadow-[0_8px_30px_rgba(0,0,0,0.5)] [&>button]:!bg-transparent [&>button]:!border-white/5 [&>button]:!rounded-lg [&>button]:!fill-zinc-300 hover:[&>button]:!bg-white/10 hover:[&>button]:!fill-cyan-400 [&>button]:transition-colors"
+          className="z-[9999] pointer-events-auto !bg-[#18181b]/90 !backdrop-blur-md !border !border-white/10 !rounded-xl !p-1 !shadow-[0_8px_30px_rgba(0,0,0,0.5)] [&>button]:!bg-transparent [&>button]:!border-white/5 [&>button]:!rounded-lg [&>button]:!fill-zinc-300 hover:[&>button]:!bg-white/10 hover:[&>button]:!fill-cyan-400 [&>button]:transition-colors [&>button]:pointer-events-auto cursor-pointer"
+          style={{ zIndex: 9999 }}
         />
 
         {/* ── Blueprint MiniMap (High-Contrast Differentiated Navigation) ── */}
@@ -1696,14 +1698,22 @@ function ArchitectureCanvasInner({
         </Panel>
 
         {/* ── Complete Drawing Layer (Pen, Highlighter, Eraser, Laser Pointer) ── */}
-        <DrawingOverlay
-          activeTool={activeToolMode}
-          penColor={drawingColor}
-          penWidth={drawingWidth}
-          highlighterColor={drawingColor}
-          onStrokeComplete={handleStrokeComplete}
-          onEraseStroke={handleEraseAtPoint}
-        />
+        <div
+          className={`absolute inset-0 z-50 ${
+            activeToolMode === "pen" || activeToolMode === "highlighter" || activeToolMode === "laser"
+              ? "pointer-events-auto"
+              : "pointer-events-none"
+          }`}
+        >
+          <DrawingOverlay
+            activeTool={activeToolMode}
+            penColor={drawingColor}
+            penWidth={drawingWidth}
+            highlighterColor={drawingColor}
+            onStrokeComplete={handleStrokeComplete}
+            onEraseStroke={handleEraseAtPoint}
+          />
+        </div>
 
         {/* ── Smart Alignment Guides (Center: Blue, Edge: Red) ── */}
         <AlignmentGuides guides={alignmentGuides} />

@@ -34,6 +34,7 @@ interface DrawingOverlayProps {
   highlighterColor?: string;
   onStrokeComplete?: (stroke: DrawingStroke) => void;
   onEraseStroke?: (pt: StrokePoint) => void;
+  className?: string;
 }
 
 /**
@@ -170,6 +171,7 @@ export default function DrawingOverlay({
   highlighterColor = "#facc15",
   onStrokeComplete,
   onEraseStroke,
+  className = "",
 }: DrawingOverlayProps) {
   const { screenToFlowPosition } = useReactFlow();
   const { x, y, zoom } = useViewport();
@@ -182,6 +184,10 @@ export default function DrawingOverlay({
   const isDrawingRef = useRef(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
+  const isDrawingToolActive =
+    activeTool === "pen" ||
+    activeTool === "highlighter" ||
+    activeTool === "laser";
   const isDrawingActive =
     activeTool === "pen" ||
     activeTool === "highlighter" ||
@@ -319,11 +325,11 @@ export default function DrawingOverlay({
   return (
     <svg
       ref={svgRef}
-      className={`absolute inset-0 w-full h-full z-[15] select-none ${
-        isDrawingActive && activeTool !== "eraser"
+      className={`absolute inset-0 w-full h-full z-50 select-none ${
+        isDrawingToolActive
           ? `pointer-events-auto ${getCursorClass()}`
           : "pointer-events-none"
-      }`}
+      } ${className}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
