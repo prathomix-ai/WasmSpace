@@ -15,7 +15,6 @@ interface PresentationModeHUDProps {
   isActive: boolean;
   onExit: () => void;
   editor?: any;
-  excalidrawAPI?: any;
   onLaserMove?: (pos: { x: number; y: number } | null) => void;
 }
 
@@ -23,7 +22,6 @@ export default function PresentationModeHUD({
   isActive,
   onExit,
   editor,
-  excalidrawAPI,
   onLaserMove,
 }: PresentationModeHUDProps) {
   const [laserActive, setLaserActive] = useState(true);
@@ -43,34 +41,25 @@ export default function PresentationModeHUD({
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const now = performance.now();
-      const pos = { x: e.clientX, y: e.clientY };
+      const now = Date.now();
+      setLaserPos({ x: e.clientX, y: e.clientY });
 
       if (now - lastUpdate >= 50) {
         lastUpdate = now;
-        setLaserPos(pos);
-        onLaserMove?.(pos);
-      } else if (!timer) {
+        onLaserMove?.({ x: e.clientX, y: e.clientY });
+      } else {
+        if (timer) clearTimeout(timer);
         timer = setTimeout(() => {
-          setLaserPos(pos);
-          onLaserMove?.(pos);
-          lastUpdate = performance.now();
-          timer = null;
-        }, 50);
+          lastUpdate = Date.now();
+          onLaserMove?.({ x: e.clientX, y: e.clientY });
+        }, 50 - (now - lastUpdate));
       }
     };
 
-    const handleMouseLeave = () => {
-      onLaserMove?.(null);
-    };
-
     window.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseleave", handleMouseLeave);
     return () => {
-      if (timer) clearTimeout(timer);
       window.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseleave", handleMouseLeave);
-      onLaserMove?.(null);
+      if (timer) clearTimeout(timer);
     };
   }, [isActive, laserActive, onLaserMove]);
 
@@ -85,28 +74,11 @@ export default function PresentationModeHUD({
 
   // Slide navigation by zooming to shapes/frames sequentially
   const getCanvasShapes = useCallback(() => {
-    if (excalidrawAPI?.getSceneElements) {
-      const allElements = excalidrawAPI.getSceneElements().filter((el: any) => !el?.isDeleted);
-      const frames = allElements.filter((el: any) => el?.type === "frame");
-      return frames.length > 0 ? frames : allElements;
-    }
     if (editor?.getCurrentPageShapes && typeof editor.getCurrentPageShapes === "function") {
       return Array.from(editor.getCurrentPageShapes());
     }
     return [];
-  }, [excalidrawAPI, editor]);
-
-  // Force-clear selections whenever Present Mode becomes active
-  useEffect(() => {
-    if (isActive && excalidrawAPI?.updateScene) {
-      excalidrawAPI.updateScene({
-        appState: {
-          selectedElementIds: {},
-          selectedGroupIds: {},
-        },
-      });
-    }
-  }, [isActive, excalidrawAPI]);
+  }, [editor]);
 
   const navigateToSlide = useCallback((targetIdx: number) => {
     const shapes = getCanvasShapes();
@@ -116,46 +88,15 @@ export default function PresentationModeHUD({
     setCurrentSlideIndex(boundedIdx);
 
     const targetShape = shapes[boundedIdx];
-    if (targetShape) {
-      if (excalidrawAPI) {
-        // 1. Smoothly pan & zoom to the target frame's coordinates without selecting it
-        if (typeof excalidrawAPI.scrollToContent === "function") {
-          excalidrawAPI.scrollToContent([targetShape], {
-            fitToViewport: true,
-            viewportZoomFactor: 0.85,
-            animate: true,
-            duration: 350,
-          });
-        }
-
-        // 2. Force-clear any active selections so no crisscross bounding box appears
-        if (typeof excalidrawAPI.updateScene === "function") {
-          excalidrawAPI.updateScene({
-            appState: {
-              selectedElementIds: {},
-              selectedGroupIds: {},
-            },
-          });
-          // Redundant tick to prevent race conditions with internal Excalidraw animation ticks
-          requestAnimationFrame(() => {
-            excalidrawAPI.updateScene?.({
-              appState: {
-                selectedElementIds: {},
-                selectedGroupIds: {},
-              },
-            });
-          });
-        }
-      } else if (editor) {
-        if (editor.zoomToSelection) {
-          editor.zoomToSelection({ animation: { duration: 350 } });
-        }
-        if (editor.deselectAll) {
-          editor.deselectAll();
-        }
+    if (targetShape && editor) {
+      if (editor.zoomToSelection) {
+        editor.zoomToSelection({ animation: { duration: 350 } });
+      }
+      if (editor.deselectAll) {
+        editor.deselectAll();
       }
     }
-  }, [getCanvasShapes, excalidrawAPI, editor]);
+  }, [getCanvasShapes, editor]);
 
   const handleNextSlide = useCallback(() => {
     navigateToSlide(currentSlideIndex + 1);
@@ -169,25 +110,16 @@ export default function PresentationModeHUD({
   const handleSelectLaser = () => {
     setHudTool("laser");
     setLaserActive(true);
-    if (excalidrawAPI?.setActiveTool) {
-      excalidrawAPI.setActiveTool({ type: "selection" });
-    }
   };
 
   const handleSelectDraw = () => {
     setHudTool("draw");
     setLaserActive(false);
-    if (excalidrawAPI?.setActiveTool) {
-      excalidrawAPI.setActiveTool({ type: "freedraw" });
-    }
   };
 
   const handleSelectEraser = () => {
     setHudTool("eraser");
     setLaserActive(false);
-    if (excalidrawAPI?.setActiveTool) {
-      excalidrawAPI.setActiveTool({ type: "eraser" });
-    }
   };
 
   // Keyboard shortcut: Esc to exit present mode, Left/Right/Space for slides
@@ -218,9 +150,7 @@ export default function PresentationModeHUD({
 
   if (!isActive) return null;
 
-  const totalShapes = excalidrawAPI
-    ? excalidrawAPI.getSceneElements().filter((el: any) => !el.isDeleted).length
-    : editor && typeof editor.getCurrentPageShapes === "function"
+  const totalShapes = editor && typeof editor.getCurrentPageShapes === "function"
     ? editor.getCurrentPageShapes().length
     : 0;
 

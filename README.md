@@ -1,6 +1,6 @@
 # MasmSpace — Collaborative Whiteboard with AI Workspace 🚀
 
-MasmSpace is a next-generation real-time collaborative whiteboard platform featuring infinite canvas drawing (tldraw & Excalidraw), AI-assisted meeting summarization, RAG canvas search, and voice control.
+MasmSpace is a next-generation real-time collaborative whiteboard platform featuring infinite canvas drawing (tldraw & React Flow), AI-assisted meeting summarization, RAG canvas search, and voice control.
 
 ---
 
@@ -159,7 +159,7 @@ The backend provides AI summarization (via Hugging Face Qwen/Llama models) and c
 | Layer | Technology |
 |---|---|
 | **Frontend Framework** | Next.js 14 (App Router) + React 18 |
-| **Whiteboard Engines** | @tldraw/tldraw & @excalidraw/excalidraw |
+| **Whiteboard Engines** | @tldraw/tldraw & @xyflow/react |
 | **Styling** | Tailwind CSS + Framer Motion + Lucide React |
 | **Database & Auth** | Supabase (PostgreSQL, Vector pgvector, Realtime) |
 | **AI Backend** | Python FastAPI + Uvicorn + Pydantic v2 |

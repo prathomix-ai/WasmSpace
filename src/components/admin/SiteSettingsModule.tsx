@@ -12,7 +12,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   cta_text: "Start Your Free Canvas",
   pro_price_monthly: 19,
   pro_price_yearly: 190,
-  announcement_banner: "⚡ MasmSpace 2.0 with WebAssembly Python & Excalidraw Engine is Live!",
+  announcement_banner: "⚡ MasmSpace 2.0 with WebAssembly Python & Infinite Canvas Engine is Live!",
 };
 
 export default function SiteSettingsModule() {

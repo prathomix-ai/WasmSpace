@@ -99,7 +99,7 @@ export async function extractPdfPagesToImages(
     onProgress?.(pageNum, numPages);
 
     const page = await pdfDoc.getPage(pageNum);
-    // Scale 2.0 provides ultra-crisp, high-definition text rendering when zooming in Excalidraw
+    // Scale 2.0 provides ultra-crisp, high-definition text rendering when zooming in the canvas
     const viewport = page.getViewport({ scale: 2.0 });
 
     const canvas = document.createElement("canvas");

@@ -5,9 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 
-// Dynamic import of WhiteboardCanvas to prevent SSR issues with Excalidraw
-const WhiteboardCanvas = dynamic(
-  () => import("@/app/canvas/WhiteboardCanvas"),
+// Dynamic SSR-free import of the Architecture Canvas
+const ArchitectureCanvas = dynamic(
+  () => import("@/components/ArchitectureCanvas"),
   {
     ssr: false,
     loading: () => (
@@ -75,7 +75,7 @@ function LiveSessionContent() {
 
   return (
     <main className="h-screen w-screen overflow-hidden bg-[#050505]">
-      <WhiteboardCanvas />
+      <ArchitectureCanvas />
     </main>
   );
 }

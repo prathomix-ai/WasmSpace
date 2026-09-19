@@ -6,7 +6,7 @@ export const fetchCache = "force-no-store";
 
 /**
  * Universal Document Converter API Route
- * Converts .docx, .pptx, and .doc files to PDF for seamless Excalidraw whiteboard rendering.
+ * Converts .docx, .pptx, and .doc files to PDF for seamless whiteboard canvas rendering.
  */
 export async function POST(req: NextRequest) {
   try {

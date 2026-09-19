@@ -92,7 +92,7 @@ create table if not exists public.site_settings (
   cta_text            text not null default 'Start Your Free Canvas',
   pro_price_monthly   numeric not null default 19,
   pro_price_yearly    numeric not null default 190,
-  announcement_banner text default '⚡ MasmSpace 2.0 with WebAssembly Python & Excalidraw Engine is Live!',
+  announcement_banner text default '⚡ MasmSpace 2.0 with WebAssembly Python & Infinite Canvas Engine is Live!',
   updated_at          timestamptz default now(),
   updated_by          uuid references auth.users(id)
 );
@@ -128,7 +128,7 @@ values (
   'Start Your Free Canvas',
   19,
   190,
-  '⚡ MasmSpace 2.0 with WebAssembly Python & Excalidraw Engine is Live!'
+  '⚡ MasmSpace 2.0 with WebAssembly Python & Infinite Canvas Engine is Live!'
 )
 on conflict (id) do nothing;
 

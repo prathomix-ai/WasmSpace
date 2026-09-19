@@ -581,7 +581,7 @@ export default function LoginPage() {
                 </div>
                 <div>
                   <h4 className="text-xs font-semibold text-white">Infinite Multi-Canvas</h4>
-                  <p className="text-[11px] text-zinc-400">Excalidraw 60FPS realtime sync</p>
+                  <p className="text-[11px] text-zinc-400">60FPS realtime collaborative sync</p>
                 </div>
               </div>
             </div>

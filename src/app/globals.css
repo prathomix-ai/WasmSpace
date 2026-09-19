@@ -227,7 +227,7 @@ body {
   animation: shimmer 1.4s ease-in-out infinite;
 }
 
-/* ── Canvas Wrappers (Excalidraw & tldraw) ────────────────────────── */
+/* ── Canvas Wrapper (tldraw) ──────────────────────────────────────── */
 .tldraw-wrapper {
   position: fixed;
   inset: 0;
@@ -235,183 +235,6 @@ body {
   height: 100vh;
   z-index: 0;
   overflow: hidden;
-}
-
-.excalidraw-wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  overflow: hidden;
-  filter: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* ── Excalidraw Dark Mode & Cyberpunk Glassmorphism Theme Overrides ──────── */
-.excalidraw.theme--dark {
-  --default-bg-color: #030407 !important;
-  --island-bg-color: rgba(9, 9, 11, 0.6) !important;
-  --popup-secondary-bg-color: rgba(9, 9, 11, 0.85) !important;
-  --color-primary: #06b6d4 !important;
-  --color-primary-darker: #0891b2 !important;
-  --color-primary-darkest: #0e7490 !important;
-  --color-primary-light: #22d3ee !important;
-  --color-selection: #06b6d4 !important;
-  --focus-highlight-color: #06b6d4 !important;
-  --color-surface-high: #18181b !important;
-  --color-surface-mid: #121215 !important;
-  --color-surface-low: #09090b !important;
-}
-
-/* 1. Canvas Container: Strictly NO blur/filters */
-.excalidraw,
-.excalidraw .excalidraw-container,
-#whiteboard-canvas-container {
-  filter: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-.excalidraw .excalidraw-container {
-  background-color: #030407 !important;
-  background-image:
-    radial-gradient(ellipse at 50% 0%, rgba(15, 23, 42, 0.5) 0%, rgba(3, 4, 7, 0.98) 75%),
-    radial-gradient(rgba(6, 182, 212, 0.14) 1px, transparent 1px) !important;
-  background-size: 100% 100%, 28px 28px !important;
-}
-
-/* 2. Floating Top Canvas Toolbar — locked, centered, properly sized */
-.excalidraw .App-toolbar-container {
-  top: 16px !important;
-  z-index: 40 !important;
-  pointer-events: auto !important;
-}
-
-.excalidraw .layer-ui__wrapper .App-menu_top {
-  width: auto !important;
-  margin: 0 auto !important;
-  justify-content: center !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-.excalidraw .App-toolbar {
-  background-color: rgba(9, 9, 11, 0.6) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: 1rem !important;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.6) !important;
-  padding: 4px 8px !important;
-}
-
-/* 4. Neon Cyberpunk Accents on Active Tool Icons */
-.excalidraw .ToolIcon_type_radio:checked+label,
-.excalidraw .ToolIcon_type_button.active,
-.excalidraw .ToolIcon_type_button:active {
-  background-color: rgba(6, 182, 212, 0.2) !important;
-  border: 1px solid rgba(6, 182, 212, 0.5) !important;
-  border-radius: 0.75rem !important;
-  box-shadow: 0 0 12px rgba(6, 182, 212, 0.35) !important;
-  color: #22d3ee !important;
-}
-
-.excalidraw .ToolIcon:hover {
-  border-radius: 0.75rem !important;
-  background-color: rgba(255, 255, 255, 0.06) !important;
-}
-
-/* Hide default Excalidraw hamburger menu trigger (using custom MasmSpace Sidebar) */
-.excalidraw .main-menu-trigger {
-  display: none !important;
-}
-
-/* Hide Excalidraw default welcome center card for a clean workspace */
-.excalidraw .welcome-screen-center,
-.excalidraw .WelcomeScreen-center {
-  display: none !important;
-}
-
-/* 5. Bottom Action Bars & Controls Detached from screen edges */
-.excalidraw .layer-ui__wrapper__footer-left {
-  left: 20px !important;
-  bottom: 24px !important;
-  z-index: 30 !important;
-}
-
-.excalidraw .layer-ui__wrapper__footer-right {
-  right: 24px !important;
-  bottom: 24px !important;
-  z-index: 30 !important;
-}
-
-/* Ensure Excalidraw context menus and modals float above everything */
-.excalidraw .context-menu,
-.excalidraw .Modal {
-  z-index: 9999 !important;
-}
-
-/* ── 6. Excalidraw Properties Menu — Fixed Position, Glassmorphism, Always On Top ── */
-/* Lock the element-properties panel to a fixed position below the left toolbar.      */
-/* It no longer moves / drags — clean and stable like Linear or Figma.                 */
-.excalidraw .App-menu_bottom--left,
-.excalidraw .App-menu_left,
-.excalidraw .layer-ui__wrapper .Island.App-menu_bottom--left,
-.excalidraw .layer-ui__wrapper .Island[aria-label="Properties"],
-.excalidraw .layer-ui__wrapper .sidebar--docked {
-  /* Fixed position below the main toolbar, left-anchored */
-  position: fixed !important;
-  bottom: 96px !important;
-  left: 20px !important;
-  transform: none !important;
-  /* ← kills any legacy translate3d from old dragging */
-  z-index: 9999 !important;
-  /* Above canvas drawings, below our modals */
-
-  /* Premium glassmorphism panel */
-  background: rgba(9, 9, 15, 0.82) !important;
-  backdrop-filter: blur(24px) saturate(200%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(200%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 1rem !important;
-  box-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.8),
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-    0 0 24px rgba(6, 182, 212, 0.08) !important;
-  transition: opacity 0.2s ease, box-shadow 0.2s ease !important;
-  overflow: hidden !important;
-}
-
-/* Properties panel labels and headings */
-.excalidraw .App-menu_bottom--left h3,
-.excalidraw .App-menu_bottom--left .control-label,
-.excalidraw .App-menu_bottom--left label {
-  color: #94a3b8 !important;
-  font-family: inherit !important;
-  font-size: 11px !important;
-  font-weight: 500 !important;
-}
-
-/* Color swatches & option buttons in properties menu */
-.excalidraw .App-menu_bottom--left .buttonList {
-  background: transparent !important;
-}
-
-.excalidraw .App-menu_bottom--left .ToolIcon_type_radio:checked+label,
-.excalidraw .App-menu_bottom--left .ToolIcon_type_button.active {
-  background-color: rgba(6, 182, 212, 0.2) !important;
-  border: 1px solid rgba(6, 182, 212, 0.45) !important;
-  color: #22d3ee !important;
-  box-shadow: 0 0 10px rgba(6, 182, 212, 0.3) !important;
-}
-
-/* ── Remove any legacy drag-handle injected by old DraggablePropertiesMenu ── */
-.masmspace-drag-handle {
-  display: none !important;
 }
 
 
@@ -1814,53 +1637,6 @@ body {
   border-color: var(--color-accent);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   Excalidraw UI Cleanup: Hide Hint Texts & Canvas Navigation Tips
-   ═══════════════════════════════════════════════════════════════════════════ */
-.excalidraw .hint-viewer,
-.excalidraw .App-bottom-bar,
-.excalidraw .LayerUI__hint,
-.excalidraw .footer-center,
-.excalidraw .layer-ui__wrapper__footer-center,
-.excalidraw .help-icon,
-.excalidraw button[aria-label="Help"],
-.excalidraw [data-testid="help-icon"] {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   Present Mode: Clean Slate + Sketch Bar + Laser Pointer + Draggable HUD
-   Keep the Sketch Bar (.App-toolbar) accessible so presenters can draw/annotate
-   ═══════════════════════════════════════════════════════════════════════════ */
-.present-mode-active .excalidraw .layer-ui__wrapper__top-right,
-.present-mode-active .excalidraw .layer-ui__wrapper__footer-left,
-.present-mode-active .excalidraw .layer-ui__wrapper__footer-right,
-.present-mode-active .excalidraw .sidebar-trigger,
-.present-mode-active .excalidraw .zen-mode-transition,
-.present-mode-active .excalidraw .App-menu {
-  display: none !important;
-  pointer-events: none !important;
-}
-
-.present-mode-active .excalidraw .App-toolbar-container {
-  top: 16px !important;
-  z-index: 45 !important;
-}
-
-.present-mode-active .excalidraw .App-toolbar {
-  display: flex !important;
-  pointer-events: auto !important;
-  box-shadow: 0 0 25px rgba(6, 182, 212, 0.15) !important;
-}
-
-.present-mode-active .excalidraw .App-toolbar-content {
-  display: flex !important;
-  pointer-events: auto !important;
-}
-
 /* ── Sleek Custom Scrollbar for Quick Commands & Drawers ── */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
@@ -1881,30 +1657,6 @@ body {
   background: rgba(0, 245, 255, 0.4);
 }
 
-/* ── Excalidraw Properties Menu & UI Z-Index Elevation (Never Hidden by Navbar) ── */
-.excalidraw .layer-ui__wrapper {
-  z-index: 9999 !important;
-}
-
-.excalidraw .App-menu_bottom--left,
-.excalidraw .App-menu__left,
-.excalidraw .layer-ui__wrapper .properties-panel,
-.excalidraw .layer-ui__wrapper .properties-content,
-.excalidraw .layer-ui__wrapper .Island.App-menu,
-.excalidraw .layer-ui__wrapper .sidebar,
-.excalidraw .layer-ui__wrapper .sidebar--left,
-.excalidraw .layer-ui__wrapper .popover,
-.excalidraw .layer-ui__wrapper .dropdown-menu,
-.excalidraw .layer-ui__wrapper .dropdown-menu-container,
-.excalidraw .layer-ui__wrapper .color-picker,
-.excalidraw .layer-ui__wrapper .color-picker-popover,
-.excalidraw .ExcalidrawModal,
-.excalidraw .Modal,
-.excalidraw-modal-container {
-  z-index: 9999 !important;
-  pointer-events: auto !important;
-}
-
 /* ── Driver.js Maximum Overlay & Popover Z-Index Elevation ── */
 .driver-overlay,
 .driver-stage,
@@ -1915,43 +1667,6 @@ body {
 .driver-popover,
 .masmspace-tour-popover {
   z-index: 10000001 !important;
-}
-
-/* ── Excalidraw Premium Dark Theme Overrides (Zero Canvas Blur) ────────────── */
-.excalidraw .layer-ui__wrapper .App-menu_top {
-  width: auto !important;
-  margin: 0 auto !important;
-  justify-content: center !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  filter: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-.excalidraw .layer-ui__wrapper .FixedSideContainer {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  filter: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-.excalidraw .layer-ui__wrapper .App-toolbar,
-.excalidraw .layer-ui__wrapper .scroll-back-to-content {
-  background-color: rgba(9, 9, 11, 0.75) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
-}
-
-/* ── Hide Unnecessary Native UI (Excalidraw Help Icon) ────────────────────── */
-.excalidraw .layer-ui__wrapper .help-icon {
-  display: none !important;
 }
 
 /* ── Global Z-Index & Escape Overflow Fix for All Modals & Popups ───────── */

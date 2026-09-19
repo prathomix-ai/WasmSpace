@@ -59,9 +59,7 @@ export function TutorialTour({ forceStart = false, onTourComplete }: TutorialTou
           },
         },
         {
-          element: document.querySelector(".excalidraw .App-toolbar")
-            ? ".excalidraw .App-toolbar"
-            : document.querySelector(".App-toolbar-container")
+          element: document.querySelector(".App-toolbar-container")
             ? ".App-toolbar-container"
             : "#canvas-compact-save-btn",
           popover: {
@@ -98,7 +96,7 @@ export function TutorialTour({ forceStart = false, onTourComplete }: TutorialTou
 
     if (!hasSeen || forceStart) {
       let attempts = 0;
-      const maxAttempts = 25; // 25 * 200ms = 5s max check for Excalidraw chunk mounting
+      const maxAttempts = 25; // 25 * 200ms = 5s max check for canvas mounting
       const pollTimer = setInterval(() => {
         attempts++;
         const sidebar = document.querySelector("#app-left-sidebar") || document.querySelector("[data-tour='sidebar']");

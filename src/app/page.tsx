@@ -198,7 +198,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
     },
     {
       q: "How does the AI Architecture Swarm generate diagram elements?",
-      a: "Our backend load-balances between Google Gemini 1.5 and Groq Llama-3.3 high-speed inference pools. It returns deterministic Excalidraw element geometry that renders natively onto your canvas with editable strokes, labels, and connectors.",
+      a: "Our backend load-balances between Google Gemini 1.5 and Groq Llama-3.3 high-speed inference pools. It returns deterministic diagram element geometry that renders natively onto your canvas with editable strokes, labels, and connectors.",
     },
     {
       q: "Can I export my canvases to external tools?",
@@ -772,7 +772,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
                   <p className="text-sm text-gray-400 leading-relaxed mb-6">
                     High-throughput vector rendering engine optimized for locked 60
                     FPS even on low-power 4GB RAM laptops. Unlimited board
-                    dimensions, smooth zoom, and crisp Excalidraw-grade visual
+                    dimensions, smooth zoom, and crisp studio-grade visual
                     precision.
                   </p>
                 </div>
@@ -946,7 +946,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
 
                   <div className="space-y-3.5 mb-8">
                     {[
-                      "Core Infinite Canvas & Excalidraw Engine",
+                      "Core Infinite Canvas & Architecture Engine",
                       "Local Pyodide WebAssembly Python Runner",
                       "10 Daily AI Architecture Generation Prompts",
                       "Local-first JSON, SVG, & PNG High-Res Exports",

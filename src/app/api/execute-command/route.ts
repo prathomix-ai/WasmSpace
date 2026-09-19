@@ -52,7 +52,7 @@ function getNextKey(pool: string[], currentPointer: number): { key: string; next
 // Exact System Prompt & Strict Temperature Configuration
 // ─────────────────────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT =
-  "You are an Excalidraw component generator. Do NOT converse. Output ONLY a valid JSON array of elements. No markdown formatting, no explanations.";
+  "You are a diagram component generator. Do NOT converse. Output ONLY a valid JSON array of elements. No markdown formatting, no explanations.";
 
 const STRICT_CONFIG = {
   temperature: 0.1,
@@ -304,7 +304,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── 3. Parse and Validate Excalidraw Elements Array ──
+    // ── 3. Parse and Validate Diagram Elements Array ──
     let elements: any[] = [];
     if (rawJson) {
       try {

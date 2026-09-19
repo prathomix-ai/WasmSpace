@@ -107,11 +107,13 @@ export async function POST(req: NextRequest) {
 
     // ── 4. Fetch User-Specific Quota & PRO Status ─────────────────────────────
     // Query STRICTLY filters by current user's ID (.eq('user_id', user.id) with fallback to .eq('id', user.id))
-    let { data: profile, error: profileErr } = await supabase
+    const { data: initialProfile, error: profileErr } = await supabase
       .from("profiles")
       .select("id, is_pro, role, tier, subscription_status, ai_usage_count, updated_at, created_at")
       .eq("user_id", user.id)
       .maybeSingle();
+
+    let profile = initialProfile;
 
     if (profileErr || !profile) {
       const idFallback = await supabase
@@ -259,7 +261,7 @@ export async function POST(req: NextRequest) {
     // Dynamic prompt engineering based on task type
     const defaultSystemPrompt = isChatBotTask
       ? "You are the PRATHOMIX MasmSpace Canvas AI Assistant. Provide concise, clear, and high-impact answers regarding system architecture, software engineering, algorithms, and whiteboard workflows."
-      : "You are an elite Cloud & Software Systems Architect for PRATHOMIX MasmSpace. Generate valid native Excalidraw element geometry in pure JSON format. Adhere strictly to the coordinate plane, connectors, and shapes required.";
+      : "You are an elite Cloud & Software Systems Architect for PRATHOMIX MasmSpace. Generate valid native canvas diagram element geometry in pure JSON format. Adhere strictly to the coordinate plane, connectors, and shapes required.";
 
     // ── 8. Execute Streaming LLM Generation ──────────────────────────────────
     let result;
