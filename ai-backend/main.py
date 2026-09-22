@@ -294,6 +294,123 @@ async def _call_huggingface(canvas_content: str, board_title: str) -> dict[str, 
         )
 
 
+def _get_gemini_keys() -> list[str]:
+    keys: list[str] = []
+    for i in range(1, 10):
+        k = os.getenv(f"GEMINI_KEY_{i}")
+        if k and k.strip():
+            keys.append(k.strip())
+    single = os.getenv("GEMINI_API_KEY")
+    if single and single.strip() and single.strip() not in keys:
+        keys.append(single.strip())
+    return keys
+
+
+def _get_groq_keys() -> list[str]:
+    keys: list[str] = []
+    for i in range(1, 10):
+        k = os.getenv(f"GROQ_KEY_{i}")
+        if k and k.strip():
+            keys.append(k.strip())
+    single = os.getenv("GROQ_API_KEY")
+    if single and single.strip() and single.strip() not in keys:
+        keys.append(single.strip())
+    return keys
+
+
+def _extract_json_dict(raw_text: str) -> dict[str, Any]:
+    clean = re.sub(r"```(?:json)?|```", "", raw_text).strip()
+    try:
+        return json.loads(clean)
+    except Exception:
+        pass
+    match = re.search(r"(\{.*\})", clean, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(1))
+        except Exception:
+            pass
+    s = clean.find("{")
+    e = clean.rfind("}")
+    if s != -1 and e != -1 and e > s:
+        return json.loads(clean[s:e+1])
+    raise ValueError(f"Could not parse valid JSON from text: {raw_text[:200]}")
+
+
+async def _call_gemini(canvas_content: str, board_title: str, keys: list[str]) -> dict[str, Any]:
+    models = ["gemini-1.5-flash", "gemini-3.6-flash"]
+    user_prompt = (
+        f"{SYSTEM_PROMPT}\n\n"
+        f"Board title: {board_title}\n\n"
+        f"Canvas content:\n{canvas_content}\n\n"
+        "Produce the JSON summary now."
+    )
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        for key in keys:
+            for model in models:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+                payload = {
+                    "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
+                    "generationConfig": {
+                        "temperature": 0.2,
+                        "maxOutputTokens": 1024,
+                    },
+                }
+                try:
+                    res = await client.post(url, json=payload)
+                    if res.status_code == 200:
+                        data = res.json()
+                        raw_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                        if raw_text:
+                            return _extract_json_dict(raw_text)
+                    elif res.status_code == 404:
+                        continue
+                except Exception as exc:
+                    logger.warning("Gemini call error with model %s: %s", model, exc)
+                    continue
+    raise RuntimeError("All Gemini attempts failed.")
+
+
+async def _call_groq(canvas_content: str, board_title: str, keys: list[str]) -> dict[str, Any]:
+    models = ["llama-3.1-8b-instant", "qwen/qwen3.8-27b"]
+    user_prompt = (
+        f"Board title: {board_title}\n\n"
+        f"Canvas content:\n{canvas_content}\n\n"
+        "Produce the JSON summary now."
+    )
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        for key in keys:
+            for model in models:
+                url = "https://api.groq.com/openai/v1/chat/completions"
+                payload = {
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    "temperature": 0.2,
+                    "max_tokens": 1024,
+                    "response_format": {"type": "json_object"},
+                }
+                headers = {
+                    "Authorization": f"Bearer {key}",
+                    "Content-Type": "application/json",
+                }
+                try:
+                    res = await client.post(url, json=payload, headers=headers)
+                    if res.status_code == 200:
+                        data = res.json()
+                        return _extract_json_dict(raw_text)
+                    elif res.status_code == 404:
+                        continue
+                except Exception as exc:
+                    logger.warning("Groq call error with model %s: %s", model, exc)
+                    continue
+    raise RuntimeError("All Groq attempts failed.")
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Routes
 # ─────────────────────────────────────────────────────────────────────────────
@@ -321,7 +438,9 @@ async def health():
     return {
         "status": "ok",
         "razorpay": bool(RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET),
-        "hf_token": bool(HF_TOKEN),
+        "gemini_keys": len(_get_gemini_keys()),
+        "groq_keys": len(_get_groq_keys()),
+        "hf_token": bool(HF_TOKEN and not HF_TOKEN.startswith("hf_your_token")),
     }
 
 
@@ -335,7 +454,42 @@ async def summarize(req: SummarizeRequest):
             detail="Canvas is empty. Add some text or shapes before summarising.",
         )
 
-    result = await _call_huggingface(canvas_content, req.board_title)
+    result = None
+    model_used = "unknown"
+
+    # 1. Try Gemini key pool
+    gemini_keys = _get_gemini_keys()
+    if gemini_keys:
+        try:
+            result = await _call_gemini(canvas_content, req.board_title, gemini_keys)
+            model_used = "gemini-1.5-flash"
+        except Exception as exc:
+            logger.info("Gemini summarizer unavailable: %s. Falling back to Groq...", exc)
+
+    # 2. Try Groq key pool
+    if not result:
+        groq_keys = _get_groq_keys()
+        if groq_keys:
+            try:
+                result = await _call_groq(canvas_content, req.board_title, groq_keys)
+                model_used = "llama-3.1-8b-instant"
+            except Exception as exc:
+                logger.info("Groq summarizer unavailable: %s. Falling back to HF...", exc)
+
+    # 3. Try Hugging Face if configured
+    if not result and HF_TOKEN and not HF_TOKEN.startswith("hf_your_token"):
+        try:
+            result = await _call_huggingface(canvas_content, req.board_title)
+            model_used = HF_MODEL
+        except Exception as exc:
+            logger.warning("HF summarizer failed: %s", exc)
+
+    if not result:
+        raise HTTPException(
+            status_code=500,
+            detail="All AI backend providers (Gemini, Groq, HuggingFace) failed to generate summary.",
+        )
+
     elapsed_ms = int((time.perf_counter() - t0) * 1000)
 
     action_items = [
@@ -356,7 +510,7 @@ async def summarize(req: SummarizeRequest):
         decisions=result.get("decisions", []),
         next_steps=result.get("next_steps", []),
         mood=result.get("mood", "productive"),
-        model_used=HF_MODEL,
+        model_used=model_used,
         processing_time_ms=elapsed_ms,
     )
 

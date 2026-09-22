@@ -20,25 +20,13 @@ export async function summarizeCanvas(
 
   while (attempt <= maxRetries) {
     try {
-      let response: Response;
-      try {
-        response = await fetch(`${AI_BACKEND_URL}/api/summarize`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(request),
-        });
-      } catch {
-        // If direct cross-origin fetch fails (CORS / network), fallback to internal Next.js proxy
-        response = await fetch("/api/summarize", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(request),
-        });
-      }
+      const response = await fetch("/api/summarize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      });
 
       if (response.status === 429 && attempt < maxRetries) {
         attempt++;

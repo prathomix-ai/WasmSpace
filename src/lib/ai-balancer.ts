@@ -84,22 +84,28 @@ export function getProviderKeys(provider: AIProvider): string[] {
   return collectedKeys;
 }
 
+const blacklistedKeys = new Set<string>();
+
 /**
  * Sequentially selects the next key using round-robin logic.
+ * Automatically skips any keys that have previously failed authentication.
  */
 function getNextRoundRobinKey(keys: string[], provider: AIProvider): { key: string; index: number } {
-  if (keys.length === 0) {
+  const activeKeys = keys.filter(k => !blacklistedKeys.has(k));
+  const pool = activeKeys.length > 0 ? activeKeys : keys;
+
+  if (pool.length === 0) {
     return { key: "", index: -1 };
   }
 
   if (provider === "gemini") {
-    const index = geminiPointer % keys.length;
-    geminiPointer = (geminiPointer + 1) % keys.length;
-    return { key: keys[index], index: index + 1 };
+    const index = geminiPointer % pool.length;
+    geminiPointer = (geminiPointer + 1) % pool.length;
+    return { key: pool[index], index: keys.indexOf(pool[index]) + 1 };
   } else {
-    const index = groqPointer % keys.length;
-    groqPointer = (groqPointer + 1) % keys.length;
-    return { key: keys[index], index: index + 1 };
+    const index = groqPointer % pool.length;
+    groqPointer = (groqPointer + 1) % pool.length;
+    return { key: pool[index], index: keys.indexOf(pool[index]) + 1 };
   }
 }
 
@@ -342,11 +348,10 @@ export async function executeWithLoadBalancer(
           `[${keyId}] Failed (${statusCode}): ${err.message || "Unknown error"}`
         );
 
-        console.warn(
-          `[AI Load Balancer] ${keyId} threw ${statusCode} (${
-            isRateLimit ? "Rate Limit / 429" : isServerError ? "Server Error / 5xx" : "Request Error"
-          }). Rotating to next key...`
-        );
+        if (statusCode === 401 || statusCode === 403) {
+          blacklistedKeys.add(key);
+          console.warn(`[AI Load Balancer] ${keyId} blacklisted due to permanent auth failure (${statusCode}).`);
+        }
 
         // Immediate retry with the next key in the loop
       }
