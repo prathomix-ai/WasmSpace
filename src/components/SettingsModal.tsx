@@ -226,11 +226,28 @@ export function SettingsModal({
   const [deleteAccountSuccess, setDeleteAccountSuccess] = useState(false);
 
   // Canvas Settings States
-  const [gridType, setGridType] = useState<"dots" | "lines" | "solid">("dots");
+  const [gridType, setGridType] = useState<"dots" | "lines" | "solid">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("Prathomix_canvas_grid");
+      if (saved === "dots" || saved === "lines" || saved === "solid") {
+        return saved;
+      }
+    }
+    return "dots";
+  });
   const [autoSave, setAutoSave] = useState<boolean>(
     initialAutoSave !== undefined ? initialAutoSave : true
   );
   const [defaultZoom, setDefaultZoom] = useState<number>(100);
+
+  useEffect(() => {
+    if (isOpen && typeof window !== "undefined") {
+      const saved = localStorage.getItem("Prathomix_canvas_grid");
+      if (saved === "dots" || saved === "lines" || saved === "solid") {
+        setGridType(saved);
+      }
+    }
+  }, [isOpen]);
 
   // AI & Tools Settings States
   const [defaultModel, setDefaultModel] = useState<string>("groq-llama-3.3-70b");
@@ -711,6 +728,7 @@ export function SettingsModal({
   const handleGridTypeChange = (type: "dots" | "lines" | "solid") => {
     setGridType(type);
     localStorage.setItem("Prathomix_canvas_grid", type);
+    window.dispatchEvent(new CustomEvent("prathomix:grid-change", { detail: type }));
     onGridTypeChange?.(type);
     flashSaved();
   };

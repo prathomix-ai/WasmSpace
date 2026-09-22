@@ -1485,6 +1485,9 @@ export function LeftSidebar({
           onOpenUpgradeModal={() => setIsProModalOpen(true)}
           tier={effectiveIsPro ? "pro" : "free"}
           actionLimit={effectiveIsPro ? 300 : 15}
+          onGridTypeChange={(type) => {
+            window.dispatchEvent(new CustomEvent("prathomix:grid-change", { detail: type }));
+          }}
         />
       )}
     </>

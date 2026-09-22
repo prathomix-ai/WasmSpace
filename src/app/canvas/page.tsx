@@ -297,6 +297,9 @@ export default function CanvasPage() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onOpenUpgradeModal={() => setIsProModalOpen(true)}
+        onGridTypeChange={(type) => {
+          window.dispatchEvent(new CustomEvent("prathomix:grid-change", { detail: type }));
+        }}
       />
 
       {/* ── 8. Pro Upgrade Modal ── */}

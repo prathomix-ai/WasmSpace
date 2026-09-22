@@ -273,8 +273,42 @@ function ArchitectureCanvasInner({
       return next;
     });
   }, []);
-
   const [synthesizeNotification, setSynthesizeNotification] = useState<string | null>(null);
+
+  // Canvas Background Grid Style (dots | lines | solid)
+  const [gridType, setGridType] = useState<"dots" | "lines" | "solid">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("Prathomix_canvas_grid");
+      if (saved === "dots" || saved === "lines" || saved === "solid") {
+        return saved;
+      }
+    }
+    return "dots";
+  });
+
+  // Listen for real-time grid style changes across components & tabs
+  useEffect(() => {
+    const handleGridEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<"dots" | "lines" | "solid">;
+      if (customEvent.detail && ["dots", "lines", "solid"].includes(customEvent.detail)) {
+        setGridType(customEvent.detail);
+        return;
+      }
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("Prathomix_canvas_grid");
+        if (saved === "dots" || saved === "lines" || saved === "solid") {
+          setGridType(saved);
+        }
+      }
+    };
+
+    window.addEventListener("prathomix:grid-change", handleGridEvent);
+    window.addEventListener("storage", handleGridEvent);
+    return () => {
+      window.removeEventListener("prathomix:grid-change", handleGridEvent);
+      window.removeEventListener("storage", handleGridEvent);
+    };
+  }, []);
 
   // Real-time live collaboration sync state
   const [remoteCursors, setRemoteCursors] = useState<Record<string, LiveCursor>>({});
@@ -2193,14 +2227,20 @@ function ArchitectureCanvasInner({
         }}
         proOptions={{ hideAttribution: true }}
       >
-        {/* ── Clean Whiteboard Dot Grid ── */}
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={24}
-          size={1.2}
-          color={isDark ? "#27272a" : "#cbd5e1"}
-          className="opacity-80"
-        />
+        {/* ── Dynamic Whiteboard Grid (Dots, Lines, Solid/Blank) ── */}
+        {gridType !== "solid" && (
+          <Background
+            variant={gridType === "lines" ? BackgroundVariant.Lines : BackgroundVariant.Dots}
+            gap={gridType === "lines" ? 24 : 24}
+            size={gridType === "lines" ? 1 : 1.2}
+            color={
+              isDark
+                ? (gridType === "lines" ? "#3f3f46" : "#27272a")
+                : (gridType === "lines" ? "#e2e8f0" : "#cbd5e1")
+            }
+            className={gridType === "lines" ? "opacity-70" : "opacity-80"}
+          />
+        )}
 
         {/* ── React Flow Zoom & Navigation Controls ── */}
         <Controls
@@ -2348,6 +2388,7 @@ function ArchitectureCanvasInner({
         actionsUsed={aiUsage.used}
         actionLimit={aiUsage.limit}
         tier={aiUsage.tier}
+        onGridTypeChange={setGridType}
       />
 
       {/* ── AI Co-Pilot Slide Drawer (Chat, Quota & 100+ Prompt Library) ── */}
