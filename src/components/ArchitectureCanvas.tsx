@@ -47,6 +47,24 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
+function getInitialColorForShape(shapeDef?: { color?: string }): string {
+  if (!shapeDef?.color) return "#3b82f6";
+  const c = shapeDef.color.toLowerCase();
+  if (c.includes("emerald")) return "#10b981";
+  if (c.includes("rose")) return "#f43f5e";
+  if (c.includes("amber")) return "#f59e0b";
+  if (c.includes("purple")) return "#8b5cf6";
+  if (c.includes("cyan")) return "#06b6d4";
+  if (c.includes("indigo")) return "#6366f1";
+  if (c.includes("teal")) return "#14b8a6";
+  if (c.includes("sky")) return "#0ea5e9";
+  if (c.includes("yellow")) return "#eab308";
+  if (c.includes("pink")) return "#ec4899";
+  if (c.includes("red")) return "#ef4444";
+  if (c.includes("green")) return "#22c55e";
+  return "#3b82f6";
+}
+
 // ── 1. Clean Initial State: Completely Empty Canvas (No Pre-existing Nodes or Edges) ──
 const initialNodes: Node<any>[] = [];
 const initialEdges: Edge[] = [];
@@ -747,9 +765,10 @@ function ArchitectureCanvasInner({
 
       const shapeDef = SHAPE_LIBRARY.find((s) => s.id.toLowerCase() === shapeType.toLowerCase());
       const normalizedShape = (shapeDef?.id || shapeType).toLowerCase();
-      const isCircle = normalizedShape === "circle";
+      const isCircle = normalizedShape === "circle" || normalizedShape === "round";
       const isSquareLike = [
         "circle",
+        "round",
         "square",
         "diamond",
         "star",
@@ -758,18 +777,73 @@ function ArchitectureCanvasInner({
         "octagon",
         "heart",
         "triangle",
+        "move",
+        "arrowupright",
+        "arrowdownright",
+        "arrowleftright",
+        "arrowupdown",
+        "refreshcw",
+        "repeat",
       ].includes(normalizedShape);
+      const isHorizontalArrow = ["arrowright", "arrowleft"].includes(normalizedShape);
+      const isVerticalArrow = ["arrowup", "arrowdown"].includes(normalizedShape);
       const isText = normalizedShape === "text";
       const isSticky = normalizedShape === "stickynote";
+      const isPrimitive = [
+        "rectangle",
+        "rect",
+        "square",
+        "box",
+        "circle",
+        "round",
+        "diamond",
+        "triangle",
+        "cylinder",
+        "database",
+        "cloud",
+        "star",
+        "hexagon",
+        "pentagon",
+        "octagon",
+        "heart",
+        "stickynote",
+        "folder",
+      ].includes(normalizedShape);
+      const isIconSymbol = !isPrimitive && !isHorizontalArrow && !isVerticalArrow && !isSquareLike;
 
-      const defaultWidth = isCircle ? 130 : isSquareLike ? 130 : isText ? 180 : 160;
-      const defaultHeight = isCircle ? 130 : isSquareLike ? 130 : isText ? 50 : 100;
+      let defaultWidth = 140;
+      let defaultHeight = 90;
+
+      if (isCircle || isSquareLike) {
+        defaultWidth = 110;
+        defaultHeight = 110;
+      } else if (isHorizontalArrow) {
+        defaultWidth = 130;
+        defaultHeight = 70;
+      } else if (isVerticalArrow) {
+        defaultWidth = 70;
+        defaultHeight = 130;
+      } else if (isIconSymbol) {
+        defaultWidth = 85;
+        defaultHeight = 85;
+      } else if (isText) {
+        defaultWidth = 180;
+        defaultHeight = 50;
+      } else if (isSticky) {
+        defaultWidth = 130;
+        defaultHeight = 130;
+      } else if (normalizedShape === "rectangle" || normalizedShape === "box") {
+        defaultWidth = 160;
+        defaultHeight = 100;
+      }
 
       const label = isText
         ? "Text Note"
         : isSticky
         ? "Sticky Note"
         : "";
+
+      const initialColor = isSticky ? "#f59e0b" : getInitialColorForShape(shapeDef);
 
       const newNode: Node<any> = {
         id,
@@ -783,8 +857,8 @@ function ArchitectureCanvasInner({
           shapeType: normalizedShape,
           shapeStyle: shapeDef?.shapeStyle || normalizedShape,
           label,
-          color: isSticky ? "#f59e0b" : "#3b82f6",
-          fillMode: isSticky ? "solid" : isText ? "outline" : "tint",
+          color: initialColor,
+          fillMode: isSticky ? "solid" : (isText || !isPrimitive) ? "outline" : "tint",
           category: shapeDef?.category || "essentials",
           hasHandles: shapeNodesEnabled,
         },

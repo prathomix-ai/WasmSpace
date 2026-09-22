@@ -8,6 +8,7 @@ import {
   useReactFlow,
   NodeToolbar,
   NodeResizer,
+  type Node,
 } from "@xyflow/react";
 import { Copy, Trash2, Paintbrush, Waypoints } from "lucide-react";
 import { SHAPE_LIBRARY } from "@/constants/shapeLibrary";
@@ -35,6 +36,27 @@ export const SHAPE_PALETTE = [
   { name: "Slate", color: "#64748b" },
 ];
 
+export const PRIMITIVE_SHAPES = new Set([
+  "rectangle",
+  "rect",
+  "square",
+  "box",
+  "circle",
+  "round",
+  "diamond",
+  "triangle",
+  "cylinder",
+  "database",
+  "cloud",
+  "star",
+  "hexagon",
+  "pentagon",
+  "octagon",
+  "heart",
+  "stickynote",
+  "folder",
+]);
+
 function ShapeNodeComponent({ id, data, selected }: NodeProps) {
   const nodeData = (data || {}) as ShapeNodeData;
   const { setNodes, setEdges, getNode } = useReactFlow();
@@ -47,6 +69,7 @@ function ShapeNodeComponent({ id, data, selected }: NodeProps) {
   const fillMode: ShapeFillMode = nodeData.fillMode || "tint";
   const shapeType = (nodeData.shapeType || nodeData.shapeStyle || "rectangle").toLowerCase();
   const hasHandles = nodeData.hasHandles !== false;
+  const isPrimitive = PRIMITIVE_SHAPES.has(shapeType);
 
   useEffect(() => {
     if (nodeData.label !== undefined) {
@@ -67,7 +90,7 @@ function ShapeNodeComponent({ id, data, selected }: NodeProps) {
     setIsEditing(false);
     setNodes((nds) =>
       nds.map((n) =>
-        n.id === id ? { ...n, data: { ...n.data, label: label.trim() } } : n
+        n.id === id ? { ...n, data: { ...n.data, label } } : n
       )
     );
   }, [id, label, setNodes]);
@@ -76,15 +99,16 @@ function ShapeNodeComponent({ id, data, selected }: NodeProps) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSaveText();
-    } else if (e.key === "Escape") {
+    }
+    if (e.key === "Escape") {
       setIsEditing(false);
       setLabel(nodeData.label || "");
     }
   };
 
   const handleColorChange = useCallback(
-    (newColor: string, e: React.MouseEvent) => {
-      e.stopPropagation();
+    (newColor: string, e?: React.MouseEvent) => {
+      e?.stopPropagation();
       setNodes((nds) =>
         nds.map((n) =>
           n.id === id ? { ...n, data: { ...n.data, color: newColor } } : n
@@ -97,15 +121,11 @@ function ShapeNodeComponent({ id, data, selected }: NodeProps) {
   const handleFillModeToggle = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      const nextMode: Record<ShapeFillMode, ShapeFillMode> = {
-        tint: "solid",
-        solid: "outline",
-        outline: "tint",
-      };
-      const newMode = nextMode[fillMode] || "tint";
+      const modes: ShapeFillMode[] = ["tint", "solid", "outline"];
+      const nextMode = modes[(modes.indexOf(fillMode) + 1) % modes.length];
       setNodes((nds) =>
         nds.map((n) =>
-          n.id === id ? { ...n, data: { ...n.data, fillMode: newMode } } : n
+          n.id === id ? { ...n, data: { ...n.data, fillMode: nextMode } } : n
         )
       );
     },
@@ -115,30 +135,21 @@ function ShapeNodeComponent({ id, data, selected }: NodeProps) {
   const handleDuplicate = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      const currentNode = getNode(id);
-      if (!currentNode) return;
-
+      const node = getNode(id);
+      if (!node) return;
       const newId = `node-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-      const clonedNode = {
-        ...currentNode,
+      const duplicatedNode: Node = {
+        ...node,
         id: newId,
         position: {
-          x: currentNode.position.x + 36,
-          y: currentNode.position.y + 36,
+          x: node.position.x + 30,
+          y: node.position.y + 30,
         },
         selected: true,
-        data: {
-          ...currentNode.data,
-          label: `${nodeData.label || "Shape"} (Copy)`,
-        },
       };
-
-      setNodes((nds) => [
-        ...nds.map((n) => (n.id === id ? { ...n, selected: false } : n)),
-        clonedNode,
-      ]);
+      setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), duplicatedNode]);
     },
-    [id, getNode, setNodes, nodeData.label]
+    [id, getNode, setNodes]
   );
 
   const handleDelete = useCallback(
@@ -166,12 +177,13 @@ function ShapeNodeComponent({ id, data, selected }: NodeProps) {
   const shapeDef = SHAPE_LIBRARY.find(
     (s) => s.id.toLowerCase() === shapeType || s.label.toLowerCase() === shapeType
   );
-  const IconComponent = shapeDef?.icon;
+  const IconComponent = shapeDef?.icon as React.ComponentType<any> | undefined;
 
   // Render SVG or HTML based on shape type
   const renderShapeGeometry = () => {
     switch (shapeType) {
       case "circle":
+      case "round":
         return (
           <div
             className="w-full h-full rounded-full transition-colors duration-150"
@@ -185,6 +197,7 @@ function ShapeNodeComponent({ id, data, selected }: NodeProps) {
         );
 
       case "rectangle":
+      case "rect":
       case "square":
       case "box":
         return (
@@ -226,6 +239,7 @@ function ShapeNodeComponent({ id, data, selected }: NodeProps) {
         );
 
       case "cylinder":
+      case "database":
         return (
           <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
             {/* Cylinder body */}
@@ -333,33 +347,75 @@ function ShapeNodeComponent({ id, data, selected }: NodeProps) {
           </svg>
         );
 
-      default:
-        // Default clean whiteboard card / symbol shape
+      case "stickynote":
         return (
           <div
-            className="w-full h-full rounded-2xl transition-colors duration-150"
+            className="w-full h-full rounded-xl shadow-md transition-colors duration-150 p-2 relative overflow-hidden"
             style={{
-              backgroundColor: fillColor,
+              backgroundColor: fillMode === "outline" ? "transparent" : (fillColor === "transparent" ? "#fef3c7" : fillColor),
               borderColor: strokeColor,
-              borderWidth: "2.5px",
+              borderWidth: "2px",
               borderStyle: "solid",
             }}
-          />
+          >
+            <div
+              className="absolute top-0 right-0 w-4 h-4 bg-black/10 dark:bg-white/10 rounded-bl"
+              style={{ clipPath: "polygon(100% 0, 0 100%, 100% 100%)" }}
+            />
+          </div>
         );
+
+      case "folder":
+        return (
+          <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path
+              d="M 6,24 L 38,24 L 48,34 L 94,34 A 4,4 0 0,1 98,38 L 98,84 A 6,6 0 0,1 92,90 L 6,90 A 6,6 0 0,1 0,84 L 0,30 A 6,6 0 0,1 6,24 Z"
+              fill={fillColor}
+              stroke={strokeColor}
+              strokeWidth="2.5"
+              strokeLinejoin="round"
+            />
+          </svg>
+        );
+
+      case "text":
+        return null;
+
+      default:
+        // For non-primitive shapes (arrows, icons, badges, tech symbols):
+        // NEVER draw a 2.5px solid rectangle card border!
+        if (fillMode === "solid") {
+          return (
+            <div
+              className="w-full h-full rounded-2xl transition-colors duration-150"
+              style={{ backgroundColor: `${activeColor}22` }}
+            />
+          );
+        }
+        if (fillMode === "tint") {
+          return (
+            <div
+              className="w-full h-full rounded-2xl transition-colors duration-150"
+              style={{ backgroundColor: `${activeColor}10` }}
+            />
+          );
+        }
+        // Outline mode: completely transparent background, NO enclosing rectangle border!
+        return null;
     }
   };
 
   return (
     <div
-      className={`relative select-none group w-full h-full min-w-[70px] min-h-[70px] flex items-center justify-center transition-all ${
+      className={`relative select-none group w-full h-full min-w-[50px] min-h-[50px] flex items-center justify-center transition-all ${
         selected ? "drop-shadow-lg" : "hover:drop-shadow-sm"
       }`}
     >
       {/* ── Resizer Handles: Active when selected ── */}
       <NodeResizer
         isVisible={selected}
-        minWidth={60}
-        minHeight={60}
+        minWidth={40}
+        minHeight={40}
         lineClassName="!border-blue-500/80"
         handleClassName="!w-2.5 !h-2.5 !bg-white dark:!bg-[#09090b] !border-2 !border-blue-500 !rounded-full"
       />
@@ -490,19 +546,22 @@ function ShapeNodeComponent({ id, data, selected }: NodeProps) {
 
       {/* ── Centered Content: Icon (if applicable) & Editable Text ── */}
       <div
-        className="relative z-10 w-full h-full flex flex-col items-center justify-center p-3 pointer-events-none text-center"
+        className="relative z-10 w-full h-full flex flex-col items-center justify-center p-2 pointer-events-none text-center"
         onDoubleClick={(e) => {
           e.stopPropagation();
           setIsEditing(true);
         }}
       >
-        {/* Render symbol icon if available and not one of pure geometrical primitives */}
-        {IconComponent &&
-          !["rectangle", "circle", "diamond", "triangle", "cylinder", "cloud", "star", "hexagon", "pentagon", "octagon", "heart"].includes(shapeType) && (
-            <div className="mb-1 pointer-events-none">
-              <IconComponent className={`w-5 h-5 ${shapeDef?.color || "text-blue-500"}`} />
-            </div>
-          )}
+        {/* Render symbol / arrow icon scaled to fill node if available and not a geometrical primitive */}
+        {IconComponent && !isPrimitive && (
+          <div className="flex-1 w-full h-full flex items-center justify-center p-1 pointer-events-none">
+            <IconComponent
+              className="w-full h-full max-w-[85%] max-h-[85%] transition-all duration-150 drop-shadow-xs"
+              style={{ color: activeColor }}
+              strokeWidth={2.4}
+            />
+          </div>
+        )}
 
         {isEditing ? (
           <textarea
@@ -513,16 +572,16 @@ function ShapeNodeComponent({ id, data, selected }: NodeProps) {
             onKeyDown={handleKeyDown}
             rows={Math.min(3, Math.max(1, label.split("\n").length))}
             placeholder="Add text..."
-            className="pointer-events-auto nodrag nopan bg-white/90 dark:bg-black/90 text-slate-900 dark:text-white text-xs font-semibold rounded px-1.5 py-0.5 border border-blue-400 outline-none resize-none text-center max-w-[90%] shadow-md"
+            className="pointer-events-auto nodrag nopan bg-white/90 dark:bg-black/90 text-slate-900 dark:text-white text-xs font-semibold rounded px-1.5 py-0.5 border border-blue-400 outline-none resize-none text-center max-w-[90%] shadow-md z-20"
           />
         ) : label ? (
           <span
             title="Double-click to edit text"
             style={{
-              color: fillMode === "solid" ? textColor : undefined,
+              color: fillMode === "solid" && isPrimitive ? textColor : undefined,
             }}
-            className={`pointer-events-auto select-none font-semibold text-xs sm:text-sm tracking-tight px-1.5 py-0.5 rounded cursor-text break-words max-w-[90%] leading-tight ${
-              fillMode === "solid"
+            className={`pointer-events-auto select-none font-semibold text-xs sm:text-sm tracking-tight px-1.5 py-0.5 rounded cursor-text break-words max-w-[90%] leading-tight z-20 ${
+              fillMode === "solid" && isPrimitive
                 ? "text-white drop-shadow-sm"
                 : "text-slate-800 dark:text-slate-100"
             }`}
