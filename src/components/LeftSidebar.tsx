@@ -37,6 +37,7 @@ import { createClient } from "@/lib/supabase/client";
 import ProUpgradeModal from "@/components/ProUpgradeModal";
 import SettingsModal from "@/components/SettingsModal";
 import { checkIsProUser } from "@/lib/userSubscription";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 
 interface LeftSidebarProps {
   boardTitle: string;
@@ -121,7 +122,6 @@ export function LeftSidebar({
 }: LeftSidebarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [hasProSubscription, setHasProSubscription] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   // Modals state
@@ -174,32 +174,13 @@ export function LeftSidebar({
     e.target.value = "";
   };
 
+  const subscription = useSubscription();
+
   useEffect(() => {
     setMounted(true);
     let isMounted = true;
 
-    async function checkSubscription() {
-      // 1. Fast initial sync from cached local storage session
-      try {
-        const stored =
-          localStorage.getItem("prathomix_current_user") ||
-          localStorage.getItem("prathomix_current_user");
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          const email = parsed?.email?.toLowerCase();
-          const role = parsed?.role?.toLowerCase();
-          const sub = parsed?.subscription_status?.toLowerCase();
-
-          if (email === "admin@prathomix.tech" || role === "admin") {
-            setIsAdmin(true);
-            setHasProSubscription(true);
-          } else if (role === "pro" || sub === "pro" || sub === "active") {
-            setHasProSubscription(true);
-          }
-        }
-      } catch {}
-
-      // 2. Fetch live subscription status & role directly from Supabase
+    async function checkAdminStatus() {
       try {
         const supabase = createClient();
         const {
@@ -208,42 +189,16 @@ export function LeftSidebar({
 
         if (user && isMounted) {
           const email = user.email?.toLowerCase();
-          if (email === "admin@prathomix.tech") {
+          if (email === "admin@prathomix.tech" || user.user_metadata?.role?.toLowerCase() === "admin") {
             setIsAdmin(true);
-            setHasProSubscription(true);
-          }
-
-          // Check user metadata
-          const metaRole = user.user_metadata?.role?.toLowerCase();
-          const metaSub = user.user_metadata?.subscription_status?.toLowerCase();
-          if (metaRole === "pro" || metaRole === "admin" || metaSub === "pro" || metaSub === "active") {
-            setHasProSubscription(true);
-          }
-
-          // Check public.profiles table
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role, subscription_status")
-            .eq("id", user.id)
-            .maybeSingle();
-
-          if (profile && isMounted) {
-            const role = profile.role?.toLowerCase();
-            const sub = profile.subscription_status?.toLowerCase();
-            if (role === "admin") {
-              setIsAdmin(true);
-              setHasProSubscription(true);
-            } else if (role === "pro" || sub === "pro" || sub === "active") {
-              setHasProSubscription(true);
-            }
           }
         }
       } catch (err) {
-        console.warn("[LeftSidebar] Supabase subscription check notice:", err);
+        console.warn("[LeftSidebar] Auth status check notice:", err);
       }
     }
 
-    checkSubscription();
+    checkAdminStatus();
 
     return () => {
       isMounted = false;
@@ -251,11 +206,13 @@ export function LeftSidebar({
     };
   }, []);
 
-  // Effective PRO status combines props with database subscription state or localhost testing
+  // Effective PRO status strictly sourced from unified SubscriptionContext
   const effectiveIsPro = Boolean(
+    subscription.isPro ||
     isProUser ||
-      hasProSubscription ||
-      checkIsProUser({ isPro: isProUser })
+    subscription.tier === "pro" ||
+    subscription.tier === "enterprise" ||
+    isAdmin
   );
 
   /**
@@ -319,7 +276,7 @@ export function LeftSidebar({
       <aside
         id="app-left-sidebar"
         data-tour="sidebar"
-        className={`hidden md:flex flex-col flex-shrink-0 fixed top-0 left-0 h-screen z-[99999] bg-white dark:bg-[#121316] pointer-events-auto overflow-y-auto custom-scrollbar border-r border-slate-200 dark:border-zinc-800/80 select-none transition-all duration-300 ease-in-out ${
+        className={`hidden md:flex flex-col flex-shrink-0 fixed top-0 left-0 h-screen z-40 bg-white dark:bg-[#121316] pointer-events-auto overflow-y-auto custom-scrollbar border-r border-slate-200 dark:border-zinc-800/80 select-none transition-all duration-300 ease-in-out ${
           !isSidebarVisible
             ? "-translate-x-full opacity-0 pointer-events-none !w-0 overflow-hidden"
             : isCollapsed

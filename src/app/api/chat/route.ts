@@ -84,11 +84,18 @@ export async function POST(req: NextRequest) {
     if (isExhausted) {
       return NextResponse.json(
         {
-          success: false,
-          error:
-            "MIX AI is taking a quick breather — all provider keys are busy right now. Please try again in a few seconds. Your PRO quota has not been consumed.",
+          success: true,
+          text: "MIX AI is experiencing unprecedented demand. Please try again in 30 seconds.",
+          telemetry: {
+            provider: "degraded",
+            keyIdentifier: "FALLBACK_RATE_LIMIT",
+            attempts: 0,
+            executionTimeMs: 0,
+            tokenLimitApplied: 0,
+            isPro: false,
+          },
         },
-        { status: 429 }
+        { status: 200 }
       );
     }
 

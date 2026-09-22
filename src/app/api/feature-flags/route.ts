@@ -4,7 +4,8 @@ import { DEFAULT_FEATURE_FLAGS } from "@/lib/featureFlags";
 import { FeatureFlag } from "@/types/admin";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 10; // Cache on edge for 10 seconds
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 export async function GET() {
   try {

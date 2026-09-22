@@ -43,7 +43,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useCurrency } from "@/lib/currency";
 import { redeemPromoCode } from "@/lib/promo";
 import { downloadInvoicePdf } from "@/lib/invoicePdf";
-import { checkIsProUser } from "@/lib/userSubscription";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { validateImageBytes } from "@/lib/file-validator";
 
 export interface SettingsModalProps {
@@ -115,6 +115,7 @@ export function SettingsModal({
 }: SettingsModalProps) {
   const { theme, setTheme } = useTheme();
   const { currency } = useCurrency();
+  const subscription = useSubscription();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Active Tab state
@@ -177,8 +178,7 @@ export function SettingsModal({
           message: res.message || "Promo code activated! PRO access unlocked.",
         });
         setPromoCodeInput("");
-        setIsPro(true);
-        setUserTier("pro");
+        await subscription.refreshSubscription();
 
         if (res.pro_expiry_date) {
           setProExpiryDate(res.pro_expiry_date);
@@ -241,14 +241,11 @@ export function SettingsModal({
   const [broadcastCursor, setBroadcastCursor] = useState<boolean>(true);
   const [emailNotifications, setEmailNotifications] = useState<boolean>(true);
 
-  // Billing / Quota States
-  const initialEffectivePro = checkIsProUser({ tier });
-  const [userTier, setUserTier] = useState(initialEffectivePro ? "pro" : tier);
-  const [isPro, setIsPro] = useState(initialEffectivePro);
-  const [dynamicActionsUsed, setDynamicActionsUsed] = useState(actionsUsed);
-  const [dynamicActionLimit, setDynamicActionLimit] = useState(
-    initialEffectivePro ? 300 : (actionLimit || 15)
-  );
+  // ── Unified Billing & Quota State (Single Source of Truth) ──
+  const userTier = subscription.tier || tier;
+  const isPro = subscription.isPro;
+  const dynamicActionsUsed = subscription.actionsUsed;
+  const dynamicActionLimit = subscription.actionLimit;
 
   // General Notification / Auto-Save indicator
   const [generalSaveSuccess, setGeneralSaveSuccess] = useState(false);

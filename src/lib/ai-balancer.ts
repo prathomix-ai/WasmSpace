@@ -143,7 +143,7 @@ async function callGemini(
     return fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(8000), // 8s timeout to avoid hung connections
+      signal: AbortSignal.timeout(15000), // Strict 15s timeout to prevent hanging UI loading states
       body: JSON.stringify({
         contents,
         generationConfig: {
@@ -223,7 +223,7 @@ async function callGroq(
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(15000), // Strict 15s timeout to prevent hanging UI loading states
       body: JSON.stringify({
         model,
         messages,
@@ -358,11 +358,18 @@ export async function executeWithLoadBalancer(
     }
   }
 
-  // If we reach this point, all keys across all providers failed
-  const finalError = new Error(
-    `All AI Provider keys exhausted. Failures:\n${failureLogs.join("\n")}`
+  // ── Graceful Degradation on Extreme High Load ───────────────────────────
+  // If all providers and keys fail (e.g. concurrent global rate limits), return a friendly,
+  // branded response so the user interface remains smooth and never crashes.
+  console.warn(
+    `[AI Load Balancer] All external provider keys exhausted (${totalAttempts} attempts). Returning graceful degradation response.\nFailures: ${failureLogs.join("; ")}`
   );
-  (finalError as any).allFailures = failureLogs;
-  (finalError as any).totalAttempts = totalAttempts;
-  throw finalError;
+
+  return {
+    text: "MIX AI is experiencing unprecedented demand. Please try again in 30 seconds.",
+    provider: "gemini",
+    keyIdentifier: "FALLBACK_DEGRADED",
+    attempts: totalAttempts,
+    executionTimeMs: Date.now() - startTime,
+  };
 }
