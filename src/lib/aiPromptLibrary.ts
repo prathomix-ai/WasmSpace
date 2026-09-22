@@ -1,4 +1,4 @@
-export interface AIPromptItem {
+﻿export interface AIPromptItem {
   id: string;
   title: string;
   prompt: string;
@@ -683,7 +683,7 @@ export const AI_PROMPT_LIBRARY: AIPromptItem[] = [
   },
   {
     id: "scale-2",
-    title: "Real-Time Collaborative Canvas (Figma/MasmSpace scale)",
+    title: "Real-Time Collaborative Canvas (Figma/Prathomix scale)",
     prompt: "Architect a real-time multiplayer collaborative workspace using WebSockets, Conflict-Free Replicated Data Types (CRDTs / Yjs), and Redis pub/sub backplane.",
     category: "High-Scale",
     complexity: "Advanced",

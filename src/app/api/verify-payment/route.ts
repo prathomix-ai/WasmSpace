@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { handleApiError } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -15,9 +16,10 @@ export async function POST(req: NextRequest) {
     const key_secret = process.env.RAZORPAY_KEY_SECRET;
 
     if (!key_secret) {
+      console.error("[verify-payment] RAZORPAY_KEY_SECRET is not configured on server.");
       return NextResponse.json(
-        { success: false, error: "Razorpay key secret not configured on server" },
-        { status: 500 }
+        { success: false, error: "Payment verification service is temporarily unavailable." },
+        { status: 503 }
       );
     }
 
@@ -89,51 +91,79 @@ export async function POST(req: NextRequest) {
       // Non-blocking
     }
 
-    // ── 3. Update Supabase Profile: set subscription_status = 'active' ─────
-    let dbUpdated = false;
+    // ── 3. Check Webhook Activation / Fallback Sync ─────────────────────────
+    const supabase = createAdminClient();
+    let alreadyActivatedByWebhook = false;
+
     if (user_email) {
       try {
-        const supabase = createAdminClient();
         const cleanEmail = user_email.trim().toLowerCase();
-
-        // Attempt update in profiles
-        const { data, error } = await supabase
+        const { data: profile } = await supabase
           .from("profiles")
-          .update({
-            subscription_status: "pro", // or 'active'
-            role: "pro",
-            updated_at: new Date().toISOString(),
-          })
+          .select("id, is_pro, subscription_status, role, pro_expiry_date")
           .eq("email", cleanEmail)
-          .select();
+          .maybeSingle();
 
-        if (error) {
-          console.warn("[verify-payment] Supabase update warning:", error.message);
-        } else if (data && data.length > 0) {
-          dbUpdated = true;
+        if (profile && (profile.is_pro || profile.subscription_status === "pro")) {
+          alreadyActivatedByWebhook = true;
+        } else if (profile) {
+          // Fallback sync (primarily for localhost development where webhooks cannot reach local server)
+          console.log(
+            `[verify-payment] Webhook has not activated user yet or in local dev. Applying fallback sync for ${cleanEmail}.`
+          );
+
+          const now = new Date();
+          const expiryDate = new Date(now);
+          if (plan === "yearly") {
+            expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+          } else {
+            expiryDate.setDate(expiryDate.getDate() + 30);
+          }
+          const expiryIso = expiryDate.toISOString();
+
+          await supabase
+            .from("profiles")
+            .update({
+              subscription_status: "pro",
+              role: profile.role === "admin" ? "admin" : "pro",
+              tier: "pro",
+              is_pro: true,
+              pro_expiry_date: expiryIso,
+              updated_at: now.toISOString(),
+            })
+            .eq("id", profile.id);
+
+          try {
+            await supabase.auth.admin.updateUserById(profile.id, {
+              user_metadata: {
+                tier: "pro",
+                role: profile.role === "admin" ? "admin" : "pro",
+                subscription_status: "pro",
+                is_pro: true,
+                pro_expiry_date: expiryIso,
+              },
+            });
+          } catch {}
         }
       } catch (dbErr) {
-        console.error("[verify-payment] Supabase exception:", dbErr);
+        console.error("[verify-payment] Database verification error:", dbErr);
       }
     }
 
     // ── 4. Return Successful Response ─────────────────────────────────────
     return NextResponse.json({
       success: true,
-      message: "Payment verified successfully and subscription activated",
+      message: "Payment verified successfully",
       order_id: razorpay_order_id,
       payment_id: razorpay_payment_id,
       subscription_status: "active",
-      db_updated: dbUpdated,
+      webhook_confirmed: alreadyActivatedByWebhook,
     });
   } catch (error: any) {
-    console.error("Razorpay Verification Error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error?.message || "Internal server error during verification",
-      },
-      { status: 500 }
+    return handleApiError(
+      error,
+      "[POST /api/verify-payment]",
+      "Payment verification failed. Please contact support if payment was deducted."
     );
   }
 }

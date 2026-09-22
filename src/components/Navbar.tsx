@@ -35,8 +35,8 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
 
   const handleSignOut = async () => {
     try {
-      localStorage.removeItem("masmspace_current_user");
-      localStorage.removeItem("wasmspace_current_user");
+      localStorage.removeItem("prathomix_current_user");
+      localStorage.removeItem("prathomix_current_user");
       const supabase = createClient();
       await supabase.auth.signOut();
     } catch {
@@ -50,7 +50,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
   useEffect(() => {
     // 1. Sync from localStorage
     try {
-      const savedUser = localStorage.getItem("masmspace_current_user") || localStorage.getItem("wasmspace_current_user");
+      const savedUser = localStorage.getItem("prathomix_current_user") || localStorage.getItem("prathomix_current_user");
       if (savedUser) {
         const parsed = JSON.parse(savedUser);
         if (parsed && parsed.email) {
@@ -87,7 +87,7 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="relative w-9 h-9 flex items-center justify-center shrink-0 transition-transform group-hover:scale-110">
             <Image
-              src="/masmspace-logo.png"
+              src="/Prathomix-logo.png"
               alt="MasmSpace Logo"
               width={36}
               height={36}
@@ -95,11 +95,16 @@ export function Navbar({ onOpenAuth }: NavbarProps) {
               priority
             />
           </div>
-          <span className="font-mono font-extrabold text-xl tracking-tight text-zinc-900 dark:text-white">
-            MasmSpace
-          </span>
+          <div className="flex flex-col">
+            <span className="font-mono font-extrabold text-xl tracking-tight text-zinc-900 dark:text-white leading-none">
+              MasmSpace
+            </span>
+            <span className="text-[10px] font-mono tracking-wider text-cyan-600 dark:text-cyan-400 font-semibold leading-tight mt-0.5">
+              by Prathomix
+            </span>
+          </div>
           <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-mono font-semibold rounded-full bg-cyan-500/10 dark:bg-cyan-500/15 border border-cyan-500/30 dark:border-cyan-400/40 text-cyan-600 dark:text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.25)]">
-            v2.0 OS
+            v2.4 OS
           </span>
         </Link>
 

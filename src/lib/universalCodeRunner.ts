@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// MasmSpace — Universal Multi-Language Code Execution Engine
+// Prathomix — Universal Multi-Language Code Execution Engine
 // Supports C, C++, Java, JavaScript, TypeScript, C#, Python, Rust, Go, PHP, SQL
 // With Real-time Auto-Iteration and Loop Trace Evaluation
 // ─────────────────────────────────────────────────────────────────────────────

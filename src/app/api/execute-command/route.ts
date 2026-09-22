@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getProviderKeys } from "@/lib/ai-balancer";
+import { handleApiError } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -24,22 +25,6 @@ const supabaseAdmin =
 // Global in-memory round-robin pointer state
 let geminiPointer = 0;
 let groqPointer = 0;
-
-// Dev & Fallback in-memory quota tracking
-const localQuotaStore = new Map<
-  string,
-  { actions_used: number; action_limit: number; tier: string; reset_at: string }
->([
-  [
-    "exhausted@masmspace.ai",
-    {
-      actions_used: 15,
-      action_limit: 15,
-      tier: "free",
-      reset_at: new Date(Date.now() + 86400000).toISOString(),
-    },
-  ],
-]);
 
 function getNextKey(pool: string[], currentPointer: number): { key: string; nextPointer: number } {
   if (pool.length === 0) return { key: "", nextPointer: 0 };
@@ -131,7 +116,7 @@ async function callGroq(apiKey: string, prompt: string): Promise<string> {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { prompt, commandType, userEmail = "guest@masmspace.ai", userId } = body;
+    const { prompt, commandType, userEmail = "guest@Prathomix.ai", userId } = body;
 
     if (!prompt && !commandType) {
       return NextResponse.json(
@@ -386,10 +371,10 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("[/api/execute-command] Error:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to execute AI command" },
-      { status: 500 }
+    return handleApiError(
+      error,
+      "[/api/execute-command]",
+      "Failed to execute AI command. Please try again."
     );
   }
 }

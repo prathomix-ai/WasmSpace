@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
@@ -152,7 +152,7 @@ export function LiveShareModal({
 
       if (typeof window !== "undefined" && isMounted) {
         try {
-          const stored = localStorage.getItem("masmspace_current_user");
+          const stored = localStorage.getItem("prathomix_current_user");
           if (stored) {
             const parsed = JSON.parse(stored);
             setCurrentAuthUser({
@@ -387,9 +387,9 @@ export function LiveShareModal({
         <button
           onClick={handleOpen}
           aria-label="Share Canvas"
-          className="relative inline-flex items-center gap-2 px-3.5 py-2 rounded-xl font-mono text-xs font-bold text-zinc-800 dark:text-white bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 backdrop-blur-md border border-black/10 dark:border-white/20 hover:border-cyan-500 dark:hover:border-neon-cyan shadow-sm hover:shadow-[0_0_16px_rgba(0,245,255,0.3)] transition-all duration-200 cursor-pointer"
+          className="relative inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-200 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 shadow-sm transition-all duration-150 cursor-pointer"
         >
-          <Share2 className="w-3.5 h-3.5 text-cyan-600 dark:text-neon-cyan" />
+          <Share2 className="w-3.5 h-3.5 text-blue-400" />
           <span>Share</span>
         </button>
       )}
@@ -402,30 +402,27 @@ export function LiveShareModal({
           aria-labelledby="live-share-modal-title"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
         >
-          {/* Glass Backdrop */}
+          {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity animate-fade-in"
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity animate-in fade-in duration-150"
             onClick={handleClose}
             aria-hidden="true"
           />
 
-          {/* Modal Panel (Glassmorphism Card) */}
-          <div className="relative w-[95%] md:max-w-2xl mx-auto rounded-3xl bg-[#09090b]/90 backdrop-blur-2xl border border-white/10 shadow-[0_24px_64px_rgba(0,0,0,0.85)] overflow-hidden z-10 text-zinc-100 animate-in fade-in zoom-in-95 duration-200">
+          {/* Modal Panel */}
+          <div className="relative w-full max-w-lg mx-auto rounded-2xl bg-[#121316] border border-zinc-800 shadow-2xl overflow-hidden z-10 text-zinc-100 animate-in fade-in zoom-in-95 duration-150">
             
-            {/* Ambient Top Glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-56 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
-
             {/* Header */}
-            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/10">
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-zinc-800">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-[0_0_16px_rgba(6,182,212,0.25)]">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
                   <Share2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 id="live-share-modal-title" className="font-mono font-bold text-base sm:text-lg tracking-tight text-white flex items-center gap-2">
-                    Share Live Canvas
+                  <h3 id="live-share-modal-title" className="font-semibold text-base text-white tracking-tight flex items-center gap-2 font-sans">
+                    Live Collaboration
                   </h3>
-                  <p className="text-xs text-zinc-400 truncate max-w-[240px] sm:max-w-xs font-mono">
+                  <p className="text-xs text-zinc-400 truncate max-w-[260px] sm:max-w-xs font-sans">
                     {boardTitle}
                   </p>
                 </div>
@@ -434,25 +431,25 @@ export function LiveShareModal({
               <button
                 onClick={handleClose}
                 aria-label="Close share dialog"
-                className="p-2 rounded-xl text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+                className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Content Body */}
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-5">
 
               {/* Permission & Access Row */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
                     <Globe className="w-4 h-4" />
                   </div>
                   <div className="space-y-0.5">
-                    <div className="text-xs font-mono font-bold text-white">General Access</div>
+                    <div className="text-xs font-semibold text-white">General Access</div>
                     <div className="text-[11px] text-zinc-400">
-                      Authenticated collaborators with this live room link can join
+                      Collaborators with room link can join in real-time
                     </div>
                   </div>
                 </div>
@@ -463,23 +460,23 @@ export function LiveShareModal({
                     value={permission}
                     onChange={(e) => setPermission(e.target.value as PermissionType)}
                     aria-label="Collaboration permission level"
-                    className="appearance-none font-mono text-xs font-bold px-4 py-2 pr-9 rounded-xl bg-black/60 border border-white/15 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 outline-none transition-all cursor-pointer text-zinc-100 shadow-sm"
+                    className="appearance-none text-xs font-medium px-3 py-1.5 pr-8 rounded-lg bg-zinc-800 border border-zinc-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all cursor-pointer text-zinc-100 shadow-sm"
                   >
                     <option value="edit">Can Edit (Full Access)</option>
                     <option value="view">Can View Only</option>
                   </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
 
               {/* Read-only URL Input with Copy Button */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-mono font-medium text-zinc-300">
+                  <label className="block text-xs font-medium text-zinc-300">
                     Direct Live Collaboration Link
                   </label>
-                  <span className="text-[10px] font-mono text-cyan-400 flex items-center gap-1">
-                    <Shield className="w-3 h-3" /> Auth Required on Join
+                  <span className="text-[10px] text-zinc-400 flex items-center gap-1 bg-zinc-800/80 px-2 py-0.5 rounded-full border border-zinc-700/60">
+                    <Shield className="w-3 h-3 text-blue-400" /> Realtime Room
                   </span>
                 </div>
 
@@ -490,7 +487,7 @@ export function LiveShareModal({
                       readOnly
                       value={shareUrl}
                       aria-label="Whiteboard share link"
-                      className="w-full pl-3.5 pr-4 py-2.5 rounded-xl font-mono text-xs bg-white/5 border border-white/10 text-zinc-200 select-all outline-none focus:border-cyan-400"
+                      className="w-full px-3.5 py-2.5 rounded-xl font-mono text-xs bg-zinc-900/80 border border-zinc-800 text-zinc-200 select-all outline-none focus:border-blue-500 transition-colors"
                       onClick={(e) => (e.target as HTMLInputElement).select()}
                     />
                   </div>
@@ -499,10 +496,10 @@ export function LiveShareModal({
                   <button
                     type="button"
                     onClick={handleCopyLink}
-                    className={`px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition-all duration-200 flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm ${
+                    className={`px-4 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm ${
                       copied
-                        ? "bg-emerald-500 text-white shadow-[0_0_16px_rgba(16,185,129,0.5)] scale-105"
-                        : "bg-cyan-400 hover:bg-cyan-300 text-black shadow-[0_0_16px_rgba(6,182,212,0.3)] hover:shadow-[0_0_20px_rgba(6,182,212,0.5)]"
+                        ? "bg-emerald-600 text-white"
+                        : "bg-blue-600 hover:bg-blue-500 text-white"
                     }`}
                   >
                     {copied ? (
@@ -512,7 +509,7 @@ export function LiveShareModal({
                       </>
                     ) : (
                       <>
-                        <Copy className="w-4 h-4 text-black" />
+                        <Copy className="w-4 h-4" />
                         <span>Copy Link</span>
                       </>
                     )}
@@ -520,10 +517,10 @@ export function LiveShareModal({
                 </div>
               </div>
 
-              {/* Dynamic Real-Time Connected Peers Indicator & Participant Management */}
-              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
+              {/* Real-Time Connected Peers Indicator & Participant Management */}
+              <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
                     {/* Live Avatar Stack with Real User Initials */}
                     {peers.length > 0 ? (
                       <div className="flex -space-x-2 overflow-hidden items-center">
@@ -531,7 +528,7 @@ export function LiveShareModal({
                           <div
                             key={peer.id || idx}
                             title={`${peer.name}${peer.email ? ` (${peer.email})` : ""}${peer.isSelf ? " - You" : ""}`}
-                            className={`w-7 h-7 rounded-full border-2 border-[#09090b] flex items-center justify-center text-[10px] font-mono font-bold shadow-md transition-transform hover:scale-110 hover:z-20 cursor-default ${
+                            className={`w-7 h-7 rounded-full border-2 border-[#121316] flex items-center justify-center text-[10px] font-medium shadow-sm transition-transform hover:scale-105 hover:z-20 cursor-default ${
                               peer.color || AVATAR_COLORS[idx % AVATAR_COLORS.length]
                             }`}
                           >
@@ -539,56 +536,56 @@ export function LiveShareModal({
                           </div>
                         ))}
                         {peers.length > 5 && (
-                          <div className="w-7 h-7 rounded-full border-2 border-[#09090b] bg-zinc-800 text-zinc-300 flex items-center justify-center text-[10px] font-mono font-bold">
+                          <div className="w-7 h-7 rounded-full border-2 border-[#121316] bg-zinc-800 text-zinc-300 flex items-center justify-center text-[10px] font-medium">
                             +{peers.length - 5}
                           </div>
                         )}
                       </div>
                     ) : (
-                      <div className="w-7 h-7 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center text-zinc-400">
+                      <div className="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400">
                         <Users className="w-3.5 h-3.5" />
                       </div>
                     )}
 
                     {/* Dynamic Peer Count and Room State */}
-                    <div className="text-xs font-mono">
+                    <div className="text-xs">
                       {otherPeers.length > 0 ? (
                         <span className="text-zinc-300">
-                          <strong className="text-cyan-400 font-bold">
+                          <strong className="text-blue-400 font-semibold">
                             {otherPeers.length} {otherPeers.length === 1 ? "peer" : "peers"}
                           </strong>{" "}
                           active in room
                         </span>
                       ) : (
                         <span className="text-zinc-400">
-                          <strong className="text-zinc-200 font-bold">Only you</strong> in this session
+                          <strong className="text-zinc-200 font-medium">Only you</strong> in this session
                         </span>
                       )}
                     </div>
                   </div>
 
                   {/* Supabase Presence Status Badge */}
-                  <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-emerald-400">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                    <span>{isConnected ? "Realtime Presence" : "Connecting..."}</span>
+                  <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>{isConnected ? "Realtime Active" : "Connecting..."}</span>
                   </div>
                 </div>
 
                 {/* Participant Management List with Kick Controls */}
                 {peers.length > 0 && (
-                  <div className="pt-2 border-t border-white/5 space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  <div className="pt-2 border-t border-zinc-800 space-y-1.5 max-h-40 overflow-y-auto pr-1">
                     {peers.map((peer, idx) => (
                       <div
                         key={peer.id || idx}
-                        className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-mono border transition-all ${
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs border transition-all ${
                           peer.isSelf
-                            ? "bg-cyan-500/10 border-cyan-500/25 text-zinc-100"
-                            : "bg-white/[0.02] hover:bg-white/[0.04] border-white/5 text-zinc-300"
+                            ? "bg-blue-500/10 border-blue-500/20 text-zinc-100"
+                            : "bg-zinc-800/40 hover:bg-zinc-800/70 border-zinc-800 text-zinc-300"
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div
-                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${
+                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold shrink-0 ${
                               peer.color || AVATAR_COLORS[idx % AVATAR_COLORS.length]
                             }`}
                           >
@@ -596,20 +593,20 @@ export function LiveShareModal({
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="truncate max-w-[140px] sm:max-w-[180px] font-semibold text-zinc-200">
+                              <span className="truncate max-w-[140px] sm:max-w-[180px] font-medium text-zinc-200">
                                 {peer.name}
                               </span>
                               {peer.isSelf && (
-                                <span className="text-[9px] px-1 rounded bg-cyan-400/20 text-cyan-300 font-bold">
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 font-medium">
                                   You
                                 </span>
                               )}
                               {peer.isHost ? (
-                                <span className="text-[9px] px-1 rounded bg-amber-400/20 text-amber-300 font-bold flex items-center gap-0.5">
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-medium flex items-center gap-0.5">
                                   <Crown className="w-2.5 h-2.5" /> Host
                                 </span>
                               ) : (
-                                <span className="text-[9px] px-1 rounded bg-white/5 text-zinc-400">
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-medium">
                                   Peer
                                 </span>
                               )}
@@ -628,14 +625,14 @@ export function LiveShareModal({
                             type="button"
                             onClick={() => handleKickUser(peer)}
                             disabled={kickingPeerId === peer.id}
-                            className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/15 border border-white/10 hover:border-rose-500/30 transition-all cursor-pointer group/kick shrink-0 shadow-sm"
+                            className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all cursor-pointer shrink-0"
                             title={`Remove ${peer.name} from live room`}
                             aria-label={`Remove ${peer.name}`}
                           >
                             {kickingPeerId === peer.id ? (
                               <Loader2 className="w-3.5 h-3.5 text-rose-400 animate-spin" />
                             ) : (
-                              <UserX className="w-3.5 h-3.5 group-hover/kick:scale-110 transition-transform" />
+                              <UserX className="w-3.5 h-3.5" />
                             )}
                           </button>
                         )}
@@ -644,26 +641,26 @@ export function LiveShareModal({
                   </div>
                 )}
 
-                {/* Host Control: Prominent End Live Session Button */}
+                {/* Host Control: End Live Session Button */}
                 {isHost && (
-                  <div className="pt-2 border-t border-white/10">
+                  <div className="pt-2 border-t border-zinc-800">
                     {!showEndConfirm ? (
                       <button
                         type="button"
                         onClick={() => setShowEndConfirm(true)}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-mono text-xs font-bold text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 shadow-[0_0_16px_rgba(244,63,94,0.15)] hover:shadow-[0_0_20px_rgba(244,63,94,0.25)] transition-all cursor-pointer group"
+                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/20 transition-all cursor-pointer"
                       >
-                        <PowerOff className="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform" />
+                        <PowerOff className="w-3.5 h-3.5" />
                         <span>End Live Session</span>
                       </button>
                     ) : (
-                      <div className="p-3.5 rounded-2xl bg-rose-950/40 border border-rose-500/40 flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150">
-                        <div className="flex items-start gap-2.5">
+                      <div className="p-3 rounded-xl bg-rose-950/30 border border-rose-500/30 flex flex-col gap-2 animate-in fade-in duration-150">
+                        <div className="flex items-start gap-2">
                           <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                           <div className="text-xs">
-                            <p className="font-bold text-rose-200 font-mono">End Live Collaboration Session?</p>
-                            <p className="text-[11px] text-zinc-300 mt-0.5 leading-relaxed">
-                              This will disconnect all {otherPeers.length} connected {otherPeers.length === 1 ? "participant" : "participants"}, terminate the WebSocket room, and revert your canvas to private mode.
+                            <p className="font-semibold text-rose-200">End Live Collaboration Session?</p>
+                            <p className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">
+                              This will disconnect all participants and return your canvas to a private workspace.
                             </p>
                           </div>
                         </div>
@@ -672,7 +669,7 @@ export function LiveShareModal({
                             type="button"
                             onClick={() => setShowEndConfirm(false)}
                             disabled={isEndingSession}
-                            className="px-3 py-1.5 rounded-xl font-mono text-xs text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+                            className="px-3 py-1 rounded-lg text-xs text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
                           >
                             Cancel
                           </button>
@@ -680,19 +677,14 @@ export function LiveShareModal({
                             type="button"
                             onClick={handleEndLiveSession}
                             disabled={isEndingSession}
-                            className="px-4 py-1.5 rounded-xl font-mono text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 shadow-[0_0_16px_rgba(225,29,72,0.5)] transition-all flex items-center gap-1.5 cursor-pointer"
+                            className="px-3 py-1 rounded-lg text-xs font-medium text-white bg-rose-600 hover:bg-rose-500 transition-colors cursor-pointer flex items-center gap-1.5"
                           >
                             {isEndingSession ? (
-                              <>
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                <span>Terminating…</span>
-                              </>
+                              <Loader2 className="w-3 h-3 animate-spin" />
                             ) : (
-                              <>
-                                <PowerOff className="w-3.5 h-3.5" />
-                                <span>Yes, End Session</span>
-                              </>
+                              <PowerOff className="w-3 h-3" />
                             )}
+                            <span>Confirm End</span>
                           </button>
                         </div>
                       </div>
@@ -700,18 +692,19 @@ export function LiveShareModal({
                   </div>
                 )}
               </div>
+
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-white/10 bg-white/[0.02] flex items-center justify-between text-xs text-zinc-400 font-mono">
-              <span className="flex items-center gap-1.5">
-                <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-                <span>Encrypted WebSocket presence channel</span>
+            <div className="px-6 py-3.5 border-t border-zinc-800 bg-zinc-900/40 flex items-center justify-between text-xs text-zinc-400">
+              <span className="flex items-center gap-1.5 text-[11px]">
+                <Radio className="w-3.5 h-3.5 text-blue-400" />
+                <span>Encrypted realtime presence channel</span>
               </span>
 
               <button
                 onClick={handleClose}
-                className="px-4 py-1.5 rounded-xl text-xs font-mono font-bold bg-white/10 hover:bg-white/15 text-white transition-colors cursor-pointer"
+                className="px-4 py-1.5 rounded-lg text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-white transition-colors cursor-pointer"
               >
                 Done
               </button>

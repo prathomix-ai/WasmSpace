@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { streamText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { getRotatedApiKey, getRotatedKeyDetails } from "@/utils/apiRotator";
+import { handleApiError, sanitizeErrorMessage } from "@/lib/api-error";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Dynamic Execution & Cache Neutralization (Prevents Multi-Tenant State Bleeding)
@@ -38,7 +39,6 @@ export async function POST(req: NextRequest) {
       messages,
       systemPrompt,
       isChatBotTask = false,
-      userId: bodyUserId,
     } = body;
 
     // Extract prompt string
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
 
     // Auto-create default profile with 0 usage if row does not exist yet (fresh signup)
     if (!profile) {
-      const userEmail = user.email || req.headers.get("x-user-email") || "user@masmspace.app";
+      const userEmail = user.email || req.headers.get("x-user-email") || "user@Prathomix.app";
       const { data: newProfile } = await supabase
         .from("profiles")
         .upsert(
@@ -260,8 +260,8 @@ export async function POST(req: NextRequest) {
 
     // Dynamic prompt engineering based on task type
     const defaultSystemPrompt = isChatBotTask
-      ? "You are the PRATHOMIX MasmSpace Canvas AI Assistant. Provide concise, clear, and high-impact answers regarding system architecture, software engineering, algorithms, and whiteboard workflows."
-      : "You are an elite Cloud & Software Systems Architect for PRATHOMIX MasmSpace. Generate valid native canvas diagram element geometry in pure JSON format. Adhere strictly to the coordinate plane, connectors, and shapes required.";
+      ? "You are the MasmSpace Canvas AI Assistant, powered by PRATHOMIX. Provide concise, clear, and high-impact answers regarding system architecture, software engineering, algorithms, and whiteboard workflows."
+      : "You are an elite Cloud & Software Systems Architect for MasmSpace (Powered by PRATHOMIX). Generate valid native canvas diagram element geometry in pure JSON format. Adhere strictly to the coordinate plane, connectors, and shapes required.";
 
     // ── 8. Execute Streaming LLM Generation ──────────────────────────────────
     let result;
@@ -305,12 +305,10 @@ export async function POST(req: NextRequest) {
       throw streamErr; // Re-throw other errors to be caught by the outer handler
     }
   } catch (error: any) {
-    console.error("[/api/generate] Master Edge Route Execution Error:", error);
-    return new Response(
-      JSON.stringify({
-        error: error.message || "Internal server error occurred during AI generation.",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+    return handleApiError(
+      error,
+      "[/api/generate]",
+      "Internal server error occurred during AI generation."
     );
   }
 }
@@ -445,6 +443,7 @@ export async function GET(req: NextRequest) {
       resetCountdown,
     });
   } catch (error: any) {
+    console.error("[/api/generate GET] Error:", error);
     return NextResponse.json(
       {
         authenticated: false,
@@ -454,7 +453,7 @@ export async function GET(req: NextRequest) {
         limit: 15,
         remaining: 15,
         formatted: "0/15 Free Uses",
-        error: error.message,
+        error: sanitizeErrorMessage(error, "Failed to retrieve quota status."),
       },
       { status: 200 }
     );

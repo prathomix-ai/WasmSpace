@@ -23,10 +23,10 @@ const COLOR_PALETTE = [
 ];
 
 const GRADIENT_PRESETS = [
-  { id: "neon-cyber", name: "Cyberpunk", from: "#00f5ff", to: "#a855f7", color: "blue", fill: "semi" },
-  { id: "synth-sunset", name: "Synthwave", from: "#f97316", to: "#ec4899", color: "orange", fill: "semi" },
-  { id: "matrix-glow", name: "Matrix", from: "#22c55e", to: "#00f5ff", color: "green", fill: "semi" },
-  { id: "golden-aurora", name: "Aurora", from: "#eab308", to: "#f97316", color: "yellow", fill: "semi" },
+  { id: "indigo-wave", name: "Indigo Wave", from: "#3b82f6", to: "#6366f1", color: "blue", fill: "semi" },
+  { id: "sunset-ember", name: "Sunset Ember", from: "#f97316", to: "#ec4899", color: "orange", fill: "semi" },
+  { id: "emerald-mint", name: "Emerald Mint", from: "#10b981", to: "#06b6d4", color: "green", fill: "semi" },
+  { id: "amber-gold", name: "Amber Gold", from: "#eab308", to: "#f97316", color: "yellow", fill: "semi" },
 ];
 
 export default function PropertiesPanel({
@@ -231,8 +231,8 @@ export default function PropertiesPanel({
               </div>
 
               {/* Gradient Presets */}
-              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 block mb-1.5">
-                Cyberpunk Gradients
+              <span className="text-[10px] font-sans uppercase tracking-wider text-zinc-400 block mb-1.5 font-medium">
+                Architectural Gradients
               </span>
               <div className="grid grid-cols-2 gap-1.5 mb-3">
                 {GRADIENT_PRESETS.map((grad) => (

@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { SubscriptionGuard } from "@/components/SubscriptionGuard";
+import GlobalToast from "@/components/GlobalToast";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -17,24 +19,27 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-const siteUrl = "https://masmspace.online";
+const siteUrl = "https://prathomix.tech";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "MasmSpace | Next-Gen AI & Developer Workspace",
-    template: "%s | MasmSpace",
+    default: "MasmSpace | Next-Gen AI & Developer Workspace - Powered by Prathomix",
+    template: "%s | MasmSpace - Powered by Prathomix",
   },
   description:
-    "Experience MasmSpace — the cyber-glassmorphism AI & developer workspace. Brainstorm, diagram, and execute code in real-time with native WebAssembly, multi-agent AI intelligence, Next.js App Router speed, and high-performance Python FastAPI & Supabase backend.",
+    "Experience MasmSpace — the modern AI & cloud architecture workspace powered by Prathomix. Brainstorm, diagram, and execute code in real-time with native WebAssembly, multi-agent AI intelligence, Next.js App Router speed, and high-performance Python FastAPI & Supabase backend.",
   keywords: [
     "MasmSpace",
+    "MasmSpace AI",
+    "Prathomix",
+    "Powered by Prathomix",
     "AI workspace",
     "developer tools",
     "Next.js",
     "FastAPI",
     "SaaS",
-    "cyber glassmorphism",
+    "cloud architecture",
     "WebAssembly IDE",
     "AI whiteboard",
     "real-time collaboration",
@@ -45,38 +50,38 @@ export const metadata: Metadata = {
     "developer productivity",
     "Pyodide Python",
   ],
-  authors: [{ name: "MasmSpace Team", url: siteUrl }],
-  creator: "MasmSpace",
-  publisher: "MasmSpace",
+  authors: [{ name: "Prathomix Team", url: siteUrl }],
+  creator: "MasmSpace by Prathomix",
+  publisher: "PRATHOMIX SOLUTION",
   applicationName: "MasmSpace",
   category: "technology",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "MasmSpace | Next-Gen AI & Developer Workspace",
+    title: "MasmSpace | Next-Gen AI & Developer Workspace - Powered by Prathomix",
     description:
-      "Step into a high-performance cyber-glassmorphism workspace uniting Next.js, Python FastAPI, and Supabase with autonomous AI agents and in-browser code execution.",
+      "Step into MasmSpace, a high-performance cloud architecture workspace powered by Prathomix. Uniting Next.js, Python FastAPI, and Supabase with autonomous AI agents and in-browser code execution.",
     url: siteUrl,
-    siteName: "MasmSpace",
+    siteName: "MasmSpace - Powered by Prathomix",
     locale: "en_US",
     type: "website",
     images: [
       {
-        url: "/masmspace-logo.png",
+        url: "/logo.png",
         width: 1200,
         height: 630,
-        alt: "MasmSpace — Next-Gen AI & Developer Workspace",
+        alt: "MasmSpace — Next-Gen AI & Developer Workspace Powered by Prathomix",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "MasmSpace | Next-Gen AI & Developer Workspace",
+    title: "MasmSpace | Next-Gen AI & Developer Workspace - Powered by Prathomix",
     description:
-      "High-performance cyber-glassmorphism developer workspace. Powered by Next.js, Python FastAPI, Supabase, and WebAssembly code execution.",
-    creator: "@masmspace",
-    images: ["/masmspace-logo.png"],
+      "High-performance cloud architecture workspace. Powered by Prathomix with Next.js, Python FastAPI, Supabase, and WebAssembly code execution.",
+    creator: "@prathomix",
+    images: ["/logo.png"],
   },
   robots: {
     index: true,
@@ -90,9 +95,9 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/masmspace-logo.png",
-    shortcut: "/masmspace-logo.png",
-    apple: "/masmspace-logo.png",
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
 };
 
@@ -105,14 +110,14 @@ const jsonLd = {
       url: siteUrl,
       name: "MasmSpace",
       description:
-        "Next-Gen AI & Developer Workspace featuring cyber-glassmorphism UI, native WebAssembly runtime, Next.js App Router, Python FastAPI, and Supabase.",
+        "Next-Gen AI & Developer Workspace powered by Prathomix featuring modern UI, native WebAssembly runtime, Next.js App Router, Python FastAPI, and Supabase.",
       publisher: {
         "@type": "Organization",
-        name: "MasmSpace",
+        name: "PRATHOMIX SOLUTION",
         url: siteUrl,
         logo: {
           "@type": "ImageObject",
-          url: `${siteUrl}/masmspace-logo.png`,
+          url: `${siteUrl}/logo.png`,
         },
       },
       potentialAction: {
@@ -134,7 +139,7 @@ const jsonLd = {
       applicationCategory: "DeveloperApplication",
       applicationSubCategory: "AI Developer Workspace & Collaborative Canvas",
       description:
-        "Cyber-glassmorphism AI & Developer Workspace with native WebAssembly code execution, collaborative whiteboard canvas, and autonomous AI system design.",
+        "Modern AI & Developer Workspace powered by Prathomix with native WebAssembly code execution, collaborative whiteboard canvas, and autonomous AI system design.",
       offers: {
         "@type": "Offer",
         price: "0",
@@ -148,19 +153,19 @@ const jsonLd = {
         bestRating: "5",
         worstRating: "1",
       },
-      softwareVersion: "2.0.0",
+      softwareVersion: "2.4.0",
       featureList: [
-        "Cyber-glassmorphism aesthetic UI",
+        "Modern clean dark aesthetic UI",
         "Infinite collaborative whiteboard canvas",
         "In-browser WebAssembly Python execution",
         "Python FastAPI backend with RAG vector search",
         "Supabase real-time cloud database and auth",
         "AI-assisted system architecture diagramming",
       ],
-      screenshot: `${siteUrl}/masmspace-logo.png`,
+      screenshot: `${siteUrl}/logo.png`,
       author: {
         "@type": "Organization",
-        name: "MasmSpace",
+        name: "PRATHOMIX SOLUTION",
       },
     },
   ],
@@ -180,7 +185,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className="antialiased min-h-screen bg-slate-50 dark:bg-void text-zinc-900 dark:text-zinc-100 transition-colors duration-200"
+        className="antialiased min-h-screen bg-[#09090b] text-zinc-100 transition-colors duration-200"
         suppressHydrationWarning
       >
         <ThemeProvider
@@ -189,8 +194,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SubscriptionGuard />
-          {children}
+          <SubscriptionProvider>
+            <SubscriptionGuard />
+            <GlobalToast />
+            {children}
+          </SubscriptionProvider>
         </ThemeProvider>
       </body>
     </html>

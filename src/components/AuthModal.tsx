@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { getSafeClientErrorMessage } from "@/lib/api-error";
 import {
   X,
   Mail,
@@ -60,7 +61,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
         throw error;
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to initialize Google authentication.");
+      setErrorMsg(getSafeClientErrorMessage(err, "Failed to initialize Google authentication."));
     } finally {
       setGoogleLoading(false);
     }
@@ -140,14 +141,14 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           subscription_status: subStatus,
           is_pro: subStatus === "pro" || subStatus === "enterprise" || userRole === "admin",
         });
-        localStorage.setItem("masmspace_current_user", sessionData);
-        localStorage.setItem("wasmspace_current_user", sessionData);
+        localStorage.setItem("prathomix_current_user", sessionData);
+        localStorage.setItem("prathomix_current_user", sessionData);
         onAuthSuccess?.({ email, role: userRole });
         onClose();
 
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Authentication failed. Please check credentials.");
+      setErrorMsg(getSafeClientErrorMessage(err, "Authentication failed. Please check credentials."));
     } finally {
       setLoading(false);
     }
@@ -186,7 +187,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-white/[0.04] border border-white/15 p-1.5 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.2)]">
               <Image
-                src="/masmspace-logo.png"
+                src="/Prathomix-logo.png"
                 alt="MasmSpace Logo"
                 width={32}
                 height={32}
@@ -196,15 +197,15 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold tracking-tight text-white">
+                <span className="text-sm font-bold tracking-tight text-white leading-none">
                   MasmSpace
                 </span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-                  Auth OS
+                  by Prathomix
                 </span>
               </div>
               <h2 className="text-xl font-bold tracking-tight text-white mt-0.5">
-                {isSignUp ? "Create Your Account" : "Sign In to MasmSpace"}
+                {isSignUp ? "Create Your MasmSpace Account" : "Sign In to MasmSpace"}
               </h2>
             </div>
           </div>

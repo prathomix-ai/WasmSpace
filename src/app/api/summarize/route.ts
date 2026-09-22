@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { handleApiError } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -31,10 +32,10 @@ export async function POST(req: NextRequest) {
     const data = await res.json();
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error("API Summarize Proxy Error:", error);
-    return NextResponse.json(
-      { detail: error?.message || "Internal server error during summarization" },
-      { status: 500 }
+    return handleApiError(
+      error,
+      "[POST /api/summarize]",
+      "Failed to process summarization. Please try again."
     );
   }
 }

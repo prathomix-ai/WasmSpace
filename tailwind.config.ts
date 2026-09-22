@@ -49,12 +49,12 @@ const config: Config = {
           indigo:  '#6366f1',
         },
         neon: {
-          cyan:   '#00f5ff',
-          purple: '#a855f7',
-          orange: '#f97316',
-          green:  '#22c55e',
-          pink:   '#ec4899',
-          yellow: '#eab308',
+          cyan:   '#38bdf8',
+          purple: '#818cf8',
+          orange: '#fb923c',
+          green:  '#34d399',
+          pink:   '#f472b6',
+          yellow: '#facc15',
         },
         void: {
           DEFAULT: '#09090b',
@@ -67,7 +67,7 @@ const config: Config = {
       // ── Typography ──────────────────────────────────────────────────────
       fontFamily: {
         sans:    ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Orbitron', 'monospace'],
+        display: ['Inter', 'system-ui', 'sans-serif'],
         mono:    ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
 
@@ -91,8 +91,8 @@ const config: Config = {
           '50%':      { transform: 'translateY(-8px)' },
         },
         'glow-breathe': {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(6,182,212,0.2)' },
-          '50%':      { boxShadow: '0 0 45px rgba(6,182,212,0.6), 0 0 85px rgba(168,85,247,0.35)' },
+          '0%, 100%': { opacity: '1' },
+          '50%':      { opacity: '0.85' },
         },
         'scan-line': {
           '0%':   { transform: 'translateY(-100%)' },
@@ -130,9 +130,9 @@ const config: Config = {
 
       // ── Box shadows ─────────────────────────────────────────────────────
       boxShadow: {
-        'neon-cyan':   '0 0 20px rgba(0,245,255,0.3), 0 0 60px rgba(0,245,255,0.1)',
-        'neon-purple': '0 0 20px rgba(168,85,247,0.3), 0 0 60px rgba(168,85,247,0.1)',
-        'aurora-glow': '0 0 40px rgba(6,182,212,0.35), 0 0 80px rgba(139,92,246,0.2)',
+        'neon-cyan':   '0 1px 3px rgba(0,0,0,0.3)',
+        'neon-purple': '0 1px 3px rgba(0,0,0,0.3)',
+        'aurora-glow': '0 4px 20px rgba(0,0,0,0.4)',
         'glass':       '0 8px 32px rgba(0,0,0,0.37), inset 0 0 20px rgba(255,255,255,0.05)',
         'glass-card':  '0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)',
       },

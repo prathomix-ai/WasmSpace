@@ -1,5 +1,5 @@
 {
-  "name": "masmspace",
+  "name": "prathomix",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -31,6 +31,7 @@
     "react-draggable": "^4.7.1",
     "react-markdown": "^10.1.0",
     "react-parallax-tilt": "^1.7.342",
+    "swr": "^2.5.1",
     "uuid": "^14.0.2"
   },
   "devDependencies": {
@@ -39,8 +40,12 @@
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
-    "postcss": "^8",
+    "postcss": "^8.5.28",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "^8.5.28",
+    "glob": "^10.4.6"
   }
 }

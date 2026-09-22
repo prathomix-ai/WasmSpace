@@ -76,7 +76,7 @@ export default function AIPromptModal({
     try {
       const stored =
         localStorage.getItem("favorited_prompt_ids") ||
-        localStorage.getItem("masmspace_favorite_prompts");
+        localStorage.getItem("Prathomix_favorite_prompts");
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -90,7 +90,7 @@ export default function AIPromptModal({
       const next = isFav ? prev.filter((item) => item !== id) : [...prev, id];
       try {
         localStorage.setItem("favorited_prompt_ids", JSON.stringify(next));
-        localStorage.setItem("masmspace_favorite_prompts", JSON.stringify(next));
+        localStorage.setItem("Prathomix_favorite_prompts", JSON.stringify(next));
       } catch (err) {
         console.error("Failed to save favorited prompts:", err);
       }

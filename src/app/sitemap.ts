@@ -1,7 +1,7 @@
 import { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://masmspace.online";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://prathomix.tech";
   const currentDate = new Date();
 
   // Dynamic public route definitions with SEO priority and indexing frequency

@@ -2,8 +2,8 @@ import React from "react";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Terms and Conditions | MasmSpace AI Whiteboard",
-  description: "Terms and Conditions governing the use of MasmSpace AI SaaS platform by PRATHOMIX.",
+  title: "Terms and Conditions | MasmSpace - Powered by Prathomix",
+  description: "Terms and Conditions governing the use of MasmSpace AI SaaS platform operated by PRATHOMIX SOLUTION.",
 };
 
 export default function TermsPage() {
@@ -40,7 +40,7 @@ export default function TermsPage() {
             TERMS &amp; CONDITIONS OF SERVICE
           </h1>
           <p className="text-sm text-zinc-400 leading-relaxed">
-            These Terms and Conditions (&ldquo;Terms&rdquo;) constitute a legally binding agreement between you (&ldquo;User&rdquo;, &ldquo;Client&rdquo;, or &ldquo;Subscriber&rdquo;) and PRATHOMIX SOLUTION (&ldquo;Company&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;), governing access to and usage of the MasmSpace AI Smart Whiteboard platform (&ldquo;Platform&rdquo;, &ldquo;Service&rdquo;).
+            These Terms and Conditions (&ldquo;Terms&rdquo;) constitute a legally binding agreement between you (&ldquo;User&rdquo;, &ldquo;Client&rdquo;, or &ldquo;Subscriber&rdquo;) and PRATHOMIX SOLUTION (&ldquo;Company&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;), governing access to and usage of the MasmSpace Smart Whiteboard platform (&ldquo;Platform&rdquo;, &ldquo;Service&rdquo;).
           </p>
         </div>
 
@@ -78,7 +78,7 @@ export default function TermsPage() {
           <h2 className="text-xl font-bold text-white font-mono">4. Strict Limitation of Liability &amp; Data Loss Exclusions</h2>
           <div className="p-4 rounded-xl bg-red-950/20 border border-red-500/30 text-xs sm:text-sm text-zinc-300 font-mono leading-relaxed space-y-2">
             <p>
-              UNDER NO CIRCUMSTANCES SHALL PRATHOMIX, ITS FOUNDERS, EMPLOYEES, AFFILIATES, OR PARTNERS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, CONSEQUENTIAL, SPECIAL, PUNITIVE, OR EXEMPLARY DAMAGES, INCLUDING BUT NOT LIMITED TO:
+              UNDER NO CIRCUMSTANCES SHALL PRATHOMIX SOLUTION, ITS FOUNDERS, EMPLOYEES, AFFILIATES, OR PARTNERS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, CONSEQUENTIAL, SPECIAL, PUNITIVE, OR EXEMPLARY DAMAGES, INCLUDING BUT NOT LIMITED TO:
             </p>
             <ul className="list-disc pl-5 space-y-1 text-zinc-400">
               <li>LOSS OF CANVAS DATA, BRAINSTORMING ARTIFACTS, CODE SNIPPETS, OR DRAWINGS;</li>
@@ -99,7 +99,7 @@ export default function TermsPage() {
             The User retains copyright over original whiteboard content created, but assumes full responsibility for all uploaded materials, imported PDF documents, and proprietary data pasted into the canvas.
           </p>
           <p className="text-sm text-zinc-300 leading-relaxed">
-            <strong>Indemnification Obligation:</strong> You agree to fully defend, indemnify, and hold harmless PRATHOMIX and its affiliates from and against any claims, liabilities, lawsuits, judgments, legal fees, or damages arising out of: (i) your misuse of the Service; (ii) any copyright, patent, or privacy infringement contained within your canvas content; or (iii) any breach of these Terms.
+            <strong>Indemnification Obligation:</strong> You agree to fully defend, indemnify, and hold harmless PRATHOMIX SOLUTION and its affiliates from and against any claims, liabilities, lawsuits, judgments, legal fees, or damages arising out of: (i) your misuse of the Service; (ii) any copyright, patent, or privacy infringement contained within your canvas content; or (iii) any breach of these Terms.
           </p>
         </section>
 
@@ -121,7 +121,7 @@ export default function TermsPage() {
       <footer className="border-t border-zinc-800/80 bg-zinc-950 py-8 text-center text-xs text-zinc-500 font-mono">
         MasmSpace AI OS • Powered by{" "}
         <a href="https://prathomix.tech" className="text-zinc-300 hover:text-neon-cyan transition-colors font-bold">
-          PRATHOMIX
+          PRATHOMIX SOLUTION
         </a>
       </footer>
     </div>

@@ -2,8 +2,8 @@ import React from "react";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Cookie Policy | MasmSpace AI Whiteboard",
-  description: "Pro-company Cookie Policy for MasmSpace AI Smart Whiteboard SaaS platform by PRATHOMIX.",
+  title: "Cookie Policy | MasmSpace - Powered by Prathomix",
+  description: "Pro-company Cookie Policy for MasmSpace Smart Whiteboard platform operated by PRATHOMIX SOLUTION.",
 };
 
 export default function CookiePolicyPage() {
@@ -44,10 +44,10 @@ export default function CookiePolicyPage() {
             Effective Date: September 9, 2026 • Version 2.4 (Enterprise Defense)
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-mono">
-            MASMSPACE COOKIE &amp; LOCAL STORAGE POLICY
+            MasmSpace COOKIE &amp; LOCAL STORAGE POLICY
           </h1>
           <p className="text-sm text-zinc-400 leading-relaxed">
-            This Cookie Policy constitutes a binding legal agreement governing the operation of cookies, Web Storage (localStorage, sessionStorage), IndexedDB, and related telemetry on the MasmSpace SaaS platform (&ldquo;Platform&rdquo;, &ldquo;Service&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;), operated by PRATHOMIX (&ldquo;Company&rdquo;).
+            This Cookie Policy constitutes a binding legal agreement governing the operation of cookies, Web Storage (localStorage, sessionStorage), IndexedDB, and related telemetry on the MasmSpace platform (&ldquo;Platform&rdquo;, &ldquo;Service&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;), operated by PRATHOMIX SOLUTION (&ldquo;Company&rdquo;).
           </p>
         </div>
 
@@ -153,7 +153,7 @@ export default function CookiePolicyPage() {
               Third-party infrastructure providers may place automated diagnostic identifiers, bot-detection cookies (such as Cloudflare Ray / Turnstile tokens), edge routing tokens, or network latency cookies upon your HTTP requests. <strong>The Company exercises no direct ownership, operational custody, or code-level control over third-party cookies.</strong>
             </p>
             <p>
-              Under no circumstances shall PRATHOMIX, its directors, employees, or affiliates be held liable for:
+              Under no circumstances shall PRATHOMIX SOLUTION, its directors, employees, or affiliates be held liable for:
             </p>
             <ul className="list-disc pl-5 space-y-1 text-zinc-400">
               <li>Any privacy violation, tracking, or data collection executed by external infrastructure or AI host networks;</li>
@@ -218,7 +218,7 @@ export default function CookiePolicyPage() {
             <span className="text-neon-cyan">06.</span> Amendments &amp; Contact Inquiries
           </h2>
           <p className="text-sm text-zinc-300 leading-relaxed">
-            PRATHOMIX reserves the unilateral right to amend, alter, or update this Cookie Policy at any time without prior individual notice by publishing the updated version with a revised timestamp. Continued invocation of the Platform following any revision manifests unreserved acceptance of the revised policies.
+            PRATHOMIX SOLUTION reserves the unilateral right to amend, alter, or update this Cookie Policy at any time without prior individual notice by publishing the updated version with a revised timestamp. Continued invocation of the Platform following any revision manifests unreserved acceptance of the revised policies.
           </p>
           <div className="p-5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-sm space-y-2">
             <p className="text-zinc-200 font-semibold font-mono">Corporate Legal &amp; Compliance Office:</p>
@@ -256,7 +256,7 @@ export default function CookiePolicyPage() {
           rel="noopener noreferrer"
           className="text-zinc-300 hover:text-neon-cyan transition-colors font-bold"
         >
-          PRATHOMIX
+          PRATHOMIX SOLUTION
         </a>
       </footer>
     </div>

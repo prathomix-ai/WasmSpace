@@ -62,7 +62,7 @@ export default function LandingPage() {
 
       if (typeof window !== "undefined" && isMounted) {
         try {
-          const stored = localStorage.getItem("masmspace_current_user") || localStorage.getItem("wasmspace_current_user");
+          const stored = localStorage.getItem("prathomix_current_user") || localStorage.getItem("prathomix_current_user");
           if (stored) {
             const parsed = JSON.parse(stored);
             if (parsed) setCurrentUser(parsed);
@@ -81,15 +81,15 @@ export default function LandingPage() {
       const supabase = createClient();
       await supabase.auth.signOut();
       if (typeof window !== "undefined") {
-        localStorage.removeItem("masmspace_current_user");
-        localStorage.removeItem("wasmspace_current_user");
-        localStorage.removeItem("masmspace_user_avatar");
+        localStorage.removeItem("prathomix_current_user");
+        localStorage.removeItem("prathomix_current_user");
+        localStorage.removeItem("prathomix_user_avatar");
       }
       setCurrentUser(null);
     } catch (err) {
       console.error("Sign out error:", err);
       if (typeof window !== "undefined") {
-        localStorage.removeItem("masmspace_current_user");
+        localStorage.removeItem("prathomix_current_user");
       }
       setCurrentUser(null);
     } finally {
@@ -103,20 +103,20 @@ export default function LandingPage() {
 
   // ── Animation Variants ─────────────────────────────────────────────────────
   const fadeUp = {
-    hidden: { opacity: 0, y: 24 },
+    hidden: { opacity: 1, y: 0 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const },
+      transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const },
     },
   };
 
   const staggerContainer = {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 1 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.12,
+        staggerChildren: 0.08,
       },
     },
   };
@@ -242,7 +242,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
           <Link href="/" className="group flex items-center gap-3.5 focus:outline-none">
             <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-white/[0.03] border border-white/10 p-1 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.15)] group-hover:border-cyan-500/40 transition-colors">
               <Image
-                src="/masmspace-logo.png"
+                src="/Prathomix-logo.png"
                 alt="MasmSpace Logo"
                 width={32}
                 height={32}
@@ -250,14 +250,17 @@ print("[Pyodide WASM] Tensor layer converged.")`,
                 priority
               />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-semibold tracking-tight text-white group-hover:text-cyan-300 transition-colors">
+            <div className="flex flex-col">
+              <span className="text-lg font-semibold tracking-tight text-white group-hover:text-cyan-300 transition-colors leading-none">
                 MasmSpace
               </span>
-              <span className="hidden sm:inline-block text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-                v2.4 Live
+              <span className="text-[9px] font-mono text-cyan-400 font-medium tracking-wider mt-0.5">
+                by Prathomix
               </span>
             </div>
+            <span className="hidden sm:inline-block text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+              v2.4 Live
+            </span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
@@ -327,7 +330,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
         <section className="min-h-[calc(100vh-5rem)] flex flex-col justify-center px-6 sm:px-8 py-20 sm:py-28 max-w-7xl mx-auto">
           <motion.div
             variants={staggerContainer}
-            initial="hidden"
+            initial="visible"
             animate="visible"
             className="text-center flex flex-col items-center max-w-4xl mx-auto mb-14 sm:mb-18"
           >
@@ -357,7 +360,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
               className="text-lg sm:text-xl md:text-2xl text-gray-400 max-w-3xl font-normal leading-relaxed mb-10"
             >
               Live code execution with Pyodide WASM, AI architecture generation,
-              and infinite multi-user collaboration on a single cyberpunk canvas.
+              and infinite multi-user collaboration on a single high-performance canvas.
             </motion.p>
 
             {/* CTA Group */}
@@ -384,9 +387,9 @@ print("[Pyodide WASM] Tensor layer converged.")`,
 
           {/* Visual: Sleek Dark-Mode Mockup (Canvas + Live Code Runner) */}
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 1, y: 0 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="w-full max-w-6xl mx-auto rounded-2xl border border-white/10 bg-[#06080e]/80 backdrop-blur-2xl p-3 sm:p-5 shadow-[0_20px_80px_rgba(0,0,0,0.8),0_0_40px_rgba(6,182,212,0.1)] overflow-hidden"
           >
             {/* Window Chrome Header */}
@@ -767,7 +770,7 @@ print("[Pyodide WASM] Tensor layer converged.")`,
                     Hardware Accelerated
                   </span>
                   <h3 className="text-2xl font-bold text-white mb-3 tracking-tight group-hover:text-teal-300 transition-colors">
-                    Infinite Cyber-Glass Canvas
+                    Infinite Architecture Canvas
                   </h3>
                   <p className="text-sm text-gray-400 leading-relaxed mb-6">
                     High-throughput vector rendering engine optimized for locked 60
@@ -1190,8 +1193,8 @@ print("[Pyodide WASM] Tensor layer converged.")`,
                 <span className="text-base font-semibold text-white tracking-tight">
                   MasmSpace
                 </span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-gray-400 font-mono">
-                  by PRATHOMIX SOLUTION
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-cyan-400 font-mono">
+                  Powered by PRATHOMIX SOLUTION
                 </span>
               </div>
               <p className="text-xs text-gray-400">

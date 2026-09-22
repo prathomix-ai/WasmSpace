@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { getSafeClientErrorMessage } from "@/lib/api-error";
 import {
   Lock,
   Mail,
@@ -82,7 +83,7 @@ function LoginForm() {
         throw error;
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to initialize Google authentication.");
+      setErrorMsg(getSafeClientErrorMessage(err, "Failed to initialize Google authentication."));
     } finally {
       setGoogleLoading(false);
     }
@@ -171,14 +172,14 @@ function LoginForm() {
           subscription_status: subStatus,
           is_pro: subStatus === "pro" || subStatus === "enterprise" || userRole === "admin",
         });
-        localStorage.setItem("masmspace_current_user", sessionData);
-        localStorage.setItem("wasmspace_current_user", sessionData);
+        localStorage.setItem("prathomix_current_user", sessionData);
+        localStorage.setItem("prathomix_current_user", sessionData);
 
         setSuccessMsg("Logged in successfully! Redirecting...");
         setTimeout(() => router.push(targetPath), 800);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Authentication failed. Please try again.");
+      setErrorMsg(getSafeClientErrorMessage(err, "Authentication failed. Please check your credentials."));
     } finally {
       setLoading(false);
     }
@@ -529,7 +530,7 @@ export default function LoginPage() {
           <Link href="/" className="inline-flex items-center gap-3 group focus:outline-none">
             <div className="w-11 h-11 rounded-2xl bg-white/[0.06] border border-white/15 p-2 flex items-center justify-center shadow-[0_0_25px_rgba(6,182,212,0.25)] group-hover:scale-105 group-hover:border-cyan-400/40 transition-all duration-300">
               <Image
-                src="/masmspace-logo.png"
+                src="/Prathomix-logo.png"
                 alt="MasmSpace"
                 width={38}
                 height={38}
@@ -538,11 +539,11 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <span className="font-bold text-xl tracking-tight text-white group-hover:text-cyan-300 transition-colors">
+              <span className="font-bold text-xl tracking-tight text-white group-hover:text-cyan-300 transition-colors leading-none block">
                 MasmSpace
               </span>
-              <span className="block text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                by PRATHOMIX
+              <span className="block text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-semibold mt-0.5">
+                Powered by PRATHOMIX
               </span>
             </div>
           </Link>
@@ -642,7 +643,7 @@ export default function LoginPage() {
           <Link href="/" className="inline-flex items-center gap-2.5 group">
             <div className="w-10 h-10 rounded-2xl bg-white/[0.06] border border-white/15 p-1.5 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.2)]">
               <Image
-                src="/masmspace-logo.png"
+                src="/Prathomix-logo.png"
                 alt="MasmSpace"
                 width={32}
                 height={32}
@@ -650,7 +651,10 @@ export default function LoginPage() {
                 priority
               />
             </div>
-            <span className="font-bold text-2xl tracking-tight text-white">MasmSpace</span>
+            <div className="flex flex-col text-left">
+              <span className="font-bold text-2xl tracking-tight text-white leading-none">MasmSpace</span>
+              <span className="text-[10px] font-mono text-cyan-400 tracking-wider">by Prathomix</span>
+            </div>
           </Link>
         </div>
 

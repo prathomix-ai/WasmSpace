@@ -144,7 +144,7 @@ export function GlobalLoader({
             className="w-14 h-14 relative flex items-center justify-center"
           >
             <Image
-              src="/masmspace-logo.png"
+              src="/Prathomix-logo.png"
               alt="MasmSpace Logo"
               width={56}
               height={56}
@@ -158,7 +158,7 @@ export function GlobalLoader({
         <div className="flex flex-col items-center text-center gap-1.5 mb-5">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-cyan-400">
-              PRATHOMIX OS
+              MASMSPACE OS • BY PRATHOMIX
             </span>
             <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 font-bold uppercase">
               V2.4 NEURAL

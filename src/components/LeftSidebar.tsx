@@ -36,6 +36,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import ProUpgradeModal from "@/components/ProUpgradeModal";
 import SettingsModal from "@/components/SettingsModal";
+import { checkIsProUser } from "@/lib/userSubscription";
 
 interface LeftSidebarProps {
   boardTitle: string;
@@ -181,8 +182,8 @@ export function LeftSidebar({
       // 1. Fast initial sync from cached local storage session
       try {
         const stored =
-          localStorage.getItem("masmspace_current_user") ||
-          localStorage.getItem("wasmspace_current_user");
+          localStorage.getItem("prathomix_current_user") ||
+          localStorage.getItem("prathomix_current_user");
         if (stored) {
           const parsed = JSON.parse(stored);
           const email = parsed?.email?.toLowerCase();
@@ -250,8 +251,12 @@ export function LeftSidebar({
     };
   }, []);
 
-  // Effective PRO status combines props with database subscription state
-  const effectiveIsPro = Boolean(isProUser || hasProSubscription);
+  // Effective PRO status combines props with database subscription state or localhost testing
+  const effectiveIsPro = Boolean(
+    isProUser ||
+      hasProSubscription ||
+      checkIsProUser({ isPro: isProUser })
+  );
 
   /**
    * Centralized PRO Action Guard:
@@ -291,20 +296,20 @@ export function LeftSidebar({
     }, 50);
   };
 
-  // Glowing gradient PRO badge
+  // Clean, modern PRO badge
   const ProBadge = () => (
-    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_10px_rgba(6,182,212,0.5)] shrink-0 font-mono leading-none select-none border-none">
+    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60 shrink-0 font-mono leading-none select-none">
       PRO
     </span>
   );
 
-  // Navigation item class generator with left border glow on active state
+  // Navigation item class generator with clean, modern whiteboard active state
   const getNavItemClass = (tabId: string) => {
     const isActive = activeTab === tabId;
-    return `flex items-center w-full text-sm font-medium rounded-lg transition-all duration-300 cursor-pointer border ${
+    return `flex items-center w-full text-sm font-medium rounded-xl transition-all duration-200 cursor-pointer ${
       isActive
-        ? "border-l-2 border-cyan-400 bg-gradient-to-r from-cyan-500/10 to-transparent text-white border-y-transparent border-r-transparent shadow-[inset_0_0_12px_rgba(6,182,212,0.1)]"
-        : "text-slate-300 hover:text-white hover:border-l-2 hover:border-cyan-400/60 hover:bg-gradient-to-r hover:from-cyan-500/10 hover:to-transparent border-transparent"
+        ? "bg-slate-100 dark:bg-zinc-800/80 text-blue-600 dark:text-blue-400 font-semibold shadow-sm"
+        : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100/70 dark:hover:bg-zinc-800/50"
     } ${isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"}`;
   };
 
@@ -314,7 +319,7 @@ export function LeftSidebar({
       <aside
         id="app-left-sidebar"
         data-tour="sidebar"
-        className={`hidden md:flex flex-col flex-shrink-0 fixed top-0 left-0 h-screen z-[99999] bg-[#09090b] pointer-events-auto overflow-y-auto custom-scrollbar border-r border-white/10 select-none transition-all duration-300 ease-in-out ${
+        className={`hidden md:flex flex-col flex-shrink-0 fixed top-0 left-0 h-screen z-[99999] bg-white dark:bg-[#121316] pointer-events-auto overflow-y-auto custom-scrollbar border-r border-slate-200 dark:border-zinc-800/80 select-none transition-all duration-300 ease-in-out ${
           !isSidebarVisible
             ? "-translate-x-full opacity-0 pointer-events-none !w-0 overflow-hidden"
             : isCollapsed
@@ -338,17 +343,22 @@ export function LeftSidebar({
               >
                 <div className="w-8 h-8 flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 duration-300">
                   <Image
-                    src="/masmspace-logo.png"
+                    src="/Prathomix-logo.png"
                     alt="MasmSpace Logo"
                     width={32}
                     height={32}
-                    className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.5)]"
+                    className="w-full h-full object-contain"
                     priority
                   />
                 </div>
-                <span className="font-bold text-white tracking-tight font-sans text-base">
-                  MasmSpace
-                </span>
+                <div className="flex flex-col">
+                  <span className="font-bold text-slate-900 dark:text-white tracking-tight font-sans text-base leading-none">
+                    MasmSpace
+                  </span>
+                  <span className="text-[8px] font-mono text-cyan-600 dark:text-cyan-400 font-semibold tracking-wider mt-0.5">
+                    by Prathomix
+                  </span>
+                </div>
               </Link>
 
               <div className="flex items-center gap-1">
@@ -356,7 +366,7 @@ export function LeftSidebar({
                   <button
                     type="button"
                     onClick={onToggleSidebarVisibility}
-                    className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-cyan-400 transition-colors cursor-pointer border border-transparent hover:border-white/5"
+                    className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                     aria-label="Full Screen Focus Mode"
                     onMouseEnter={(e) =>
                       showTooltip("Full Screen Focus (Ctrl+\\)", e.currentTarget, {
@@ -371,7 +381,7 @@ export function LeftSidebar({
                 <button
                   type="button"
                   onClick={onToggleCollapse}
-                  className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer border border-transparent hover:border-white/5"
+                  className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                   aria-label="Collapse Sidebar"
                   onMouseEnter={(e) => showTooltip("Collapse Sidebar", e.currentTarget)}
                   onMouseLeave={hideTooltip}
@@ -384,17 +394,17 @@ export function LeftSidebar({
             <div className="flex flex-col items-center gap-2">
               <Link
                 href="/"
-                className="p-1 rounded-xl hover:bg-white/5 transition-colors group"
+                className="p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors group"
                 onMouseEnter={(e) => showTooltip("MasmSpace Whiteboard OS", e.currentTarget)}
                 onMouseLeave={hideTooltip}
               >
                 <div className="w-8 h-8 flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 duration-300">
                   <Image
-                    src="/masmspace-logo.png"
+                    src="/Prathomix-logo.png"
                     alt="MasmSpace Logo"
                     width={32}
                     height={32}
-                    className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.5)]"
+                    className="w-full h-full object-contain"
                     priority
                   />
                 </div>
@@ -403,7 +413,7 @@ export function LeftSidebar({
                 <button
                   type="button"
                   onClick={onToggleSidebarVisibility}
-                  className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-cyan-400 transition-colors cursor-pointer border border-transparent hover:border-white/5"
+                  className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                   aria-label="Full Screen Focus Mode"
                   onMouseEnter={(e) =>
                     showTooltip("Full Screen Focus (Ctrl+\\)", e.currentTarget, {
@@ -418,7 +428,7 @@ export function LeftSidebar({
               <button
                 type="button"
                 onClick={onToggleCollapse}
-                className="p-1.5 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer border border-transparent hover:border-white/5"
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                 aria-label="Expand Sidebar"
                 onMouseEnter={(e) => showTooltip("Expand Sidebar", e.currentTarget)}
                 onMouseLeave={hideTooltip}
@@ -431,15 +441,15 @@ export function LeftSidebar({
 
         {/* ── 2. Session Box: Board Title Input (Visible when expanded) ── */}
         {!isCollapsed && (
-          <div className="bg-[#09090b]/40 border border-white/5 rounded-xl px-3 py-2.5 text-sm shrink-0 focus-within:border-cyan-400/50 focus-within:shadow-[0_0_12px_rgba(6,182,212,0.25)] transition-all">
+          <div className="bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm shrink-0 focus-within:border-blue-500 dark:focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
             <input
               id="sidebar-board-title"
               type="text"
               value={boardTitle}
               onChange={(e) => onBoardTitleChange(e.target.value)}
-              placeholder="Untitled Session"
+              placeholder="Untitled Whiteboard"
               maxLength={50}
-              className="w-full bg-transparent border-none outline-none text-sm font-medium text-zinc-200 placeholder-zinc-500 truncate"
+              className="w-full bg-transparent border-none outline-none text-sm font-medium text-slate-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 truncate"
               spellCheck={false}
               onMouseEnter={(e) => showTooltip("Rename Session", e.currentTarget)}
               onMouseLeave={hideTooltip}
@@ -452,16 +462,16 @@ export function LeftSidebar({
           /* ── Executive Focus Mode: Clean, Distraction-Free Suite ── */
           <div className="bg-[#09090b]/60 backdrop-blur-md border border-white/10 rounded-2xl py-4 px-2 flex flex-col gap-2">
             <div
-              className={`rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 ${
+              className={`rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 ${
                 isCollapsed ? "p-2 flex justify-center" : "px-3 py-2.5"
               }`}
             >
               <div className="flex items-center gap-3">
-                <Briefcase className="w-5 h-5 text-amber-400 shrink-0" />
+                <Briefcase className="w-5 h-5 text-amber-500 dark:text-amber-400 shrink-0" />
                 {!isCollapsed && (
                   <div>
                     <div className="text-xs font-bold tracking-tight">Executive Focus</div>
-                    <div className="text-[10px] text-amber-300/80">Distraction-free</div>
+                    <div className="text-[10px] text-amber-600/80 dark:text-amber-300/80">Distraction-free</div>
                   </div>
                 )}
               </div>
@@ -472,7 +482,7 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-exec-pen"
               onClick={onSelectPenTool}
-              className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+              className={`flex items-center w-full text-sm font-medium text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-slate-200 dark:hover:border-white/5 cursor-pointer group ${
                 isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
               }`}
               onMouseEnter={(e) =>
@@ -483,7 +493,7 @@ export function LeftSidebar({
               onMouseLeave={hideTooltip}
             >
               <div className="flex items-center gap-3">
-                <PenTool className="w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] transition-all shrink-0" />
+                <PenTool className="w-5 h-5 text-blue-500 dark:text-blue-400 opacity-80 group-hover:opacity-100 transition-all shrink-0" />
                 {!isCollapsed && <span>Draw Pen</span>}
               </div>
             </button>
@@ -493,7 +503,7 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-exec-sticky"
               onClick={onAddStickyNote}
-              className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+              className={`flex items-center w-full text-sm font-medium text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-slate-200 dark:hover:border-white/5 cursor-pointer group ${
                 isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
               }`}
               onMouseEnter={(e) =>
@@ -504,7 +514,7 @@ export function LeftSidebar({
               onMouseLeave={hideTooltip}
             >
               <div className="flex items-center gap-3">
-                <StickyNote className="w-5 h-5 text-yellow-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] transition-all shrink-0" />
+                <StickyNote className="w-5 h-5 text-amber-500 dark:text-yellow-400 opacity-80 group-hover:opacity-100 transition-all shrink-0" />
                 {!isCollapsed && <span>Sticky Note</span>}
               </div>
             </button>
@@ -514,7 +524,7 @@ export function LeftSidebar({
               type="button"
               id="sidebar-btn-exec-present"
               onClick={() => handleGatedAction("Laser Presentation Pointer", onPresentClick)}
-              className={`flex items-center w-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+              className={`flex items-center w-full text-sm font-medium text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-slate-200 dark:hover:border-white/5 cursor-pointer group ${
                 isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
               }`}
               onMouseEnter={(e) =>
@@ -526,7 +536,7 @@ export function LeftSidebar({
               onMouseLeave={hideTooltip}
             >
               <div className="flex items-center gap-3">
-                <Tv className="w-5 h-5 text-rose-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(244,63,94,0.5)] transition-all shrink-0" />
+                <Tv className="w-5 h-5 text-rose-500 dark:text-rose-400 opacity-80 group-hover:opacity-100 transition-all shrink-0" />
                 {!isCollapsed && <span>Laser Pointer</span>}
               </div>
               {!isCollapsed && !effectiveIsPro && <ProBadge />}
@@ -538,7 +548,7 @@ export function LeftSidebar({
                 type="button"
                 id="sidebar-btn-exec-hide"
                 onClick={onToggleSidebarVisibility}
-                className={`flex items-center w-full text-sm font-medium text-amber-300 hover:text-white hover:bg-amber-500/20 rounded-lg transition-all border border-transparent hover:border-amber-500/30 cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium text-amber-600 dark:text-amber-300 hover:text-amber-700 dark:hover:text-white hover:bg-amber-500/10 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-transparent hover:border-amber-500/30 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 }`}
                 onMouseEnter={(e) =>
@@ -549,27 +559,27 @@ export function LeftSidebar({
                 onMouseLeave={hideTooltip}
               >
                 <div className="flex items-center gap-3">
-                  <Maximize2 className="w-5 h-5 text-amber-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.5)] transition-all shrink-0" />
+                  <Maximize2 className="w-5 h-5 text-amber-500 dark:text-amber-400 opacity-80 group-hover:opacity-100 transition-all shrink-0" />
                   {!isCollapsed && <span>100vw Canvas</span>}
                 </div>
               </button>
             )}
 
-            <div className="w-full h-px bg-white/5 my-1" />
+            <div className="w-full h-px bg-slate-200 dark:bg-white/5 my-1" />
 
             {/* Exit Executive Focus Mode */}
             <button
               type="button"
               id="sidebar-btn-exit-exec"
               onClick={onToggleExecutiveMode}
-              className={`flex items-center w-full text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-white/5 cursor-pointer group ${
+              className={`flex items-center w-full text-sm font-medium text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-all border border-transparent hover:border-slate-200 dark:hover:border-white/5 cursor-pointer group ${
                 isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
               }`}
               onMouseEnter={(e) => showTooltip("Exit Focus Mode", e.currentTarget)}
               onMouseLeave={hideTooltip}
             >
               <div className="flex items-center gap-3">
-                <ArrowLeft className="w-5 h-5 text-gray-400 opacity-80 group-hover:opacity-100 group-hover:-translate-x-0.5 transition-all shrink-0" />
+                <ArrowLeft className="w-5 h-5 text-slate-500 dark:text-gray-400 opacity-80 group-hover:opacity-100 group-hover:-translate-x-0.5 transition-all shrink-0" />
                 {!isCollapsed && <span>Exit Focus</span>}
               </div>
             </button>
@@ -599,7 +609,7 @@ export function LeftSidebar({
                 onMouseLeave={hideTooltip}
               >
                 <div className="flex items-center gap-3">
-                  <Tv className="w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)] transition-all shrink-0" />
+                  <Tv className="w-5 h-5 text-slate-500 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors shrink-0" />
                   {!isCollapsed && <span>Present</span>}
                 </div>
                 {!isCollapsed && !effectiveIsPro && <ProBadge />}
@@ -625,7 +635,7 @@ export function LeftSidebar({
                 onMouseLeave={hideTooltip}
               >
                 <div className="flex items-center gap-3">
-                  <Search className="w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)] transition-all shrink-0" />
+                  <Search className="w-5 h-5 text-slate-500 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors shrink-0" />
                   {!isCollapsed && <span>Search</span>}
                 </div>
                 {!isCollapsed && !effectiveIsPro && <ProBadge />}
@@ -652,7 +662,7 @@ export function LeftSidebar({
                 onMouseLeave={hideTooltip}
               >
                 <div className="flex items-center gap-3">
-                  <Brain className="w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)] transition-all shrink-0" />
+                  <Brain className="w-5 h-5 text-slate-500 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors shrink-0" />
                   {!isCollapsed && (
                     <span>{isSummarising ? "Analysing…" : "Board Brain"}</span>
                   )}
@@ -681,8 +691,8 @@ export function LeftSidebar({
                   <div className="flex items-center gap-3">
                     <Database
                       className={`w-5 h-5 ${
-                        isIndexing ? "text-amber-400 animate-spin" : "text-emerald-400"
-                      } opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(52,211,153,0.6)] transition-all shrink-0`}
+                        isIndexing ? "text-amber-500 animate-spin" : "text-emerald-500"
+                      } transition-colors shrink-0`}
                     />
                     {!isCollapsed && (
                       <span>{isIndexing ? "Indexing…" : "Save & Index"}</span>
@@ -708,7 +718,7 @@ export function LeftSidebar({
                 onMouseLeave={hideTooltip}
               >
                 <div className="flex items-center gap-3">
-                  <FileUp className="w-5 h-5 text-purple-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(168,85,247,0.6)] transition-all shrink-0" />
+                  <FileUp className="w-5 h-5 text-purple-500 transition-colors shrink-0" />
                   {!isCollapsed && <span>Import Document</span>}
                 </div>
               </button>
@@ -743,7 +753,7 @@ export function LeftSidebar({
                 onMouseLeave={hideTooltip}
               >
                 <div className="flex items-center gap-3">
-                  <Share2 className="w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)] transition-all shrink-0" />
+                  <Share2 className="w-5 h-5 text-slate-500 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors shrink-0" />
                   {!isCollapsed && <span>Share</span>}
                 </div>
                 {!isCollapsed && !effectiveIsPro && <ProBadge />}
@@ -757,12 +767,12 @@ export function LeftSidebar({
                   showToast("Toggling Code Studio Multi-Language Editor...", "info");
                   onCodeStudioClick?.();
                 }}
-                className={`flex items-center w-full text-sm font-medium rounded-lg transition-all duration-300 cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium rounded-xl transition-all duration-200 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 } ${
                   isCodeOpen
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
-                    : "text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 border border-transparent hover:border-white/10"
+                    ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50"
+                    : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100/70 dark:hover:bg-zinc-800/50"
                 }`}
                 onMouseEnter={(e) =>
                   showTooltip("Code Studio", e.currentTarget, {
@@ -772,11 +782,11 @@ export function LeftSidebar({
                 onMouseLeave={hideTooltip}
               >
                 <div className="flex items-center gap-3">
-                  <Code2 className="w-5 h-5 text-emerald-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(52,211,153,0.6)] transition-all shrink-0" />
+                  <Code2 className="w-5 h-5 text-emerald-500 shrink-0" />
                   {!isCollapsed && <span>Code Studio</span>}
                 </div>
                 {!isCollapsed && (
-                  <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                  <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/60">
                     Multi-Lang
                   </span>
                 )}
@@ -790,12 +800,12 @@ export function LeftSidebar({
                   showToast(isVoiceListening ? "Voice AI capture stopped" : "Voice AI Listening...", "info");
                   onVoiceClick?.();
                 }}
-                className={`flex items-center w-full text-sm font-medium rounded-lg transition-all duration-300 cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium rounded-xl transition-all duration-200 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 } ${
                   isVoiceListening
-                    ? "bg-purple-900/50 text-purple-200 border border-purple-400/80 shadow-[0_0_16px_rgba(168,85,247,0.4)]"
-                    : "text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 border border-transparent hover:border-white/10"
+                    ? "bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                    : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100/70 dark:hover:bg-zinc-800/50"
                 }`}
                 onMouseEnter={(e) =>
                   showTooltip(
@@ -812,10 +822,10 @@ export function LeftSidebar({
               >
                 <div className="flex items-center gap-3">
                   <Bot
-                    className={`w-5 h-5 shrink-0 transition-opacity ${
+                    className={`w-5 h-5 shrink-0 transition-colors ${
                       isVoiceListening
-                        ? "text-purple-400 opacity-100 animate-pulse drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]"
-                        : "text-cyan-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]"
+                        ? "text-purple-500 animate-pulse"
+                        : "text-slate-500 dark:text-zinc-400 group-hover:text-purple-500"
                     }`}
                   />
                   {!isCollapsed && (
@@ -823,13 +833,13 @@ export function LeftSidebar({
                   )}
                 </div>
                 {isVoiceListening && !isCollapsed && (
-                  <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping shrink-0 shadow-[0_0_6px_rgba(168,85,247,0.9)]" />
+                  <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping shrink-0" />
                 )}
               </button>
             </div>
 
             {/* ── Subtle Internal Divider ── */}
-            <div className="w-full h-px bg-white/10 my-0.5 shrink-0" />
+            <div className="w-full h-px bg-slate-200 dark:bg-zinc-800 my-1 shrink-0" />
 
             {/* ── Secondary Tools (Project Files to Settings) ── */}
             <div className="flex flex-col gap-1.5">
@@ -841,12 +851,12 @@ export function LeftSidebar({
                   showToast("Toggling Project Files Explorer...", "info");
                   onToggleExplorer?.();
                 }}
-                className={`flex items-center w-full text-sm font-medium rounded-lg transition-all duration-300 cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium rounded-xl transition-all duration-200 cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 } ${
                   isExplorerOpen
-                    ? "bg-cyan-500/15 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]"
-                    : "text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 border border-transparent hover:border-white/10"
+                    ? "bg-slate-100 dark:bg-zinc-800 text-blue-600 dark:text-blue-400 font-semibold"
+                    : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100/70 dark:hover:bg-zinc-800/50"
                 }`}
                 onMouseEnter={(e) =>
                   showTooltip("Project Files", e.currentTarget, {
@@ -856,7 +866,7 @@ export function LeftSidebar({
                 onMouseLeave={hideTooltip}
               >
                 <div className="flex items-center gap-3">
-                  <FolderClosed className="w-5 h-5 text-amber-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.6)] transition-all shrink-0" />
+                  <FolderClosed className="w-5 h-5 text-amber-500 shrink-0" />
                   {!isCollapsed && <span>Project Files</span>}
                 </div>
               </button>
@@ -869,7 +879,7 @@ export function LeftSidebar({
                   showToast("Capturing high-resolution canvas snapshot...", "success");
                   onTakeScreenshot?.();
                 }}
-                className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100/70 dark:hover:bg-zinc-800/50 rounded-xl transition-all cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 }`}
                 onMouseEnter={(e) =>
@@ -882,7 +892,7 @@ export function LeftSidebar({
                 onMouseLeave={hideTooltip}
               >
                 <div className="flex items-center gap-3">
-                  <Camera className="w-5 h-5 text-indigo-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(99,102,241,0.6)] transition-all shrink-0" />
+                  <Camera className="w-5 h-5 text-indigo-500 shrink-0" />
                   {!isCollapsed && <span>Screenshot</span>}
                 </div>
               </button>
@@ -891,7 +901,7 @@ export function LeftSidebar({
               {isAdmin && (
                 <Link
                   href="/admin"
-                  className={`flex items-center w-full text-sm font-semibold text-cyan-300 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 shadow-[0_0_14px_rgba(6,182,212,0.35)] hover:shadow-[0_0_22px_rgba(6,182,212,0.6)] rounded-lg transition-all duration-300 cursor-pointer group ${
+                  className={`flex items-center w-full text-sm font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800/60 rounded-xl transition-all cursor-pointer group ${
                     isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                   }`}
                   onMouseEnter={(e) =>
@@ -902,7 +912,7 @@ export function LeftSidebar({
                   onMouseLeave={hideTooltip}
                 >
                   <div className="flex items-center gap-3">
-                    <ShieldCheck className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)] shrink-0" />
+                    <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0" />
                     {!isCollapsed && <span className="font-bold tracking-tight">Admin Panel</span>}
                   </div>
                 </Link>
@@ -918,7 +928,7 @@ export function LeftSidebar({
                     onSaveToCloud();
                   }}
                   disabled={isSavingCloud}
-                  className={`flex items-center w-full text-sm font-medium text-cyan-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
+                  className={`flex items-center w-full text-sm font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100/70 dark:hover:bg-zinc-800/50 rounded-xl transition-all cursor-pointer group ${
                     isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                   } ${isSavingCloud ? "opacity-75 cursor-wait" : ""}`}
                   onMouseEnter={(e) =>
@@ -930,7 +940,7 @@ export function LeftSidebar({
                 >
                   <div className="flex items-center gap-3">
                     <CloudUpload
-                      className={`w-5 h-5 text-cyan-400 opacity-80 group-hover:opacity-100 transition-all shrink-0 ${
+                      className={`w-5 h-5 text-blue-500 shrink-0 ${
                         isSavingCloud ? "animate-bounce" : ""
                       }`}
                     />
@@ -949,7 +959,7 @@ export function LeftSidebar({
                   setIsSettingsOpen(true);
                   onOpenSettings?.();
                 }}
-                className={`flex items-center w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-white/10 cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100/70 dark:hover:bg-zinc-800/50 rounded-xl transition-all cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 }`}
                 onMouseEnter={(e) =>
@@ -960,7 +970,7 @@ export function LeftSidebar({
                 onMouseLeave={hideTooltip}
               >
                 <div className="flex items-center gap-3">
-                  <Settings className="w-5 h-5 text-slate-400 opacity-80 group-hover:opacity-100 group-hover:rotate-45 transition-all shrink-0" />
+                  <Settings className="w-5 h-5 text-slate-500 dark:text-zinc-400 group-hover:rotate-45 transition-transform shrink-0" />
                   {!isCollapsed && <span>Settings</span>}
                 </div>
               </button>
@@ -977,7 +987,7 @@ export function LeftSidebar({
                     onToggleExecutiveMode();
                   }
                 }}
-                className={`flex items-center w-full text-sm font-medium text-amber-300 hover:text-white hover:bg-white/10 hover:translate-x-1 rounded-lg transition-all duration-300 border border-transparent hover:border-amber-500/30 cursor-pointer group ${
+                className={`flex items-center w-full text-sm font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100/70 dark:hover:bg-zinc-800/50 rounded-xl transition-all cursor-pointer group ${
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2.5"
                 }`}
                 onMouseEnter={(e) =>
@@ -988,11 +998,11 @@ export function LeftSidebar({
                 onMouseLeave={hideTooltip}
               >
                 <div className="flex items-center gap-3">
-                  <Briefcase className="w-5 h-5 text-amber-400 opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.5)] transition-all shrink-0" />
+                  <Briefcase className="w-5 h-5 text-amber-500 shrink-0" />
                   {!isCollapsed && <span>Executive Focus</span>}
                 </div>
                 {!isCollapsed && (
-                  <span className="text-[9px] font-mono text-amber-300 bg-amber-400/20 px-1.5 py-0.5 rounded border border-amber-400/30">
+                  <span className="text-[9px] font-mono text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/50">
                     Focus
                   </span>
                 )}
@@ -1005,7 +1015,7 @@ export function LeftSidebar({
         <div className="mt-auto pt-2 shrink-0">
           {effectiveIsPro ? (
             <div
-              className={`flex items-center w-full rounded-xl bg-cyan-500/5 border border-white/5 text-zinc-400 text-xs font-mono select-none transition-all ${
+              className={`flex items-center w-full rounded-xl bg-slate-100 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 text-xs font-mono select-none transition-all ${
                 isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-2.5"
               }`}
               onMouseEnter={(e) =>
@@ -1015,12 +1025,12 @@ export function LeftSidebar({
               }
               onMouseLeave={hideTooltip}
             >
-              <div className="flex items-center gap-2.5">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)] shrink-0" />
-                {!isCollapsed && <span className="font-semibold text-zinc-300">PRO Active</span>}
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                {!isCollapsed && <span className="font-semibold text-slate-800 dark:text-zinc-200">PRO Active</span>}
               </div>
               {!isCollapsed && (
-                <span className="text-[10px] text-cyan-400/80 font-mono">Plan Active</span>
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono">Active</span>
               )}
             </div>
           ) : (
@@ -1031,8 +1041,8 @@ export function LeftSidebar({
                 setIsProModalOpen(true);
                 onOpenProModal?.();
               }}
-              className={`relative overflow-hidden flex items-center w-full rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 animate-gradient border border-cyan-400/60 text-white text-sm font-bold shadow-[0_0_25px_rgba(99,102,241,0.4)] hover:shadow-[0_0_40px_rgba(6,182,212,0.7)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer group ${
-                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-3"
+              className={`relative overflow-hidden flex items-center w-full rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white text-xs font-semibold shadow-sm hover:shadow transition-all cursor-pointer group ${
+                isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-2.5"
               }`}
               onMouseEnter={(e) =>
                 showTooltip("Upgrade to MasmSpace PRO", e.currentTarget, {
@@ -1041,13 +1051,13 @@ export function LeftSidebar({
               }
               onMouseLeave={hideTooltip}
             >
-              <div className="flex items-center gap-3.5">
-                <Crown className="w-5 h-5 fill-cyan-400 text-cyan-400 opacity-90 group-hover:opacity-100 transition-opacity shrink-0 drop-shadow-[0_0_8px_rgba(6,182,212,0.7)]" />
-                {!isCollapsed && <span>GET PRO</span>}
+              <div className="flex items-center gap-2.5">
+                <Crown className="w-4 h-4 text-amber-400 shrink-0" />
+                {!isCollapsed && <span>Upgrade to PRO</span>}
               </div>
               {!isCollapsed && (
-                <span className="text-xs text-cyan-300 font-bold group-hover:translate-x-0.5 transition-transform">
-                  ⚡
+                <span className="text-xs text-amber-400 font-bold group-hover:translate-x-0.5 transition-transform">
+                  →
                 </span>
               )}
             </button>
@@ -1055,30 +1065,30 @@ export function LeftSidebar({
         </div>
       </aside>
 
-      {/* ── 2. Floating Cyberpunk Toast Notifications ── */}
+      {/* ── 2. Floating Toast Notifications ── */}
       <AnimatePresence>
         {proToast && (
           <motion.div
             initial={{ opacity: 0, y: 15, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 15, scale: 0.95 }}
-            className="fixed bottom-20 left-4 z-[99999] max-w-sm p-3.5 rounded-2xl bg-[#09090b]/95 backdrop-blur-2xl border border-cyan-400/60 shadow-[0_10px_35px_rgba(0,0,0,0.8),0_0_20px_rgba(6,182,212,0.35)] text-cyan-200 text-xs flex items-center gap-3 select-none pointer-events-auto"
+            className="fixed bottom-20 left-4 z-[99999] max-w-sm p-3.5 rounded-2xl bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-xl border border-slate-200 dark:border-zinc-800 shadow-xl text-slate-800 dark:text-zinc-100 text-xs flex items-center gap-3 select-none pointer-events-auto"
           >
-            <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center shrink-0">
-              <Crown className="w-4 h-4 text-cyan-400 animate-pulse drop-shadow-[0_0_6px_rgba(6,182,212,0.8)]" />
+            <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center justify-center shrink-0">
+              <Crown className="w-4 h-4 text-amber-500" />
             </div>
             <div className="flex-1">
-              <div className="font-bold text-white text-[11px] font-mono tracking-tight">
-                MasmSpace PRO Exclusive
+              <div className="font-bold text-slate-900 dark:text-white text-[11px] font-sans">
+                MasmSpace PRO
               </div>
-              <div className="text-[11px] text-cyan-300/90 font-sans leading-snug">
+              <div className="text-[11px] text-slate-600 dark:text-zinc-400 font-sans leading-snug">
                 {proToast}
               </div>
             </div>
             <button
               type="button"
               onClick={() => setProToast(null)}
-              className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
               aria-label="Dismiss alert"
             >
               <X className="w-3.5 h-3.5" />
@@ -1092,29 +1102,23 @@ export function LeftSidebar({
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className={`fixed bottom-6 left-6 z-[999999] max-w-sm px-4 py-3 rounded-2xl backdrop-blur-2xl border shadow-[0_12px_40px_rgba(0,0,0,0.9),0_0_25px_rgba(6,182,212,0.3)] text-xs flex items-center gap-3 select-none pointer-events-auto transition-all ${
-              toast.type === "pro"
-                ? "bg-[#09090b]/95 border-cyan-400/60 text-cyan-200"
-                : toast.type === "success"
-                ? "bg-[#09090b]/95 border-emerald-400/60 text-emerald-200"
-                : "bg-[#09090b]/95 border-cyan-500/40 text-zinc-200"
-            }`}
+            className="fixed bottom-6 left-6 z-[999999] max-w-sm px-4 py-3 rounded-2xl bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-xl border border-slate-200 dark:border-zinc-800 shadow-xl text-slate-800 dark:text-zinc-100 text-xs flex items-center gap-3 select-none pointer-events-auto transition-all"
           >
             <div
               className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
                 toast.type === "pro"
-                  ? "bg-cyan-500/20 text-cyan-400"
+                  ? "bg-amber-50 dark:bg-amber-950/40 text-amber-500"
                   : toast.type === "success"
-                  ? "bg-emerald-500/20 text-emerald-400"
-                  : "bg-cyan-500/20 text-cyan-400"
+                  ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500"
+                  : "bg-blue-50 dark:bg-blue-950/40 text-blue-500"
               }`}
             >
               {toast.type === "pro" ? (
-                <Crown className="w-4 h-4 text-cyan-400 animate-pulse" />
+                <Crown className="w-4 h-4 text-amber-500" />
               ) : toast.type === "success" ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
               ) : (
-                <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
+                <Sparkles className="w-4 h-4 text-blue-500" />
               )}
             </div>
             <div className="flex-1 font-medium text-xs leading-snug">
@@ -1123,7 +1127,7 @@ export function LeftSidebar({
             <button
               type="button"
               onClick={() => setToast(null)}
-              className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
               aria-label="Dismiss toast"
             >
               <X className="w-3.5 h-3.5" />
@@ -1149,7 +1153,7 @@ export function LeftSidebar({
               left: tooltip.rect.right + 12,
             }}
           >
-            <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[#09090b]/95 backdrop-blur-2xl border border-cyan-500/30 shadow-[0_8px_32px_rgba(0,0,0,0.85),0_0_16px_rgba(6,182,212,0.25)] text-white text-xs whitespace-nowrap">
+            <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-900/95 dark:bg-zinc-800/95 backdrop-blur-md border border-slate-700/50 shadow-xl text-white text-xs whitespace-nowrap">
               <div className="flex flex-col">
                 <span className="font-semibold text-zinc-100">{tooltip.text}</span>
                 {tooltip.subtext && (
@@ -1159,7 +1163,7 @@ export function LeftSidebar({
                 )}
               </div>
               {tooltip.isPro && !effectiveIsPro && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-400/40">
                   PRO
                 </span>
               )}
@@ -1173,7 +1177,7 @@ export function LeftSidebar({
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-1.5" title="MasmSpace">
             <Image
-              src="/masmspace-logo.png"
+              src="/Prathomix-logo.png"
               alt="MasmSpace Logo"
               width={24}
               height={24}
@@ -1314,7 +1318,7 @@ export function LeftSidebar({
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <Image
-                  src="/masmspace-logo.png"
+                  src="/Prathomix-logo.png"
                   alt="MasmSpace"
                   width={28}
                   height={28}
@@ -1484,14 +1488,14 @@ export function LeftSidebar({
             </div>
 
             {/* Upgrade PRO or Subtle PRO Active at bottom of mobile menu */}
-            <div className="mt-auto pt-3 border-t border-white/5">
+            <div className="mt-auto pt-3 border-t border-zinc-800">
               {effectiveIsPro ? (
-                <div className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-cyan-500/5 border border-white/5 text-zinc-400 text-xs font-mono">
+                <div className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-zinc-300 text-xs font-mono">
                   <div className="flex items-center gap-2.5">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
-                    <span className="font-semibold text-zinc-300">PRO Active</span>
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span className="font-semibold text-zinc-200">PRO Active</span>
                   </div>
-                  <span className="text-[10px] text-cyan-400/80">Plan Active</span>
+                  <span className="text-[10px] text-blue-400 font-medium">Plan Active</span>
                 </div>
               ) : (
                 <button
@@ -1501,10 +1505,10 @@ export function LeftSidebar({
                     onOpenProModal?.();
                     setMobileMenuOpen(false);
                   }}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 animate-gradient border border-cyan-400/40 text-white font-bold text-xs shadow-[0_0_20px_rgba(99,102,241,0.4)] cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs shadow-sm cursor-pointer transition-colors"
                 >
-                  <Crown className="w-4 h-4 fill-white text-white" />
-                  <span>GET PRO ACCESS</span>
+                  <Crown className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  <span>Upgrade to PRO</span>
                 </button>
               )}
             </div>
@@ -1521,6 +1525,9 @@ export function LeftSidebar({
         <SettingsModal
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
+          onOpenUpgradeModal={() => setIsProModalOpen(true)}
+          tier={effectiveIsPro ? "pro" : "free"}
+          actionLimit={effectiveIsPro ? 300 : 15}
         />
       )}
     </>

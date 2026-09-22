@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { handleApiError } from "@/lib/api-error";
+import { verifySuperAdmin } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -9,17 +11,17 @@ const AI_BACKEND_URL =
   process.env.AI_BACKEND_URL ||
   "http://localhost:8000";
 
-const ALLOWED_ADMIN_EMAILS = [
-  "admin@prathomix.tech",
-  ...(process.env.ADMIN_EMAILS
-    ? process.env.ADMIN_EMAILS.split(",").map((e) => e.trim().toLowerCase())
-    : []),
-];
-
 export async function POST(req: NextRequest) {
   try {
+    // ── 1. Super Admin Verification ──────────────────────────────────────
+    const authCheck = await verifySuperAdmin(req);
+    if (!authCheck.authorized) {
+      return authCheck.errorResponse!;
+    }
+
+    const admin_email = authCheck.user?.email || "admin@prathomix.tech";
     const body = await req.json().catch(() => ({}));
-    const { email, plan = "pro", admin_email } = body;
+    const { email, plan = "pro" } = body;
 
     if (!email || !email.includes("@")) {
       return NextResponse.json(
@@ -29,36 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const cleanAdminEmail = admin_email ? admin_email.trim().toLowerCase() : "";
-
     const supabase = createAdminClient();
-
-    // ── 1. Admin Verification ──────────────────────────────────────────────
-    if (cleanAdminEmail) {
-      let isAuthorized =
-        ALLOWED_ADMIN_EMAILS.includes(cleanAdminEmail) ||
-        cleanAdminEmail.endsWith("@prathomix.tech");
-
-      if (!isAuthorized) {
-        // Check if admin_email has role = 'admin' in profiles table
-        const { data: adminProf } = await supabase
-          .from("profiles")
-          .select("role")
-          .ilike("email", cleanAdminEmail)
-          .maybeSingle();
-
-        if (adminProf?.role === "admin") {
-          isAuthorized = true;
-        }
-      }
-
-      if (!isAuthorized) {
-        return NextResponse.json(
-          { success: false, error: "Unauthorized: Admin privileges required." },
-          { status: 403 }
-        );
-      }
-    }
 
     const isFree = plan.toLowerCase() === "free";
     const status = isFree
@@ -234,13 +207,10 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("Admin grant subscription error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error?.message || "Failed to grant subscription",
-      },
-      { status: 500 }
+    return handleApiError(
+      error,
+      "[POST /api/admin/grant-subscription]",
+      "Failed to grant subscription. Please check parameters and try again."
     );
   }
 }

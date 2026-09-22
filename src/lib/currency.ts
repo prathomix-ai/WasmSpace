@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 
@@ -36,7 +36,7 @@ export const PRICING_CONFIG: Record<CurrencyCode, PlanPricing> = {
   },
 };
 
-const STORAGE_KEY = "masmspace_preferred_currency";
+const STORAGE_KEY = "Prathomix_preferred_currency";
 
 /**
  * Checks client-side indicators (timezone and language) to detect if the user is in India.

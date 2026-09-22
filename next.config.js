@@ -33,7 +33,7 @@ const nextConfig = {
     ],
   },
 
-  // ── Security Headers (without restrictive COEP that breaks Pyodide CDN) ──
+  // ── Enterprise Security Headers (Production Hardened) ──────────────────
   async headers() {
     return [
       {
@@ -43,6 +43,9 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=(), interest-cohort=()' },
+          { key: 'X-DNS-Prefetch-Control', value: 'on' },
         ],
       },
     ];

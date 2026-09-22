@@ -43,6 +43,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useCurrency } from "@/lib/currency";
 import { redeemPromoCode } from "@/lib/promo";
 import { downloadInvoicePdf } from "@/lib/invoicePdf";
+import { checkIsProUser } from "@/lib/userSubscription";
+import { validateImageBytes } from "@/lib/file-validator";
 
 export interface SettingsModalProps {
   isOpen: boolean;
@@ -61,7 +63,7 @@ export interface SettingsModalProps {
 
 type TabType = "account" | "canvas" | "ai_tools" | "billing" | "privacy" | "shortcuts";
 
-// Reusable animated Toggle Switch component
+// Reusable Clean Professional Toggle Switch
 function ToggleSwitch({
   checked,
   onChange,
@@ -84,13 +86,13 @@ function ToggleSwitch({
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-        checked ? "bg-cyan-500" : "bg-zinc-700"
+      className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+        checked ? "bg-blue-600" : "bg-zinc-700"
       } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
     >
       <span
-        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-          checked ? "translate-x-5" : "translate-x-0"
+        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+          checked ? "translate-x-4" : "translate-x-0"
         }`}
       />
     </button>
@@ -103,7 +105,7 @@ export function SettingsModal({
   onClearAllData,
   onOpenUpgradeModal,
   onProUpgradeSuccess,
-  actionsUsed = 4,
+  actionsUsed = 0,
   actionLimit = 15,
   tier = "free",
   autoSave: initialAutoSave,
@@ -115,7 +117,7 @@ export function SettingsModal({
   const { currency } = useCurrency();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Active Tab state (default to "account")
+  // Active Tab state
   const [activeTab, setActiveTab] = useState<TabType>("account");
 
   // Promo Code State
@@ -127,28 +129,33 @@ export function SettingsModal({
   }>({ type: "idle" });
   const [proExpiryDate, setProExpiryDate] = useState<string | null>(null);
 
-  // Invoice PDF download state & handler
+  // Invoice PDF download state
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
 
   // AI Quota & Live Dynamic Countdown State
   const [nextResetTime, setNextResetTime] = useState<string | null>(null);
-  const [resetCountdown, setResetCountdown] = useState<string>("Quota resets in 24h 00m");
+  const [resetCountdown, setResetCountdown] = useState<string>("Resets in 24h 00m");
 
   const handleDownloadInvoice = async (invoiceItem: {
     id: string;
     date: string;
     amount: string;
-    tier?: string;
-    status?: string;
+    tier: string;
+    status: string;
   }) => {
     try {
       setDownloadingInvoiceId(invoiceItem.id);
       await downloadInvoicePdf({
-        ...invoiceItem,
-        customerEmail: email,
+        id: invoiceItem.id,
+        date: invoiceItem.date,
+        amount: invoiceItem.amount,
+        tier: invoiceItem.tier,
+        status: invoiceItem.status,
+        customerEmail: email || "user@example.com",
       });
     } catch (err) {
       console.error("[SettingsModal] Failed to download invoice PDF:", err);
+      alert("Could not generate invoice PDF. Please try again.");
     } finally {
       setDownloadingInvoiceId(null);
     }
@@ -162,436 +169,478 @@ export function SettingsModal({
     setPromoStatus({ type: "idle" });
 
     try {
-      const result = await redeemPromoCode(promoCodeInput.trim());
+      const res = await redeemPromoCode(promoCodeInput.trim());
 
-      if (result.success) {
+      if (res.success) {
         setPromoStatus({
           type: "success",
-          message: result.message || "PRO activated for 2 months!",
+          message: res.message || "Promo code activated! PRO access unlocked.",
         });
+        setPromoCodeInput("");
         setIsPro(true);
         setUserTier("pro");
-        setDynamicActionLimit(999999);
-        if (result.pro_expiry_date) {
-          setProExpiryDate(result.pro_expiry_date);
+
+        if (res.pro_expiry_date) {
+          setProExpiryDate(res.pro_expiry_date);
         }
-        setPromoCodeInput("");
-        onProUpgradeSuccess?.();
+
+        if (onProUpgradeSuccess) {
+          onProUpgradeSuccess();
+        }
       } else {
         setPromoStatus({
           type: "error",
-          message: result.error || "Failed to redeem promo code.",
+          message: res.message || res.error || "Invalid or expired promo code.",
         });
       }
     } catch (err: any) {
       setPromoStatus({
         type: "error",
-        message: err.message || "An unexpected error occurred.",
+        message: err.message || "Network error. Please try again.",
       });
     } finally {
       setIsRedeemingPromo(false);
     }
   };
 
-  // ==========================================
-  // 1. Account State
-  // ==========================================
+  // Profile Form States
+  const [user, setUser] = useState<any>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
-  // Dynamic Subscription & Usage Counter State
-  const [userTier, setUserTier] = useState<string>(tier || "free");
-  const [dynamicActionsUsed, setDynamicActionsUsed] = useState<number>(actionsUsed ?? 0);
-  const [dynamicActionLimit, setDynamicActionLimit] = useState<number>(actionLimit ?? 15);
-  const [isPro, setIsPro] = useState<boolean>(
-    tier === "pro" || tier === "enterprise"
-  );
-
-  useEffect(() => {
-    if (tier) {
-      setUserTier(tier);
-      setIsPro(tier === "pro" || tier === "enterprise");
-    }
-  }, [tier]);
-
-  useEffect(() => {
-    if (actionsUsed !== undefined) {
-      setDynamicActionsUsed(actionsUsed);
-    }
-  }, [actionsUsed]);
-
-  useEffect(() => {
-    if (actionLimit !== undefined) {
-      setDynamicActionLimit(actionLimit);
-    }
-  }, [actionLimit]);
-
-  // Password reset state
+  // Security / Password Form States
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordStatus, setPasswordStatus] = useState<string | null>(null);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
-  // Danger zone state
+  // Danger Zone States
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
   const [deleteAccountSuccess, setDeleteAccountSuccess] = useState(false);
 
-  // Sign out state & handler
-  const [isSigningOut, setIsSigningOut] = useState(false);
+  // Canvas Settings States
+  const [gridType, setGridType] = useState<"dots" | "lines" | "solid">("dots");
+  const [autoSave, setAutoSave] = useState<boolean>(
+    initialAutoSave !== undefined ? initialAutoSave : true
+  );
+  const [defaultZoom, setDefaultZoom] = useState<number>(100);
 
+  // AI & Tools Settings States
+  const [defaultModel, setDefaultModel] = useState<string>("groq-llama-3.3-70b");
+  const [aiTone, setAiTone] = useState<string>("concise");
+  const [defaultCodeLang, setDefaultCodeLang] = useState<string>("python");
+  const [editorFontSize, setEditorFontSize] = useState<string>("14");
+
+  // Privacy & Collaboration States
+  const [broadcastCursor, setBroadcastCursor] = useState<boolean>(true);
+  const [emailNotifications, setEmailNotifications] = useState<boolean>(true);
+
+  // Billing / Quota States
+  const initialEffectivePro = checkIsProUser({ tier });
+  const [userTier, setUserTier] = useState(initialEffectivePro ? "pro" : tier);
+  const [isPro, setIsPro] = useState(initialEffectivePro);
+  const [dynamicActionsUsed, setDynamicActionsUsed] = useState(actionsUsed);
+  const [dynamicActionLimit, setDynamicActionLimit] = useState(
+    initialEffectivePro ? 300 : (actionLimit || 15)
+  );
+
+  // General Notification / Auto-Save indicator
+  const [generalSaveSuccess, setGeneralSaveSuccess] = useState(false);
+
+  // Handle User Sign Out
   const handleSignOut = async () => {
-    setIsSigningOut(true);
     try {
+      setIsSigningOut(true);
       const supabase = createClient();
       await supabase.auth.signOut();
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("masmspace_current_user");
-        localStorage.removeItem("wasmspace_current_user");
-        localStorage.removeItem("masmspace_user_avatar");
-        window.location.href = "/login";
-      }
+      localStorage.removeItem("Prathomix_pro_status");
+      localStorage.removeItem("Prathomix_ai_usage");
+      window.location.href = "/login";
     } catch (err) {
       console.error("[SettingsModal] Sign out error:", err);
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("masmspace_current_user");
-        localStorage.removeItem("wasmspace_current_user");
-        localStorage.removeItem("masmspace_user_avatar");
-        window.location.href = "/login";
-      }
+      window.location.href = "/login";
     } finally {
       setIsSigningOut(false);
     }
   };
 
-  // ==========================================
-  // 2. Canvas State
-  // ==========================================
-  const [gridType, setGridType] = useState<"dots" | "lines" | "solid">("dots");
-  const [autoSave, setAutoSave] = useState(initialAutoSave ?? true);
-
+  // Sync prop changes and global subscription events
   useEffect(() => {
-    if (initialAutoSave !== undefined) {
-      setAutoSave(initialAutoSave);
-    }
-  }, [initialAutoSave]);
-  const [defaultZoom, setDefaultZoom] = useState(100);
+    const syncSubscription = () => {
+      const effective = checkIsProUser({ tier });
+      setIsPro(effective);
+      setUserTier(effective ? "pro" : (tier || "free"));
+      setDynamicActionsUsed(actionsUsed);
+      setDynamicActionLimit(effective ? 300 : (actionLimit || 15));
+    };
 
-  // ==========================================
-  // 3. AI & Tools State
-  // ==========================================
-  const [defaultModel, setDefaultModel] = useState("groq-llama-3.3-70b");
-  const [aiTone, setAiTone] = useState("concise");
-  const [defaultCodeLang, setDefaultCodeLang] = useState("python");
-  const [editorFontSize, setEditorFontSize] = useState("14");
+    syncSubscription();
 
-  // ==========================================
-  // 5. Privacy & Multiplayer State
-  // ==========================================
-  const [broadcastCursor, setBroadcastCursor] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-
-  // General state feedback
-  const [generalSaveSuccess, setGeneralSaveSuccess] = useState(false);
-
-  // ---------------------------------------------------------------------------
-  // Load User Data & Local Preferences
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadInitialSettings() {
-      if (!isOpen) return;
-      setIsLoadingUser(true);
-
-      // Load Supabase authenticated user & live public.profiles
-      try {
-        const supabase = createClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (user && isMounted) {
-          const emailClean = user.email?.toLowerCase() || "";
-          const fullName =
-            user.user_metadata?.full_name ||
-            user.user_metadata?.name ||
-            user.email?.split("@")[0] ||
-            "";
-          setName(fullName);
-          setEmail(user.email || "");
-          if (user.user_metadata?.avatar_url) {
-            setAvatarUrl(user.user_metadata.avatar_url);
-          }
-
-          // 1. Fetch live row from Supabase public.profiles table
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", user.id)
-            .maybeSingle();
-
-          // 2. Query ai_usage_limits if table exists
-          let quotaRecord: any = null;
-          try {
-            const { data: qData } = await supabase
-              .from("ai_usage_limits")
-              .select("*")
-              .or(`user_email.eq.${emailClean},user_id.eq.${user.id}`)
-              .maybeSingle();
-            quotaRecord = qData;
-          } catch {}
-
-          // 3. Evaluate PRO / Enterprise tier status
-          const isAdmin = emailClean === "admin@prathomix.tech";
-          const role = profile?.role?.toLowerCase() || user.user_metadata?.role?.toLowerCase();
-          const subStatus = profile?.subscription_status?.toLowerCase() || user.user_metadata?.subscription_status?.toLowerCase();
-          const rawTier = profile?.tier?.toLowerCase() || profile?.subscription_tier?.toLowerCase() || quotaRecord?.tier?.toLowerCase();
-          const isProFlag = profile?.is_pro === true || user.user_metadata?.is_pro === true;
-
-          const proActive =
-            isAdmin ||
-            role === "admin" ||
-            role === "pro" ||
-            subStatus === "pro" ||
-            subStatus === "active" ||
-            rawTier === "pro" ||
-            rawTier === "enterprise" ||
-            isProFlag;
-
-          setIsPro(proActive);
-          setUserTier(proActive ? (rawTier === "enterprise" ? "enterprise" : "pro") : "free");
-
-          if (profile?.pro_expiry_date) {
-            setProExpiryDate(profile.pro_expiry_date);
-          }
-
-          // 4. Bind dynamic usage counter
-          const usedCount =
-            quotaRecord?.actions_used ??
-            profile?.actions_used ??
-            profile?.actions_count ??
-            profile?.usage_count ??
-            actionsUsed ??
-            0;
-          const limitCount = proActive
-            ? 999999
-            : (quotaRecord?.action_limit ?? profile?.action_limit ?? actionLimit ?? 15);
-
-          setDynamicActionsUsed(usedCount);
-          setDynamicActionLimit(limitCount);
+    const handleSubscriptionChange = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (detail?.tier === "pro" || detail?.is_pro) {
+        setIsPro(true);
+        setUserTier("pro");
+        setDynamicActionLimit(300);
+        if (detail.pro_expiry_date) {
+          setProExpiryDate(detail.pro_expiry_date);
         }
-      } catch (err) {
-        console.warn("[SettingsModal] Supabase profile fetch notice:", err);
+      }
+    };
+
+    window.addEventListener("Prathomix_subscription_change", handleSubscriptionChange);
+    window.addEventListener("storage", syncSubscription);
+
+    return () => {
+      window.removeEventListener("Prathomix_subscription_change", handleSubscriptionChange);
+      window.removeEventListener("storage", syncSubscription);
+    };
+  }, [actionsUsed, actionLimit, tier]);
+
+  // Dynamic 24-hour countdown timer logic
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const updateTimer = () => {
+      let targetTimeMs: number;
+
+      if (nextResetTime) {
+        targetTimeMs = new Date(nextResetTime).getTime();
+      } else {
+        const now = new Date();
+        const nextMidnight = new Date(now);
+        nextMidnight.setUTCHours(24, 0, 0, 0);
+        targetTimeMs = nextMidnight.getTime();
       }
 
-      // Strictly fetch per-profile quota & countdown from dynamic /api/generate
+      const diffMs = targetTimeMs - Date.now();
+
+      if (diffMs <= 0) {
+        setResetCountdown("Resetting quota...");
+        return;
+      }
+
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+      const hStr = String(hours).padStart(2, "0");
+      const mStr = String(minutes).padStart(2, "0");
+      const sStr = String(seconds).padStart(2, "0");
+
+      setResetCountdown(`Resets in ${hStr}h ${mStr}m ${sStr}s`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [isOpen, nextResetTime]);
+
+  // Load User from Supabase and LocalStorage preferences
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let isMounted = true;
+    const supabase = createClient();
+
+    async function loadUserData() {
+      setIsLoadingUser(true);
       try {
-        const quotaRes = await fetch("/api/generate?action=quota");
-        if (quotaRes.ok) {
-          const qData = await quotaRes.json();
-          if (typeof qData.used === "number") setDynamicActionsUsed(qData.used);
-          if (typeof qData.limit === "number") setDynamicActionLimit(qData.limit);
-          if (qData.isPro) {
+        // Immediate check from local storage & environment
+        if (checkIsProUser({ tier })) {
+          if (isMounted) {
             setIsPro(true);
             setUserTier("pro");
+            setDynamicActionLimit(300);
           }
-          if (qData.nextResetTime) setNextResetTime(qData.nextResetTime);
-          if (qData.resetCountdown) setResetCountdown(qData.resetCountdown);
         }
-      } catch (qErr) {
-        console.warn("[SettingsModal] Strict quota fetch notice:", qErr);
-      }
 
-      // Load local storage preferences
-      if (typeof window !== "undefined" && isMounted) {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.user) {
+          if (isMounted) {
+            setUser(null);
+            const savedName = localStorage.getItem("Prathomix_user_name");
+            setEmail("guest@Prathomix.io");
+            setName(savedName || "Guest Architect");
+            if (checkIsProUser({ tier })) {
+              setIsPro(true);
+              setUserTier("pro");
+              setDynamicActionLimit(300);
+            }
+            setIsLoadingUser(false);
+          }
+          return;
+        }
+
+        const authUser = session.user;
+        if (isMounted) {
+          setUser(authUser);
+          setEmail(authUser.email || "");
+          setName(authUser.user_metadata?.full_name || authUser.user_metadata?.name || "");
+          setAvatarUrl(authUser.user_metadata?.avatar_url || null);
+
+          // Check user auth metadata
+          const metaRole = authUser.user_metadata?.role?.toLowerCase();
+          const metaSub = authUser.user_metadata?.subscription_status?.toLowerCase();
+          const metaTier = authUser.user_metadata?.tier?.toLowerCase();
+          if (
+            metaRole === "pro" ||
+            metaRole === "admin" ||
+            metaSub === "pro" ||
+            metaSub === "active" ||
+            metaTier === "pro" ||
+            metaTier === "enterprise" ||
+            authUser.user_metadata?.is_pro === true
+          ) {
+            setIsPro(true);
+            setUserTier("pro");
+            setDynamicActionLimit(300);
+          }
+        }
+
+        // Fetch User Profile from database
         try {
-          const storedUser =
-            localStorage.getItem("masmspace_current_user") ||
-            localStorage.getItem("wasmspace_current_user");
-          if (storedUser) {
-            const parsed = JSON.parse(storedUser);
-            if (!name && parsed.name) setName(parsed.name);
-            if (!email && parsed.email) setEmail(parsed.email);
-            if (parsed.avatarUrl) setAvatarUrl(parsed.avatarUrl);
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("name, full_name, avatar_url, tier, is_pro, pro_expires_at, role, subscription_status")
+            .eq("id", authUser.id)
+            .single();
 
-            const role = parsed.role?.toLowerCase();
-            const sub = parsed.subscription_status?.toLowerCase();
-            const pTier = parsed.tier?.toLowerCase();
+          if (profile && isMounted) {
+            if (profile.full_name || profile.name) {
+              setName(profile.full_name || profile.name);
+            }
+            if (profile.avatar_url) {
+              setAvatarUrl(profile.avatar_url);
+            }
+            if (profile.pro_expires_at) {
+              setProExpiryDate(profile.pro_expires_at);
+            }
+            const pRole = profile.role?.toLowerCase();
+            const pSub = profile.subscription_status?.toLowerCase();
+            const pTier = profile.tier?.toLowerCase();
             if (
-              parsed.email?.toLowerCase() === "admin@prathomix.tech" ||
-              role === "admin" ||
-              role === "pro" ||
-              sub === "pro" ||
-              sub === "active" ||
               pTier === "pro" ||
-              pTier === "enterprise"
+              pTier === "enterprise" ||
+              profile.is_pro ||
+              pRole === "pro" ||
+              pRole === "admin" ||
+              pSub === "pro" ||
+              pSub === "active" ||
+              checkIsProUser({ tier })
             ) {
               setIsPro(true);
-              setUserTier(pTier === "enterprise" ? "enterprise" : "pro");
-              setDynamicActionLimit(999999);
-            }
-            if (parsed.pro_expiry_date) {
-              setProExpiryDate(parsed.pro_expiry_date);
+              setUserTier("pro");
+              setDynamicActionLimit(300);
             }
           }
-
-          const storedAvatar = localStorage.getItem("masmspace_user_avatar");
-          if (storedAvatar) setAvatarUrl(storedAvatar);
-
-          const storedGrid = localStorage.getItem("masmspace_canvas_grid");
-          if (storedGrid === "dots" || storedGrid === "lines" || storedGrid === "solid") {
-            setGridType(storedGrid);
-          }
-
-          const storedAutoSave = localStorage.getItem("masmspace_canvas_autosave");
-          if (storedAutoSave !== null) {
-            setAutoSave(storedAutoSave === "true");
-          }
-
-          const storedZoom = localStorage.getItem("masmspace_canvas_default_zoom");
-          if (storedZoom) setDefaultZoom(Number(storedZoom));
-
-          const storedModel = localStorage.getItem("masmspace_default_model");
-          if (storedModel) setDefaultModel(storedModel);
-
-          const storedTone = localStorage.getItem("masmspace_ai_tone");
-          if (storedTone) setAiTone(storedTone);
-
-          const storedCodeLang = localStorage.getItem("masmspace_default_code_lang");
-          if (storedCodeLang) setDefaultCodeLang(storedCodeLang);
-
-          const storedFontSize = localStorage.getItem("masmspace_editor_font_size");
-          if (storedFontSize) setEditorFontSize(storedFontSize);
-
-          const storedBroadcast = localStorage.getItem("masmspace_broadcast_cursor");
-          if (storedBroadcast !== null) {
-            setBroadcastCursor(storedBroadcast === "true");
-          }
-
-          const storedNotifications = localStorage.getItem("masmspace_email_notifications");
-          if (storedNotifications !== null) {
-            setEmailNotifications(storedNotifications === "true");
-          }
-        } catch (e) {
-          console.warn("[SettingsModal] Failed reading local preferences:", e);
+        } catch (err) {
+          console.warn("[SettingsModal] Supabase profile fetch notice:", err);
         }
-      }
 
-      if (isMounted) {
-        setIsLoadingUser(false);
+        // Fetch user quota stats
+        try {
+          const quotaRes = await fetch("/api/generate?action=quota", {
+            headers: { "x-user-id": authUser.id },
+          });
+          if (quotaRes.ok) {
+            const qData = await quotaRes.json();
+            if (isMounted && qData) {
+              if (typeof qData.used === "number") setDynamicActionsUsed(qData.used);
+              if (typeof qData.limit === "number") setDynamicActionLimit(qData.limit);
+              if (qData.tier) {
+                setUserTier(qData.tier);
+                setIsPro(qData.tier === "pro" || qData.tier === "enterprise");
+              }
+              if (qData.nextResetAt) {
+                setNextResetTime(qData.nextResetAt);
+              }
+            }
+          }
+        } catch (qErr) {
+          console.warn("[SettingsModal] Quota fetch notice:", qErr);
+        }
+      } catch (e) {
+        console.error("[SettingsModal] Auth session check failed:", e);
+      } finally {
+        if (isMounted) {
+          setIsLoadingUser(false);
+        }
       }
     }
 
-    loadInitialSettings();
+    loadUserData();
+
+    // Load LocalStorage persisted preferences
+    try {
+      const savedGrid = localStorage.getItem("Prathomix_canvas_grid");
+      if (savedGrid && (savedGrid === "dots" || savedGrid === "lines" || savedGrid === "solid")) {
+        setGridType(savedGrid);
+      }
+      const savedAutoSave = localStorage.getItem("Prathomix_canvas_autosave");
+      if (savedAutoSave !== null) {
+        setAutoSave(savedAutoSave === "true");
+      }
+      const savedZoom = localStorage.getItem("Prathomix_canvas_default_zoom");
+      if (savedZoom) {
+        setDefaultZoom(Number(savedZoom));
+      }
+      const savedModel = localStorage.getItem("Prathomix_default_model");
+      if (savedModel) {
+        setDefaultModel(savedModel);
+      }
+      const savedTone = localStorage.getItem("Prathomix_ai_tone");
+      if (savedTone) {
+        setAiTone(savedTone);
+      }
+      const savedCodeLang = localStorage.getItem("Prathomix_default_code_lang");
+      if (savedCodeLang) {
+        setDefaultCodeLang(savedCodeLang);
+      }
+      const savedFontSize = localStorage.getItem("Prathomix_editor_font_size");
+      if (savedFontSize) {
+        setEditorFontSize(savedFontSize);
+      }
+      const savedBroadcast = localStorage.getItem("Prathomix_broadcast_cursor");
+      if (savedBroadcast !== null) {
+        setBroadcastCursor(savedBroadcast === "true");
+      }
+      const savedNotifs = localStorage.getItem("Prathomix_email_notifications");
+      if (savedNotifs !== null) {
+        setEmailNotifications(savedNotifs === "true");
+      }
+    } catch (e) {
+      console.warn("[SettingsModal] Failed reading local preferences:", e);
+    }
 
     return () => {
       isMounted = false;
     };
   }, [isOpen]);
 
-  // Handle ESC key to close
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
-  // Dynamic live countdown timer calculating time until next 24h quota reset
-  useEffect(() => {
-    if (!nextResetTime) return;
-    const calculateCountdown = () => {
-      const now = Date.now();
-      const target = new Date(nextResetTime).getTime();
-      const diff = Math.max(0, target - now);
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      setResetCountdown(`Quota resets in ${hours}h ${mins}m`);
-    };
-    calculateCountdown();
-    const timerId = setInterval(calculateCountdown, 30000);
-    return () => clearInterval(timerId);
-  }, [nextResetTime]);
-
-  if (!isOpen) return null;
-
-  // ---------------------------------------------------------------------------
-  // Action Handlers
-  // ---------------------------------------------------------------------------
-
-  // Handle Avatar Image Upload
-  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Avatar Upload with Deep File & Content Signature Validation
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Reset input value so re-selecting same file triggers change
+    e.target.value = "";
+
+    // 1. File size check (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      alert("Image size should be under 2MB.");
+      alert("Image size must be less than 2MB.");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setAvatarUrl(result);
-        localStorage.setItem("masmspace_user_avatar", result);
+    // 2. Extension & MIME check - prohibit SVGs, scripts, and non-raster formats
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    const validExtensions = ["jpg", "jpeg", "png", "webp"];
+    if (!validExtensions.includes(ext)) {
+      alert("Only JPG, PNG, and WebP image files are allowed. SVG and executable files are prohibited.");
+      return;
+    }
+
+    // 3. Inspect binary magic bytes to verify content is truly an authentic image
+    try {
+      const headerSlice = file.slice(0, 32);
+      const arrayBuf = await headerSlice.arrayBuffer();
+      const validation = validateImageBytes(new Uint8Array(arrayBuf), 2 * 1024 * 1024);
+      if (!validation.valid) {
+        alert(validation.error || "Invalid image file header. Corrupted or disguised files are rejected.");
+        return;
       }
+    } catch {
+      alert("Failed to verify image file integrity. Please try another image.");
+      return;
+    }
+
+    // 4. Read as Base64 data and store in isolated DB column (profiles.avatar_url)
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Data = reader.result as string;
+      setAvatarUrl(base64Data);
+
+      if (user?.id) {
+        try {
+          const supabase = createClient();
+          await supabase.from("profiles").upsert({
+            id: user.id,
+            avatar_url: base64Data,
+            updated_at: new Date().toISOString(),
+          });
+        } catch (err) {
+          console.warn("[SettingsModal] Failed saving avatar to DB:", err);
+        }
+      }
+      flashSaved();
     };
     reader.readAsDataURL(file);
   };
 
-  // Remove custom avatar
-  const handleRemoveAvatar = () => {
+  const handleRemoveAvatar = async () => {
     setAvatarUrl(null);
-    localStorage.removeItem("masmspace_user_avatar");
+    if (user?.id) {
+      try {
+        const supabase = createClient();
+        await supabase.from("profiles").upsert({
+          id: user.id,
+          avatar_url: null,
+          updated_at: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.warn("[SettingsModal] Failed clearing avatar:", err);
+      }
+    }
+    flashSaved();
   };
 
-  // Save Account Profile
+  // Save Display Name to Supabase
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingProfile(true);
+    setProfileSaveSuccess(false);
 
     try {
       const supabase = createClient();
-      await supabase.auth.updateUser({
-        data: {
-          full_name: name,
-          avatar_url: avatarUrl,
-        },
-      });
+      if (user?.id) {
+        await supabase.from("profiles").upsert({
+          id: user.id,
+          name: name.trim(),
+          full_name: name.trim(),
+          updated_at: new Date().toISOString(),
+        });
+
+        await supabase.auth.updateUser({
+          data: { full_name: name.trim(), name: name.trim() },
+        });
+      }
+
+      localStorage.setItem("Prathomix_user_name", name.trim());
+      setProfileSaveSuccess(true);
+      setTimeout(() => setProfileSaveSuccess(false), 3000);
     } catch (err) {
-      console.warn("[SettingsModal] Supabase updateUser fallback:", err);
+      console.warn("[SettingsModal] Supabase updateUser notice:", err);
+    } finally {
+      setIsSavingProfile(false);
     }
-
-    if (typeof window !== "undefined") {
-      try {
-        const stored =
-          localStorage.getItem("masmspace_current_user") ||
-          localStorage.getItem("wasmspace_current_user");
-        const parsed = stored ? JSON.parse(stored) : {};
-        const updated = JSON.stringify({ ...parsed, name, email, avatarUrl });
-        localStorage.setItem("masmspace_current_user", updated);
-      } catch {}
-    }
-
-    setIsSavingProfile(false);
-    setProfileSaveSuccess(true);
-    setTimeout(() => setProfileSaveSuccess(false), 2500);
   };
 
-  // Change Password Handler
+  // Password Change
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPassword || newPassword.length < 6) {
-      setPasswordStatus("Password must be at least 6 characters long.");
+    setPasswordStatus(null);
+
+    if (newPassword.length < 6) {
+      setPasswordStatus("Password must be at least 6 characters.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -600,30 +649,31 @@ export function SettingsModal({
     }
 
     setIsUpdatingPassword(true);
-    setPasswordStatus(null);
-
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
       if (error) {
         setPasswordStatus(error.message);
       } else {
         setPasswordStatus("success:Password updated successfully!");
+        setNewPassword("");
+        setConfirmPassword("");
         setTimeout(() => {
           setShowPasswordModal(false);
-          setNewPassword("");
-          setConfirmPassword("");
           setPasswordStatus(null);
-        }, 1800);
+        }, 2000);
       }
     } catch (err: any) {
-      setPasswordStatus(err?.message || "Failed to update password.");
+      setPasswordStatus(err.message || "Failed to update password.");
     } finally {
       setIsUpdatingPassword(false);
     }
   };
 
-  // Delete Account Handler
+  // Danger Zone - Clear Account
   const handleDeleteAccount = async () => {
     if (!confirmDeleteAccount) {
       setConfirmDeleteAccount(true);
@@ -653,59 +703,59 @@ export function SettingsModal({
   // Canvas Settings Auto-Persist
   const handleGridTypeChange = (type: "dots" | "lines" | "solid") => {
     setGridType(type);
-    localStorage.setItem("masmspace_canvas_grid", type);
+    localStorage.setItem("Prathomix_canvas_grid", type);
     onGridTypeChange?.(type);
     flashSaved();
   };
 
   const handleAutoSaveToggle = (val: boolean) => {
     setAutoSave(val);
-    localStorage.setItem("masmspace_canvas_autosave", String(val));
+    localStorage.setItem("Prathomix_canvas_autosave", String(val));
     onAutoSaveChange?.(val);
     flashSaved();
   };
 
   const handleDefaultZoomChange = (zoom: number) => {
     setDefaultZoom(zoom);
-    localStorage.setItem("masmspace_canvas_default_zoom", String(zoom));
+    localStorage.setItem("Prathomix_canvas_default_zoom", String(zoom));
     flashSaved();
   };
 
   // AI & Tools Settings Auto-Persist
   const handleModelChange = (model: string) => {
     setDefaultModel(model);
-    localStorage.setItem("masmspace_default_model", model);
+    localStorage.setItem("Prathomix_default_model", model);
     flashSaved();
   };
 
   const handleToneChange = (tone: string) => {
     setAiTone(tone);
-    localStorage.setItem("masmspace_ai_tone", tone);
+    localStorage.setItem("Prathomix_ai_tone", tone);
     flashSaved();
   };
 
   const handleCodeLangChange = (lang: string) => {
     setDefaultCodeLang(lang);
-    localStorage.setItem("masmspace_default_code_lang", lang);
+    localStorage.setItem("Prathomix_default_code_lang", lang);
     flashSaved();
   };
 
   const handleFontSizeChange = (size: string) => {
     setEditorFontSize(size);
-    localStorage.setItem("masmspace_editor_font_size", size);
+    localStorage.setItem("Prathomix_editor_font_size", size);
     flashSaved();
   };
 
-  // Privacy & Multiplayer Settings Auto-Persist
+  // Privacy Settings Auto-Persist
   const handleBroadcastCursorToggle = (val: boolean) => {
     setBroadcastCursor(val);
-    localStorage.setItem("masmspace_broadcast_cursor", String(val));
+    localStorage.setItem("Prathomix_broadcast_cursor", String(val));
     flashSaved();
   };
 
   const handleEmailNotificationsToggle = (val: boolean) => {
     setEmailNotifications(val);
-    localStorage.setItem("masmspace_email_notifications", String(val));
+    localStorage.setItem("Prathomix_email_notifications", String(val));
     flashSaved();
   };
 
@@ -714,6 +764,21 @@ export function SettingsModal({
     setTimeout(() => setGeneralSaveSuccess(false), 2000);
   };
 
+  if (!isOpen) return null;
+
+  const navigationTabs: Array<{
+    id: TabType;
+    label: string;
+    icon: React.ReactNode;
+  }> = [
+    { id: "account", label: "Account & Profile", icon: <User className="w-4 h-4 shrink-0" /> },
+    { id: "canvas", label: "Canvas & Grid", icon: <Grid className="w-4 h-4 shrink-0" /> },
+    { id: "ai_tools", label: "AI Engines & Tools", icon: <Cpu className="w-4 h-4 shrink-0" /> },
+    { id: "billing", label: "Billing & Plans", icon: <CreditCard className="w-4 h-4 shrink-0" /> },
+    { id: "privacy", label: "Privacy & Sharing", icon: <Shield className="w-4 h-4 shrink-0" /> },
+    { id: "shortcuts", label: "Shortcuts", icon: <Keyboard className="w-4 h-4 shrink-0" /> },
+  ];
+
   return (
     <div
       role="dialog"
@@ -721,33 +786,35 @@ export function SettingsModal({
       aria-labelledby="settings-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6"
     >
-      {/* Backdrop */}
+      {/* Subtle Backdrop */}
       <div
-        className="fixed inset-0 bg-[#000000]/80 backdrop-blur-md transition-opacity animate-fade-in"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Main Glassmorphism Modal Card */}
-      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-2xl sm:rounded-3xl bg-[#09090b]/80 backdrop-blur-xl border border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.85)] overflow-hidden z-10 text-zinc-100 animate-in fade-in zoom-in-95 duration-200">
+      {/* Main Clean Enterprise Modal Card */}
+      <div className="relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl bg-[#111215] border border-zinc-800 shadow-2xl overflow-hidden z-10 text-zinc-100 font-sans">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/[0.02]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80 bg-[#141519]">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_12px_rgba(6,182,212,0.2)]">
+            <div className="p-2 rounded-lg bg-zinc-800 text-zinc-300 border border-zinc-700/60">
               <Sliders className="w-4 h-4" />
             </div>
             <div>
-              <h2 id="settings-modal-title" className="text-base sm:text-lg font-mono font-bold tracking-tight text-white flex items-center gap-2">
-                Settings &amp; Preferences
+              <div className="flex items-center gap-2.5">
+                <h2 id="settings-modal-title" className="text-base font-semibold text-zinc-100">
+                  Settings
+                </h2>
                 {generalSaveSuccess && (
-                  <span className="text-[11px] font-sans font-normal text-emerald-400 flex items-center gap-1 animate-fade-in">
-                    <Check className="w-3 h-3" /> Auto-saved
+                  <span className="text-xs font-normal text-emerald-400 flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5" /> Saved
                   </span>
                 )}
-              </h2>
+              </div>
               <p className="text-xs text-zinc-400">
-                Manage your account, whiteboard canvas, AI engines, and collaborative privacy.
+                Manage your workspace preferences, profile, and subscription.
               </p>
             </div>
           </div>
@@ -755,130 +822,61 @@ export function SettingsModal({
           <button
             onClick={onClose}
             aria-label="Close Settings"
-            className="p-2 rounded-xl text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+            className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 border border-transparent hover:border-zinc-700 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Modal Layout: Left Vertical Tabs + Right Pane */}
+        {/* Modal Body: Left Sidebar Tabs + Right Viewport */}
         <div className="flex-1 flex flex-col sm:flex-row min-h-[500px] overflow-hidden">
           
           {/* Left Vertical Tabs Navigation */}
           <nav
             aria-label="Settings categories"
-            className="w-full sm:w-60 p-3 sm:p-4 border-b sm:border-b-0 sm:border-r border-white/10 bg-black/40 flex sm:flex-col gap-1.5 overflow-x-auto sm:overflow-x-visible shrink-0"
+            className="w-full sm:w-56 p-3 border-b sm:border-b-0 sm:border-r border-zinc-800/80 bg-[#0e0f12] flex sm:flex-col gap-1 overflow-x-auto sm:overflow-x-visible shrink-0"
           >
-            {/* 1. Account */}
-            <button
-              onClick={() => setActiveTab("account")}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-mono text-xs font-semibold transition-all duration-200 w-full text-left whitespace-nowrap cursor-pointer ${
-                activeTab === "account"
-                  ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
-                  : "text-zinc-400 hover:text-zinc-100 hover:bg-white/5"
-              }`}
-            >
-              <User className="w-4 h-4 shrink-0" />
-              <span>Account</span>
-            </button>
+            {navigationTabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left whitespace-nowrap cursor-pointer ${
+                    isActive
+                      ? "bg-zinc-800 text-white border border-zinc-700/80 shadow-sm"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 border border-transparent"
+                  }`}
+                >
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
 
-            {/* 2. Canvas */}
-            <button
-              onClick={() => setActiveTab("canvas")}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-mono text-xs font-semibold transition-all duration-200 w-full text-left whitespace-nowrap cursor-pointer ${
-                activeTab === "canvas"
-                  ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
-                  : "text-zinc-400 hover:text-zinc-100 hover:bg-white/5"
-              }`}
-            >
-              <Grid className="w-4 h-4 shrink-0" />
-              <span>Canvas</span>
-            </button>
-
-            {/* 3. AI & Tools */}
-            <button
-              onClick={() => setActiveTab("ai_tools")}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-mono text-xs font-semibold transition-all duration-200 w-full text-left whitespace-nowrap cursor-pointer ${
-                activeTab === "ai_tools"
-                  ? "bg-purple-500/15 text-purple-400 border border-purple-500/30 shadow-[0_0_12px_rgba(168,85,247,0.25)]"
-                  : "text-zinc-400 hover:text-zinc-100 hover:bg-white/5"
-              }`}
-            >
-              <Cpu className="w-4 h-4 shrink-0" />
-              <span>AI &amp; Tools</span>
-            </button>
-
-            {/* 4. Billing */}
-            <button
-              onClick={() => setActiveTab("billing")}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-mono text-xs font-semibold transition-all duration-200 w-full text-left whitespace-nowrap cursor-pointer ${
-                activeTab === "billing"
-                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.25)]"
-                  : "text-zinc-400 hover:text-zinc-100 hover:bg-white/5"
-              }`}
-            >
-              <CreditCard className="w-4 h-4 shrink-0" />
-              <span>Billing</span>
-            </button>
-
-            {/* 5. Privacy & Multiplayer */}
-            <button
-              onClick={() => setActiveTab("privacy")}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-mono text-xs font-semibold transition-all duration-200 w-full text-left whitespace-nowrap cursor-pointer ${
-                activeTab === "privacy"
-                  ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.25)]"
-                  : "text-zinc-400 hover:text-zinc-100 hover:bg-white/5"
-              }`}
-            >
-              <Shield className="w-4 h-4 shrink-0" />
-              <span>Privacy &amp; MP</span>
-            </button>
-
-            {/* 6. Keyboard Shortcuts */}
-            <button
-              onClick={() => setActiveTab("shortcuts")}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-mono text-xs font-semibold transition-all duration-200 w-full text-left whitespace-nowrap cursor-pointer ${
-                activeTab === "shortcuts"
-                  ? "bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.25)]"
-                  : "text-zinc-400 hover:text-zinc-100 hover:bg-white/5"
-              }`}
-            >
-              <Keyboard className="w-4 h-4 shrink-0" />
-              <span>Shortcuts</span>
-            </button>
-
-            {/* Mobile Sign Out Button */}
-            <button
-              type="button"
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-              className="sm:hidden flex items-center gap-2 px-3 py-2 rounded-xl font-mono text-xs font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 whitespace-nowrap cursor-pointer shrink-0 disabled:opacity-50"
-              title="Sign out of MasmSpace"
-            >
-              <LogOut className="w-3.5 h-3.5 shrink-0" />
-              <span>{isSigningOut ? "..." : "Sign Out"}</span>
-            </button>
-
-            {/* Plan Badge indicator & Sign Out at bottom of sidebar on desktop */}
-            <div className="hidden sm:block mt-auto pt-4 border-t border-white/10 space-y-2.5">
-              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-zinc-500">Tier</span>
+            {/* Plan Info Badge & Sign Out in Sidebar Bottom */}
+            <div className="hidden sm:block mt-auto pt-3 border-t border-zinc-800/80 space-y-2">
+              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-500 font-medium">Plan</span>
                   <span
-                    className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${
+                    className={`font-semibold px-2 py-0.5 rounded text-[11px] ${
                       isPro
-                        ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                        ? "bg-blue-500/15 text-blue-400 border border-blue-500/30"
                         : "bg-zinc-800 text-zinc-400 border border-zinc-700"
                     }`}
                   >
-                    {isPro ? "PRO ACTIVE" : "FREE PLAN"}
+                    {isPro ? "PRO" : "FREE"}
                   </span>
                 </div>
-                <div className="text-[10px] text-zinc-400 font-mono flex items-center justify-between">
-                  <span>Quota: {dynamicActionsUsed}/{isPro ? 300 : dynamicActionLimit}</span>
+                <div className="text-[11px] text-zinc-400 flex items-center justify-between">
+                  <span>Quota</span>
+                  <span className="font-medium text-zinc-300">
+                    {dynamicActionsUsed} / {isPro ? 300 : dynamicActionLimit}
+                  </span>
                 </div>
-                <div className="text-[9px] text-amber-300 font-mono flex items-center gap-1">
-                  <Clock className="w-2.5 h-2.5 text-amber-400 shrink-0" />
+                <div className="text-[11px] text-zinc-500 flex items-center gap-1.5 pt-0.5">
+                  <Clock className="w-3 h-3 text-zinc-400 shrink-0" />
                   <span className="truncate">{resetCountdown}</span>
                 </div>
               </div>
@@ -887,8 +885,7 @@ export function SettingsModal({
                 type="button"
                 onClick={handleSignOut}
                 disabled={isSigningOut}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl font-mono text-xs font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 transition-all cursor-pointer shadow-sm disabled:opacity-50"
-                title="Sign out of MasmSpace"
+                className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all cursor-pointer disabled:opacity-50"
               >
                 <LogOut className="w-3.5 h-3.5 shrink-0" />
                 <span>{isSigningOut ? "Signing out..." : "Sign Out"}</span>
@@ -897,54 +894,54 @@ export function SettingsModal({
           </nav>
 
           {/* Right Tab Content Viewport */}
-          <div className="flex-1 p-5 sm:p-7 overflow-y-auto space-y-6">
+          <div className="flex-1 p-5 sm:p-6 overflow-y-auto space-y-5 bg-[#111215]">
             
             {/* ============================================================= */}
-            {/* SECTION 1: ACCOUNT                                           */}
+            {/* TAB 1: ACCOUNT & PROFILE                                      */}
             {/* ============================================================= */}
             {activeTab === "account" && (
-              <div className="space-y-6 animate-fade-in">
+              <div className="space-y-5 animate-in fade-in duration-150">
                 <div>
-                  <h3 className="font-mono font-bold text-base tracking-tight text-white">Account &amp; AI Usage</h3>
-                  <p className="text-xs text-zinc-400">
-                    Manage your personal profile, active AI generation limits, and credentials.
+                  <h3 className="text-sm font-semibold text-zinc-100">Account Profile</h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Manage your credentials, display identity, and daily AI quotas.
                   </p>
                 </div>
 
-                {/* ── Strict Per-Profile AI Quota & Dynamic Countdown HUD Card ── */}
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-cyan-950/25 via-[#121217] to-indigo-950/25 border border-cyan-500/30 shadow-[0_0_30px_rgba(6,182,212,0.15)] space-y-3">
+                {/* Clean Professional Quota Card */}
+                <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-cyan-500/15 text-cyan-400 border border-cyan-400/30 shadow-[0_0_12px_rgba(6,182,212,0.2)]">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
                         <Zap className="w-4 h-4" />
                       </div>
                       <div>
-                        <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                        <div className="text-xs font-semibold text-zinc-200">
                           AI Generation Quota
-                        </h4>
+                        </div>
                         <p className="text-[11px] text-zinc-400">
                           {isPro
-                            ? "300 Generations / 24-Hour Cycle (Strictly per Profile)"
-                            : "15 Free Lifetime Generations (Strictly per Profile)"}
+                            ? "300 Generations / 24-hour cycle"
+                            : "15 Generations lifetime quota"}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex flex-col sm:items-end">
-                      <span className="text-sm font-mono font-bold text-cyan-300">
-                        {dynamicActionsUsed}/{isPro ? 300 : dynamicActionLimit} {isPro ? "Daily Pro Uses" : "Free Uses"}
+                      <span className="text-xs font-semibold text-zinc-200">
+                        {dynamicActionsUsed} / {isPro ? 300 : dynamicActionLimit} used
                       </span>
-                      <span className="text-[11px] font-mono text-amber-300 flex items-center gap-1.5 mt-0.5">
-                        <Clock className="w-3 h-3 text-amber-400" />
+                      <span className="text-[11px] text-zinc-400 flex items-center gap-1 mt-0.5">
+                        <Clock className="w-3 h-3 text-zinc-500" />
                         <span>{resetCountdown}</span>
                       </span>
                     </div>
                   </div>
 
-                  {/* Quota Progress Bar */}
-                  <div className="w-full h-2 rounded-full bg-white/5 border border-white/10 overflow-hidden">
+                  {/* Progress Bar */}
+                  <div className="w-full h-1.5 rounded-full bg-zinc-800 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-teal-400 to-indigo-500 transition-all duration-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]"
+                      className="h-full rounded-full bg-blue-500 transition-all duration-300"
                       style={{
                         width: `${Math.min(
                           100,
@@ -957,26 +954,26 @@ export function SettingsModal({
                   </div>
 
                   {!isPro && onOpenUpgradeModal && (
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1">
-                      <span className="text-zinc-400 text-[11px]">
-                        Need continuous daily cloud architecture &amp; code generation?
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1 border-t border-zinc-800/60 mt-2">
+                      <span className="text-zinc-400 text-xs">
+                        Need 300 daily generations and full developer tools?
                       </span>
                       <button
                         type="button"
                         onClick={onOpenUpgradeModal}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold transition-all cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-colors cursor-pointer shadow-sm"
                       >
-                        <Crown className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Upgrade to PRO (300/Day)</span>
+                        <Crown className="w-3.5 h-3.5" />
+                        <span>Upgrade to PRO</span>
                       </button>
                     </div>
                   )}
                 </div>
 
                 {/* Avatar Section */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-zinc-900/60 border border-zinc-800">
                   <div className="relative group">
-                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-cyan-500/40 bg-zinc-800 flex items-center justify-center text-white font-mono font-bold text-xl shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                    <div className="w-14 h-14 rounded-full overflow-hidden border border-zinc-700 bg-zinc-800 flex items-center justify-center text-white font-medium text-lg">
                       {avatarUrl ? (
                         <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                       ) : (
@@ -989,7 +986,7 @@ export function SettingsModal({
                       className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer text-white"
                       title="Upload Avatar"
                     >
-                      <Camera className="w-5 h-5" />
+                      <Camera className="w-4 h-4" />
                     </button>
                     <input
                       ref={fileInputRef}
@@ -1001,23 +998,21 @@ export function SettingsModal({
                   </div>
 
                   <div className="space-y-1 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-mono font-semibold text-white">Avatar Picture</span>
-                      <span className="text-[10px] font-mono text-zinc-500">JPG, PNG, WebP up to 2MB</span>
-                    </div>
+                    <div className="text-xs font-medium text-zinc-200">Profile Picture</div>
+                    <p className="text-[11px] text-zinc-400">JPG, PNG, or WebP up to 2MB</p>
                     <div className="flex items-center gap-2 pt-1">
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-white/10 hover:bg-white/15 text-white border border-white/15 transition-all cursor-pointer"
+                        className="px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/80 transition-colors cursor-pointer"
                       >
-                        Upload Image
+                        Upload
                       </button>
                       {avatarUrl && (
                         <button
                           type="button"
                           onClick={handleRemoveAvatar}
-                          className="px-3 py-1.5 rounded-lg text-xs font-mono text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 transition-all cursor-pointer"
+                          className="px-2.5 py-1 rounded-md text-xs font-medium text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-colors cursor-pointer"
                         >
                           Remove
                         </button>
@@ -1027,14 +1022,13 @@ export function SettingsModal({
                 </div>
 
                 {/* Profile Form */}
-                <form onSubmit={handleSaveProfile} className="space-y-4">
-                  {/* Name Input */}
+                <form onSubmit={handleSaveProfile} className="space-y-3.5">
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-mono font-medium text-zinc-300">
+                    <label className="block text-xs font-medium text-zinc-300">
                       Display Name
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
                         <User className="w-4 h-4" />
                       </div>
                       <input
@@ -1042,23 +1036,22 @@ export function SettingsModal({
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Your full name"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl font-sans text-xs sm:text-sm bg-white/5 border border-white/10 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 outline-none text-zinc-100 placeholder:text-zinc-500 transition-all"
+                        className="w-full pl-9 pr-3.5 py-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600/50 outline-none text-zinc-100 placeholder:text-zinc-600 transition-colors"
                       />
                     </div>
                   </div>
 
-                  {/* Email Input (Read-Only from Supabase) */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="block text-xs font-mono font-medium text-zinc-300">
+                      <label className="block text-xs font-medium text-zinc-300">
                         Email Address
                       </label>
-                      <span className="text-[10px] font-mono text-zinc-400 flex items-center gap-1">
-                        <Lock className="w-3 h-3 text-cyan-400" /> Read-only (Supabase Auth)
+                      <span className="text-[11px] text-zinc-500 flex items-center gap-1">
+                        <Lock className="w-3 h-3" /> Managed via Supabase
                       </span>
                     </div>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
                         <Mail className="w-4 h-4" />
                       </div>
                       <input
@@ -1066,32 +1059,31 @@ export function SettingsModal({
                         value={email}
                         readOnly
                         disabled
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl font-sans text-xs sm:text-sm bg-white/[0.02] border border-white/5 text-zinc-400 cursor-not-allowed select-all"
+                        className="w-full pl-9 pr-3.5 py-2 rounded-lg text-xs bg-zinc-900/40 border border-zinc-800/80 text-zinc-400 cursor-not-allowed"
                       />
                     </div>
                   </div>
 
-                  {/* Save Profile Button & Password CTA */}
                   <div className="pt-2 flex items-center justify-between">
                     <button
                       type="button"
                       onClick={() => setShowPasswordModal(!showPasswordModal)}
-                      className="px-3.5 py-2 rounded-xl text-xs font-mono font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center gap-2 cursor-pointer"
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/80 transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Lock className="w-3.5 h-3.5 text-cyan-400" />
+                      <Lock className="w-3.5 h-3.5" />
                       <span>{showPasswordModal ? "Hide Password Form" : "Change Password"}</span>
                     </button>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5">
                       {profileSaveSuccess && (
-                        <span className="text-xs font-mono font-medium text-emerald-400 flex items-center gap-1">
-                          <Check className="w-3.5 h-3.5" /> Profile updated!
+                        <span className="text-xs font-medium text-emerald-400 flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" /> Saved
                         </span>
                       )}
                       <button
                         type="submit"
                         disabled={isSavingProfile || isLoadingUser}
-                        className="px-4 py-2 rounded-xl font-mono text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                        className="px-4 py-1.5 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
                         <Save className="w-3.5 h-3.5" />
                         <span>{isSavingProfile ? "Saving..." : "Save Changes"}</span>
@@ -1100,40 +1092,37 @@ export function SettingsModal({
                   </div>
                 </form>
 
-                {/* Inline Change Password Sub-form */}
+                {/* Password Change Sub-form */}
                 {showPasswordModal && (
                   <form
                     onSubmit={handleChangePassword}
-                    className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3 animate-fade-in"
+                    className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3"
                   >
-                    <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
-                      <Lock className="w-3.5 h-3.5 text-cyan-400" /> Update Account Password
+                    <div className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>Update Password</span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <input
-                          type="password"
-                          placeholder="New Password (min 6 chars)"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10 focus:border-cyan-400 outline-none text-zinc-100 placeholder:text-zinc-500"
-                        />
-                      </div>
-                      <div>
-                        <input
-                          type="password"
-                          placeholder="Confirm New Password"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10 focus:border-cyan-400 outline-none text-zinc-100 placeholder:text-zinc-500"
-                        />
-                      </div>
+                      <input
+                        type="password"
+                        placeholder="New password (min 6 chars)"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-600 outline-none text-zinc-100 placeholder:text-zinc-600"
+                      />
+                      <input
+                        type="password"
+                        placeholder="Confirm new password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-600 outline-none text-zinc-100 placeholder:text-zinc-600"
+                      />
                     </div>
 
                     {passwordStatus && (
                       <div
-                        className={`text-xs font-mono ${
+                        className={`text-xs ${
                           passwordStatus.startsWith("success:")
                             ? "text-emerald-400"
                             : "text-red-400"
@@ -1147,14 +1136,14 @@ export function SettingsModal({
                       <button
                         type="button"
                         onClick={() => setShowPasswordModal(false)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-mono text-zinc-400 hover:text-white"
+                        className="px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-white"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
                         disabled={isUpdatingPassword}
-                        className="px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold text-white bg-cyan-600 hover:bg-cyan-500 transition-all cursor-pointer"
+                        className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 transition-colors cursor-pointer"
                       >
                         {isUpdatingPassword ? "Updating..." : "Update Password"}
                       </button>
@@ -1162,62 +1151,34 @@ export function SettingsModal({
                   </form>
                 )}
 
-                <div className="border-t border-white/10 pt-4" />
-
-                {/* Active Session & Sign Out Option */}
-                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                      <span className="text-xs font-mono font-bold text-white">Active Session</span>
-                    </div>
-                    <p className="text-xs text-zinc-400">
-                      Logged in as <span className="font-mono text-zinc-200">{email || name || "Authenticated User"}</span>
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleSignOut}
-                    disabled={isSigningOut}
-                    className="px-4 py-2 rounded-xl font-mono text-xs font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 transition-all flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>{isSigningOut ? "Signing out..." : "Sign Out"}</span>
-                  </button>
-                </div>
-
-                {/* Danger Zone: Delete Account */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-red-950/20 border border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.1)] space-y-3">
+                {/* Danger Zone */}
+                <div className="p-4 rounded-xl bg-red-950/20 border border-red-900/40 space-y-2.5 mt-6">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <h4 className="text-xs sm:text-sm font-mono font-bold text-red-400">
-                        Danger Zone: Delete Account
-                      </h4>
-                      <p className="text-xs text-zinc-400 leading-relaxed">
-                        Permanently purge your account, saved whiteboards, and all session data. This action is irreversible and cannot be undone.
+                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-xs font-semibold text-red-300">Delete Account</div>
+                      <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
+                        Permanently delete your account, saved whiteboards, and all session history. This action cannot be reversed.
                       </p>
                     </div>
                   </div>
 
-                  <div className="pt-2 flex items-center justify-between">
+                  <div className="pt-2 flex justify-end">
                     {deleteAccountSuccess ? (
-                      <span className="text-xs font-mono text-red-400 font-bold">
-                        Account wiped. Redirecting...
-                      </span>
+                      <span className="text-xs text-red-400 font-medium">Account deleted. Redirecting...</span>
                     ) : confirmDeleteAccount ? (
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={handleDeleteAccount}
-                          className="px-4 py-2 rounded-xl font-mono text-xs font-bold text-white bg-red-600 hover:bg-red-700 shadow-[0_0_15px_rgba(239,68,68,0.5)] transition-all cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-red-600 hover:bg-red-700 transition-colors cursor-pointer"
                         >
                           Confirm Delete
                         </button>
                         <button
                           type="button"
                           onClick={() => setConfirmDeleteAccount(false)}
-                          className="px-3 py-2 rounded-xl font-mono text-xs text-zinc-400 hover:text-white bg-white/5"
+                          className="px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-white"
                         >
                           Cancel
                         </button>
@@ -1226,7 +1187,7 @@ export function SettingsModal({
                       <button
                         type="button"
                         onClick={handleDeleteAccount}
-                        className="px-4 py-2 rounded-xl font-mono text-xs font-bold text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 border border-red-500/30 transition-all flex items-center gap-2 cursor-pointer"
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 hover:text-white hover:bg-red-600/80 border border-red-800/60 transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                         <span>Delete Account</span>
@@ -1238,115 +1199,88 @@ export function SettingsModal({
             )}
 
             {/* ============================================================= */}
-            {/* SECTION 2: CANVAS                                            */}
+            {/* TAB 2: CANVAS & GRID                                          */}
             {/* ============================================================= */}
             {activeTab === "canvas" && (
-              <div className="space-y-6 animate-fade-in">
+              <div className="space-y-5 animate-in fade-in duration-150">
                 <div>
-                  <h3 className="font-mono font-bold text-base tracking-tight text-white">Canvas Preferences</h3>
-                  <p className="text-xs text-zinc-400">
-                    Customize your drawing environment, grid alignment matrix, and zoom factors.
+                  <h3 className="text-sm font-semibold text-zinc-100">Canvas Preferences</h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Customize your drawing theme, grid alignment style, and zoom behavior.
                   </p>
                 </div>
 
-                {/* Theme Selector (Dark/Light) */}
-                <div className="space-y-2.5 p-4 rounded-2xl bg-white/[0.03] border border-white/10">
-                  <label className="block text-xs font-mono font-medium text-zinc-300 flex items-center gap-2">
-                    <Sun className="w-4 h-4 text-amber-400" />
-                    <span>Canvas Theme</span>
-                  </label>
-                    <div className="grid grid-cols-3 gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTheme("dark");
-                        onThemeChange?.("dark");
-                        flashSaved();
-                      }}
-                      className={`p-3 rounded-xl border flex flex-col items-center gap-2 font-mono text-xs transition-all cursor-pointer ${
-                        theme === "dark"
-                          ? "border-cyan-400 bg-cyan-500/15 text-cyan-300 font-bold shadow-[0_0_12px_rgba(6,182,212,0.3)]"
-                          : "border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:text-white"
-                      }`}
-                    >
-                      <Moon className="w-5 h-5 text-indigo-400" />
-                      <span>Dark</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTheme("light");
-                        onThemeChange?.("light");
-                        flashSaved();
-                      }}
-                      className={`p-3 rounded-xl border flex flex-col items-center gap-2 font-mono text-xs transition-all cursor-pointer ${
-                        theme === "light"
-                          ? "border-cyan-400 bg-cyan-500/15 text-cyan-300 font-bold shadow-[0_0_12px_rgba(6,182,212,0.3)]"
-                          : "border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:text-white"
-                      }`}
-                    >
-                      <Sun className="w-5 h-5 text-amber-400" />
-                      <span>Light</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTheme("system");
-                        onThemeChange?.("system");
-                        flashSaved();
-                      }}
-                      className={`p-3 rounded-xl border flex flex-col items-center gap-2 font-mono text-xs transition-all cursor-pointer ${
-                        theme === "system"
-                          ? "border-cyan-400 bg-cyan-500/15 text-cyan-300 font-bold shadow-[0_0_12px_rgba(6,182,212,0.3)]"
-                          : "border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:text-white"
-                      }`}
-                    >
-                      <Laptop className="w-5 h-5 text-zinc-400" />
-                      <span>System Auto</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Grid Type (Dots / Lines / Solid) */}
-                <div className="space-y-2.5 p-4 rounded-2xl bg-white/[0.03] border border-white/10">
-                  <label className="block text-xs font-mono font-medium text-zinc-300 flex items-center gap-2">
-                    <Grid className="w-4 h-4 text-cyan-400" />
-                    <span>Grid Style Matrix</span>
+                {/* Theme Selector */}
+                <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2.5">
+                  <label className="block text-xs font-medium text-zinc-300 flex items-center gap-2">
+                    <Sun className="w-4 h-4 text-zinc-400" />
+                    <span>Interface Theme</span>
                   </label>
                   <div className="grid grid-cols-3 gap-2.5">
                     {[
-                      { key: "dots", label: "Dotted Grid", desc: "Subtle 20px dots" },
-                      { key: "lines", label: "Lined Mesh", desc: "Blueprint crosslines" },
-                      { key: "solid", label: "Solid Blank", desc: "Pure dark canvas" },
+                      { key: "dark", label: "Dark", icon: <Moon className="w-4 h-4" /> },
+                      { key: "light", label: "Light", icon: <Sun className="w-4 h-4" /> },
+                      { key: "system", label: "System", icon: <Laptop className="w-4 h-4" /> },
                     ].map((item) => (
                       <button
                         key={item.key}
                         type="button"
-                        onClick={() => handleGridTypeChange(item.key as any)}
-                        className={`p-3 rounded-xl border flex flex-col items-center gap-1 font-mono text-xs transition-all cursor-pointer ${
-                          gridType === item.key
-                            ? "border-cyan-400 bg-cyan-500/15 text-cyan-300 font-bold shadow-[0_0_12px_rgba(6,182,212,0.3)]"
-                            : "border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:text-white"
+                        onClick={() => {
+                          setTheme(item.key);
+                          onThemeChange?.(item.key);
+                          flashSaved();
+                        }}
+                        className={`p-3 rounded-lg border flex flex-col items-center gap-1.5 text-xs transition-all cursor-pointer ${
+                          theme === item.key
+                            ? "border-blue-500 bg-blue-500/10 text-white font-medium shadow-sm"
+                            : "border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white"
                         }`}
                       >
-                        <span className="capitalize">{item.label}</span>
-                        <span className="text-[10px] text-zinc-500 font-sans">{item.desc}</span>
+                        {item.icon}
+                        <span>{item.label}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Auto-Save Toggle */}
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+                {/* Grid Type */}
+                <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2.5">
+                  <label className="block text-xs font-medium text-zinc-300 flex items-center gap-2">
+                    <Grid className="w-4 h-4 text-zinc-400" />
+                    <span>Grid Style</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {[
+                      { key: "dots", label: "Dots", desc: "Subtle 24px grid" },
+                      { key: "lines", label: "Lines", desc: "Cross grid lines" },
+                      { key: "solid", label: "Solid", desc: "Blank canvas" },
+                    ].map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => handleGridTypeChange(item.key as any)}
+                        className={`p-3 rounded-lg border flex flex-col items-center gap-1 text-xs transition-all cursor-pointer ${
+                          gridType === item.key
+                            ? "border-blue-500 bg-blue-500/10 text-white font-medium shadow-sm"
+                            : "border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white"
+                        }`}
+                      >
+                        <span>{item.label}</span>
+                        <span className="text-[10px] text-zinc-500">{item.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Continuous Auto-Save Toggle */}
+                <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900/60 border border-zinc-800">
                   <div className="space-y-0.5 pr-4">
-                    <div className="text-xs sm:text-sm font-mono font-bold text-white flex items-center gap-2">
-                      <Save className="w-4 h-4 text-cyan-400" />
-                      <span>Continuous Auto-Save</span>
+                    <div className="text-xs font-medium text-zinc-200 flex items-center gap-2">
+                      <Save className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>Automatic Cloud Save</span>
                     </div>
                     <p className="text-xs text-zinc-400">
-                      Instantly sync shape elements and drawing changes to local storage and Supabase cloud.
+                      Sync changes automatically to local storage and active session.
                     </p>
                   </div>
                   <ToggleSwitch
@@ -1358,18 +1292,18 @@ export function SettingsModal({
                 </div>
 
                 {/* Default Zoom Slider */}
-                <div className="space-y-3 p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+                <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <div className="text-xs sm:text-sm font-mono font-bold text-white flex items-center gap-2">
-                        <ZoomIn className="w-4 h-4 text-cyan-400" />
+                      <div className="text-xs font-medium text-zinc-200 flex items-center gap-2">
+                        <ZoomIn className="w-3.5 h-3.5 text-zinc-400" />
                         <span>Default Canvas Zoom</span>
                       </div>
                       <p className="text-xs text-zinc-400">
-                        Camera magnification level when opening a new whiteboard session.
+                        Initial zoom factor when opening whiteboard blueprints.
                       </p>
                     </div>
-                    <span className="font-mono text-xs font-bold px-2 py-1 rounded-lg bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                    <span className="text-xs font-medium px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-300">
                       {defaultZoom}%
                     </span>
                   </div>
@@ -1381,128 +1315,124 @@ export function SettingsModal({
                     step={10}
                     value={defaultZoom}
                     onChange={(e) => handleDefaultZoomChange(Number(e.target.value))}
-                    className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                    className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
                   />
-                  <div className="flex justify-between text-[10px] font-mono text-zinc-500">
-                    <span>50% (Overview)</span>
-                    <span>100% (Standard)</span>
-                    <span>150% (Close-up)</span>
+                  <div className="flex justify-between text-[10px] text-zinc-500">
+                    <span>50% (Wide)</span>
+                    <span>100% (Default)</span>
+                    <span>150% (Zoomed)</span>
                   </div>
                 </div>
               </div>
             )}
 
             {/* ============================================================= */}
-            {/* SECTION 3: AI & TOOLS                                        */}
+            {/* TAB 3: AI ENGINES & TOOLS                                     */}
             {/* ============================================================= */}
             {activeTab === "ai_tools" && (
-              <div className="space-y-6 animate-fade-in">
+              <div className="space-y-5 animate-in fade-in duration-150">
                 <div>
-                  <h3 className="font-mono font-bold text-base tracking-tight text-white">AI &amp; Developer Tools</h3>
-                  <p className="text-xs text-zinc-400">
-                    Configure LLM reasoning models, synthesis tone, and Code Studio preferences.
+                  <h3 className="text-sm font-semibold text-zinc-100">AI Engines &amp; Code Studio</h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Select default LLM providers, synthesis tone, and runtime languages.
                   </p>
                 </div>
 
-                {/* Default LLM Model Dropdown */}
-                <div className="space-y-2 p-4 rounded-2xl bg-white/[0.03] border border-white/10">
-                  <label className="block text-xs font-mono font-medium text-zinc-300 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-400" />
-                    <span>Default LLM Model</span>
+                {/* Default LLM Model */}
+                <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
+                  <label className="block text-xs font-medium text-zinc-300 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-zinc-400" />
+                    <span>Default AI Model</span>
                   </label>
                   <select
                     value={defaultModel}
                     onChange={(e) => handleModelChange(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl font-mono text-xs sm:text-sm bg-white/5 border border-white/10 focus:border-purple-400 focus:ring-1 focus:ring-purple-400 outline-none text-zinc-100 cursor-pointer"
+                    className="w-full px-3 py-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-600 outline-none text-zinc-100 cursor-pointer"
                   >
                     <option value="groq-llama-3.3-70b" className="bg-zinc-900 text-white">
-                      Groq Llama 3.3 70B Versatile (Ultra-Fast Inference)
+                      Groq Llama 3.3 70B (Fast Low-Latency Inference)
                     </option>
                     <option value="gemini-1.5-pro" className="bg-zinc-900 text-white">
-                      Google Gemini 1.5 Pro (Deep Visual &amp; Canvas Logic)
+                      Google Gemini 1.5 Pro (Deep Architecture Reasoning)
                     </option>
                     <option value="gemini-1.5-flash" className="bg-zinc-900 text-white">
-                      Google Gemini 1.5 Flash (Balanced Low Latency)
+                      Google Gemini 1.5 Flash (Balanced Fast Mode)
                     </option>
                     <option value="gpt-4o-mini" className="bg-zinc-900 text-white">
                       OpenAI GPT-4o Mini (Standard Multimodal)
                     </option>
                   </select>
                   <p className="text-[11px] text-zinc-400">
-                    Powers the "Board Brain" canvas summarizer, AI Agent assistant, and code generation.
+                    Powers the AI Co-Pilot drawer, topology generation, and architecture summarization.
                   </p>
                 </div>
 
-                {/* AI Response Tone */}
-                <div className="space-y-2 p-4 rounded-2xl bg-white/[0.03] border border-white/10">
-                  <label className="block text-xs font-mono font-medium text-zinc-300 flex items-center gap-2">
-                    <Cpu className="w-4 h-4 text-cyan-400" />
-                    <span>AI Response Tone</span>
+                {/* Response Tone */}
+                <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2.5">
+                  <label className="block text-xs font-medium text-zinc-300 flex items-center gap-2">
+                    <Cpu className="w-4 h-4 text-zinc-400" />
+                    <span>Response Tone</span>
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
-                      { key: "concise", label: "Concise", desc: "Bullet points & punchy" },
+                      { key: "concise", label: "Concise", desc: "Bullet points & summaries" },
                       { key: "detailed", label: "Comprehensive", desc: "Full architectural depth" },
-                      { key: "technical", label: "Architect", desc: "Strict code & schemas" },
-                      { key: "creative", label: "Brainstorming", desc: "Expansive & ideation" },
+                      { key: "technical", label: "Architect", desc: "Strict specs & schemas" },
+                      { key: "creative", label: "Ideation", desc: "Brainstorming & exploration" },
                     ].map((t) => (
                       <button
                         key={t.key}
                         type="button"
                         onClick={() => handleToneChange(t.key)}
-                        className={`p-2.5 rounded-xl border flex flex-col items-center gap-1 font-mono text-xs transition-all cursor-pointer ${
+                        className={`p-2.5 rounded-lg border flex flex-col items-center gap-1 text-xs transition-all cursor-pointer ${
                           aiTone === t.key
-                            ? "border-purple-400 bg-purple-500/15 text-purple-300 font-bold shadow-[0_0_10px_rgba(168,85,247,0.3)]"
-                            : "border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:text-white"
+                            ? "border-blue-500 bg-blue-500/10 text-white font-medium shadow-sm"
+                            : "border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700 hover:text-white"
                         }`}
                       >
                         <span>{t.label}</span>
-                        <span className="text-[9px] text-zinc-500 font-sans text-center">{t.desc}</span>
+                        <span className="text-[10px] text-zinc-500 text-center">{t.desc}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Code Studio Settings: Language & Font Size */}
-                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4">
-                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-white">
-                    <Code2 className="w-4 h-4 text-cyan-400" />
+                {/* Code Studio Defaults */}
+                <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3.5">
+                  <div className="text-xs font-semibold text-zinc-200 flex items-center gap-2">
+                    <Code2 className="w-4 h-4 text-zinc-400" />
                     <span>Code Studio Defaults</span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Language Selection */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-mono text-zinc-300">
-                        Default Runtime Language
-                      </label>
+                      <label className="block text-xs text-zinc-300">Default Language</label>
                       <select
                         value={defaultCodeLang}
                         onChange={(e) => handleCodeLangChange(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl font-mono text-xs bg-white/5 border border-white/10 focus:border-cyan-400 outline-none text-zinc-100 cursor-pointer"
+                        className="w-full px-3 py-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-600 outline-none text-zinc-100 cursor-pointer"
                       >
-                        <option value="python" className="bg-zinc-900 text-white">Python (Pyodide / Py3)</option>
+                        <option value="python" className="bg-zinc-900 text-white">Python (Pyodide)</option>
                         <option value="javascript" className="bg-zinc-900 text-white">JavaScript (Node ES2024)</option>
                         <option value="typescript" className="bg-zinc-900 text-white">TypeScript (Strict)</option>
-                        <option value="html" className="bg-zinc-900 text-white">HTML / CSS Web Component</option>
+                        <option value="html" className="bg-zinc-900 text-white">HTML / CSS Component</option>
                         <option value="sql" className="bg-zinc-900 text-white">SQL (PostgreSQL / SQLite)</option>
                         <option value="rust" className="bg-zinc-900 text-white">Rust (WebAssembly)</option>
                       </select>
                     </div>
 
-                    {/* Font Size Selection */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-mono text-zinc-300 flex items-center gap-1.5">
-                        <Type className="w-3.5 h-3.5 text-zinc-400" />
-                        <span>Editor Font Size</span>
+                      <label className="block text-xs text-zinc-300 flex items-center gap-1">
+                        <Type className="w-3.5 h-3.5 text-zinc-500" />
+                        <span>Font Size</span>
                       </label>
                       <select
                         value={editorFontSize}
                         onChange={(e) => handleFontSizeChange(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl font-mono text-xs bg-white/5 border border-white/10 focus:border-cyan-400 outline-none text-zinc-100 cursor-pointer"
+                        className="w-full px-3 py-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-600 outline-none text-zinc-100 cursor-pointer"
                       >
                         <option value="12" className="bg-zinc-900 text-white">12px (Compact)</option>
-                        <option value="14" className="bg-zinc-900 text-white">14px (Recommended)</option>
+                        <option value="14" className="bg-zinc-900 text-white">14px (Standard)</option>
                         <option value="16" className="bg-zinc-900 text-white">16px (Medium)</option>
                         <option value="18" className="bg-zinc-900 text-white">18px (Large)</option>
                       </select>
@@ -1513,147 +1443,103 @@ export function SettingsModal({
             )}
 
             {/* ============================================================= */}
-            {/* SECTION 4: BILLING                                           */}
+            {/* TAB 4: BILLING & PLANS                                        */}
             {/* ============================================================= */}
             {activeTab === "billing" && (
-              <div className="space-y-6 animate-fade-in">
+              <div className="space-y-5 animate-in fade-in duration-150">
                 <div>
-                  <h3 className="font-mono font-bold text-base tracking-tight text-white">Billing &amp; Subscription</h3>
-                  <p className="text-xs text-zinc-400">
-                    Manage your subscription tier, billing invoices, and daily AI quotas.
+                  <h3 className="text-sm font-semibold text-zinc-100">Billing &amp; Subscription</h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    View active plan, redeem promo vouchers, and download invoice receipts.
                   </p>
                 </div>
 
-                {/* Current Plan Card */}
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.08] border border-white/10 relative overflow-hidden">
+                {/* Plan Card */}
+                <div className="p-5 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-4">
                   <div className="flex items-start justify-between">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2.5">
-                        <h4 className="font-mono font-bold text-lg text-white">
-                          {isPro ? "MasmSpace PRO" : "Free Starter Plan"}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-base font-semibold text-white">
+                          {isPro ? "MasmSpace Professional" : "Starter Plan"}
                         </h4>
-                        {isPro ? (
-                          <span className="px-2.5 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-wider border bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.35)] flex items-center gap-1">
-                            <Sparkles className="w-3 h-3 text-cyan-400" />
-                            {userTier === "enterprise" ? "UNLIMITED" : "PRO PLAN"}
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-wider border bg-zinc-800 text-zinc-400 border-zinc-700">
-                            FREE PLAN
-                          </span>
-                        )}
+                        <span
+                          className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                            isPro
+                              ? "bg-blue-500/15 text-blue-400 border border-blue-500/30"
+                              : "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                          }`}
+                        >
+                          {isPro ? "ACTIVE PRO" : "FREE"}
+                        </span>
                       </div>
                       <p className="text-xs text-zinc-400 max-w-md leading-relaxed">
                         {isPro
-                          ? "You have full access to Unlimited AI Generations, 4K exports, laser multiplayer, and Board Brain intelligence."
-                          : "You are currently on the basic free plan with standard limits. Upgrade for Unlimited AI Generations, 4K exports, and real-time collaboration."}
+                          ? "Includes 300 daily AI generations, 4K canvas exports, and real-time collaboration."
+                          : "Basic starter plan with standard 15 lifetime generations and standard exports."}
                       </p>
                     </div>
 
-                    <div className="p-3 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shrink-0">
-                      <Crown className="w-6 h-6" />
+                    <div className="p-2.5 rounded-lg bg-zinc-800 text-zinc-300 border border-zinc-700">
+                      <Crown className="w-5 h-5" />
                     </div>
                   </div>
 
-                  {/* Quota Bar */}
-                  <div className="mt-5 pt-4 border-t border-white/10 space-y-2">
-                    <div className="flex justify-between text-xs font-mono">
-                      <span className="text-zinc-400">Daily AI Action Quota</span>
+                  <div className="pt-3 border-t border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
                       {isPro ? (
-                        <span className="font-bold text-emerald-400 flex items-center gap-1.5 shadow-sm">
-                          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                          Unlimited AI Generations
-                        </span>
+                        <div className="flex items-center gap-2 text-xs text-zinc-300">
+                          <Check className="w-4 h-4 text-emerald-400" />
+                          <span>Subscription is active</span>
+                          {proExpiryDate && (
+                            <span className="text-zinc-500">
+                              (Expires {new Date(proExpiryDate).toLocaleDateString()})
+                            </span>
+                          )}
+                        </div>
                       ) : (
-                        <span className="font-bold text-white">
-                          Actions: {dynamicActionsUsed} / {dynamicActionLimit}
-                        </span>
+                        <div className="text-xs text-zinc-400">
+                          Upgrade to PRO for {currency === "INR" ? "₹149/month" : "$5/month"}.
+                        </div>
                       )}
                     </div>
-                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                      {isPro ? (
-                        <div className="h-full w-full rounded-full bg-gradient-to-r from-cyan-400 via-emerald-400 to-indigo-500 shadow-[0_0_12px_rgba(52,211,153,0.5)]" />
-                      ) : (
-                        <div
-                          className="h-full rounded-full bg-cyan-500 transition-all duration-500 shadow-[0_0_8px_rgba(6,182,212,0.4)]"
-                          style={{
-                            width: `${Math.min(
-                              100,
-                              (dynamicActionsUsed / Math.max(1, dynamicActionLimit)) * 100
-                            )}%`,
-                          }}
-                        />
-                      )}
-                    </div>
-                    <p className="text-[11px] text-zinc-400 font-mono">
-                      {isPro
-                        ? "Enterprise-grade quota unlocked: unlimited model inference with Gemini 1.5 Pro and Groq Llama 3.3."
-                        : "Upgrade to PRO to unlock Unlimited AI Generations and remove daily execution caps."}
-                    </p>
-                  </div>
 
-                  {/* Razorpay Upgrade Button or Manage Button */}
-                  <div className="mt-5 flex items-center gap-3">
-                    {isPro ? (
-                      <div className="flex items-center gap-2">
-                        <span className="px-3.5 py-2 rounded-xl text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1.5">
-                          <Check className="w-4 h-4" /> Subscription Active
-                        </span>
-                        {proExpiryDate && (
-                          <span className="px-3 py-2 rounded-xl text-xs font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5" />
-                            Expires: {new Date(proExpiryDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
+                    {!isPro && onOpenUpgradeModal && (
                       <button
                         type="button"
                         onClick={() => {
                           onClose();
                           onOpenUpgradeModal?.();
                         }}
-                        className="px-5 py-2.5 rounded-xl font-mono text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all flex items-center gap-2 cursor-pointer"
+                        className="px-4 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
-                        <CreditCard className="w-4 h-4" />
-                        <span>Upgrade to PRO ({currency === "INR" ? "₹149/mo" : "$5/mo"} via Razorpay)</span>
+                        <Sparkles className="w-4 h-4" />
+                        <span>Upgrade to Pro</span>
                       </button>
                     )}
                   </div>
                 </div>
 
-                {/* Redeem Promo Code Section */}
-                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                        <Tag className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="font-mono font-bold text-sm text-white">Redeem Promo Code</h4>
-                        <p className="text-[11px] text-zinc-400">
-                          Have a promotional voucher or partner code? Redeem it below for free PRO access.
-                        </p>
-                      </div>
-                    </div>
+                {/* Redeem Promo Code */}
+                <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-zinc-200">
+                    <Tag className="w-4 h-4 text-zinc-400" />
+                    <span>Redeem Promo Code</span>
                   </div>
 
-                  <form onSubmit={handleRedeemPromo} className="space-y-3">
+                  <form onSubmit={handleRedeemPromo} className="space-y-2.5">
                     <div className="flex items-center gap-2">
-                      <div className="relative flex-1">
-                        <input
-                          type="text"
-                          value={promoCodeInput}
-                          onChange={(e) => setPromoCodeInput(e.target.value)}
-                          placeholder="Enter promo code (e.g. SaNdAk)"
-                          disabled={isRedeemingPromo}
-                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-mono text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 uppercase tracking-wider disabled:opacity-50"
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        value={promoCodeInput}
+                        onChange={(e) => setPromoCodeInput(e.target.value)}
+                        placeholder="Enter coupon or promo code"
+                        disabled={isRedeemingPromo}
+                        className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 uppercase tracking-wider disabled:opacity-50"
+                      />
                       <button
                         type="submit"
                         disabled={isRedeemingPromo || !promoCodeInput.trim()}
-                        className="px-5 py-2.5 rounded-xl font-mono text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(6,182,212,0.3)] shrink-0"
+                        className="px-4 py-2 rounded-lg text-xs font-medium text-white bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
                         {isRedeemingPromo ? (
                           <>
@@ -1661,52 +1547,46 @@ export function SettingsModal({
                             <span>Applying...</span>
                           </>
                         ) : (
-                          <>
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Apply</span>
-                          </>
+                          <span>Apply</span>
                         )}
                       </button>
                     </div>
 
-                    {/* Status Feedback Toast / Banner */}
                     {promoStatus.type === "success" && (
-                      <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono flex items-center gap-2 animate-fade-in">
-                        <Check className="w-4 h-4 shrink-0 text-emerald-400" />
+                      <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+                        <Check className="w-3.5 h-3.5 shrink-0" />
                         <span>{promoStatus.message}</span>
                       </div>
                     )}
                     {promoStatus.type === "error" && (
-                      <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-mono flex items-center gap-2 animate-fade-in">
-                        <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                      <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                         <span>{promoStatus.message}</span>
                       </div>
                     )}
                   </form>
                 </div>
 
-                {/* Billing History Placeholder */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-mono font-bold text-zinc-300 flex items-center gap-2">
-                      <Receipt className="w-4 h-4 text-cyan-400" />
-                      <span>Billing &amp; Invoice History</span>
-                    </h4>
+                {/* Billing History */}
+                <div className="space-y-2.5">
+                  <div className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+                    <Receipt className="w-4 h-4 text-zinc-400" />
+                    <span>Invoices</span>
                   </div>
 
-                  <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/[0.02]">
+                  <div className="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-900/60">
                     {isPro ? (
-                      <table className="w-full text-left font-mono text-xs">
+                      <table className="w-full text-left text-xs">
                         <thead>
-                          <tr className="border-b border-white/10 bg-white/5 text-zinc-400">
-                            <th className="py-2.5 px-4">Invoice</th>
-                            <th className="py-2.5 px-4">Date</th>
-                            <th className="py-2.5 px-4">Amount</th>
-                            <th className="py-2.5 px-4">Status</th>
-                            <th className="py-2.5 px-4 text-right">Receipt</th>
+                          <tr className="border-b border-zinc-800 bg-zinc-900/80 text-zinc-400">
+                            <th className="py-2.5 px-4 font-medium">Invoice</th>
+                            <th className="py-2.5 px-4 font-medium">Date</th>
+                            <th className="py-2.5 px-4 font-medium">Amount</th>
+                            <th className="py-2.5 px-4 font-medium">Status</th>
+                            <th className="py-2.5 px-4 font-medium text-right">Download</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5">
+                        <tbody className="divide-y divide-zinc-800/60 text-zinc-300">
                           {[
                             {
                               id: "INV-2026-0901",
@@ -1717,27 +1597,23 @@ export function SettingsModal({
                             },
                           ].map((inv) => (
                             <tr key={inv.id}>
-                              <td className="py-3 px-4 text-white font-medium">{inv.id}</td>
-                              <td className="py-3 px-4 text-zinc-400">{inv.date}</td>
-                              <td className="py-3 px-4 text-white">{inv.amount}</td>
-                              <td className="py-3 px-4">
-                                <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                              <td className="py-2.5 px-4 font-medium text-white">{inv.id}</td>
+                              <td className="py-2.5 px-4 text-zinc-400">{inv.date}</td>
+                              <td className="py-2.5 px-4">{inv.amount}</td>
+                              <td className="py-2.5 px-4">
+                                <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-medium">
                                   Paid
                                 </span>
                               </td>
-                              <td className="py-3 px-4 text-right">
+                              <td className="py-2.5 px-4 text-right">
                                 <button
                                   type="button"
                                   disabled={downloadingInvoiceId === inv.id}
                                   onClick={() => handleDownloadInvoice(inv)}
-                                  className="text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs font-semibold"
-                                  title={`Download ${inv.id} PDF`}
+                                  className="text-blue-400 hover:text-blue-300 inline-flex items-center gap-1 cursor-pointer disabled:opacity-50 text-xs font-medium"
                                 >
                                   {downloadingInvoiceId === inv.id ? (
-                                    <>
-                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                      <span>Generating...</span>
-                                    </>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                   ) : (
                                     <>
                                       <Download className="w-3.5 h-3.5" />
@@ -1751,14 +1627,9 @@ export function SettingsModal({
                         </tbody>
                       </table>
                     ) : (
-                      <div className="p-6 text-center space-y-2">
-                        <Receipt className="w-8 h-8 text-zinc-600 mx-auto" />
-                        <p className="text-xs font-mono text-zinc-400">
-                          No previous invoices found on Free Tier.
-                        </p>
-                        <p className="text-[11px] text-zinc-500">
-                          Upgrade to PRO via Razorpay to view instant receipts and monthly invoice statements.
-                        </p>
+                      <div className="p-6 text-center space-y-1.5">
+                        <Receipt className="w-6 h-6 text-zinc-600 mx-auto" />
+                        <p className="text-xs text-zinc-400">No invoices yet on Free Plan.</p>
                       </div>
                     )}
                   </div>
@@ -1767,26 +1638,25 @@ export function SettingsModal({
             )}
 
             {/* ============================================================= */}
-            {/* SECTION 5: PRIVACY & MULTIPLAYER                             */}
+            {/* TAB 5: PRIVACY & COLLABORATION                                */}
             {/* ============================================================= */}
             {activeTab === "privacy" && (
-              <div className="space-y-6 animate-fade-in">
+              <div className="space-y-5 animate-in fade-in duration-150">
                 <div>
-                  <h3 className="font-mono font-bold text-base tracking-tight text-white">Privacy &amp; Multiplayer</h3>
-                  <p className="text-xs text-zinc-400">
-                    Control collaborative visibility, live cursor broadcasting, and notification alerts.
+                  <h3 className="text-sm font-semibold text-zinc-100">Privacy &amp; Collaboration</h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Configure collaborative visibility, live cursor sharing, and notifications.
                   </p>
                 </div>
 
-                {/* Broadcast Cursor Toggle */}
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900/60 border border-zinc-800">
                   <div className="space-y-0.5 pr-4">
-                    <div className="text-xs sm:text-sm font-mono font-bold text-white flex items-center gap-2">
-                      <MousePointer className="w-4 h-4 text-cyan-400" />
-                      <span>Broadcast My Cursor</span>
+                    <div className="text-xs font-medium text-zinc-200 flex items-center gap-2">
+                      <MousePointer className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>Broadcast Live Cursor</span>
                     </div>
                     <p className="text-xs text-zinc-400">
-                      Allows remote team members to see your cursor coordinates, laser pointer, and element selections in real-time.
+                      Allows connected collaborators to see your pointer movements and laser trails.
                     </p>
                   </div>
                   <ToggleSwitch
@@ -1797,15 +1667,14 @@ export function SettingsModal({
                   />
                 </div>
 
-                {/* Email Notifications Toggle */}
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900/60 border border-zinc-800">
                   <div className="space-y-0.5 pr-4">
-                    <div className="text-xs sm:text-sm font-mono font-bold text-white flex items-center gap-2">
-                      <Bell className="w-4 h-4 text-cyan-400" />
+                    <div className="text-xs font-medium text-zinc-200 flex items-center gap-2">
+                      <Bell className="w-3.5 h-3.5 text-zinc-400" />
                       <span>Email Notifications</span>
                     </div>
                     <p className="text-xs text-zinc-400">
-                      Receive weekly canvas summaries, shared board invitations, and security activity alerts.
+                      Receive weekly board summaries and workspace activity updates.
                     </p>
                   </div>
                   <ToggleSwitch
@@ -1816,91 +1685,81 @@ export function SettingsModal({
                   />
                 </div>
 
-                {/* Security & End-to-End Privacy Note */}
-                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-zinc-300">
+                <div className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-800 space-y-1.5">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300">
                     <Shield className="w-4 h-4 text-emerald-400" />
-                    <span>Workspace Data Isolation</span>
+                    <span>Encrypted Collaboration</span>
                   </div>
                   <p className="text-xs text-zinc-400 leading-relaxed">
-                    MasmSpace transmits collaborative strokes through encrypted WebSockets. Your canvas assets and code studio files remain private to invited board members.
+                    Collaborative changes are transmitted securely. Canvas drawings and code scripts remain accessible only to authorized session participants.
                   </p>
                 </div>
               </div>
             )}
 
             {/* ============================================================= */}
-            {/* SECTION 6: KEYBOARD SHORTCUTS                                 */}
+            {/* TAB 6: KEYBOARD SHORTCUTS                                     */}
             {/* ============================================================= */}
             {activeTab === "shortcuts" && (
-              <div className="space-y-6 animate-fade-in">
+              <div className="space-y-5 animate-in fade-in duration-150">
                 <div>
-                  <h3 className="font-mono font-bold text-base tracking-tight text-white flex items-center gap-2">
-                    <Keyboard className="w-5 h-5 text-amber-400" />
-                    <span>Canvas Keyboard Shortcuts</span>
+                  <h3 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                    <Keyboard className="w-4 h-4 text-zinc-400" />
+                    <span>Keyboard Shortcuts</span>
                   </h3>
-                  <p className="text-xs text-zinc-400">
-                    Boost your whiteboard workflow with rapid keyboard hotkeys, shape drawers, and history undo controls.
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Quick navigation, drawing modes, and canvas editing shortcuts.
                   </p>
                 </div>
 
-                {/* Shortcuts Table */}
-                <div className="rounded-2xl bg-white/[0.02] border border-white/10 overflow-hidden shadow-2xl">
-                  <div className="px-5 py-3 bg-white/[0.04] border-b border-white/10 flex items-center justify-between text-[11px] font-mono font-bold text-zinc-400 uppercase tracking-wider">
-                    <span>Tool / Command</span>
-                    <span>Shortcut Key</span>
+                <div className="rounded-xl bg-zinc-900/60 border border-zinc-800 overflow-hidden shadow-sm">
+                  <div className="px-4 py-2.5 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between text-xs font-medium text-zinc-400">
+                    <span>Action / Command</span>
+                    <span>Shortcut</span>
                   </div>
 
-                  <div className="divide-y divide-white/5">
+                  <div className="divide-y divide-zinc-800/60">
                     {[
-                      { action: "Select / Pointer Mode", key: "V", category: "Navigation", icon: "cursor" },
-                      { action: "Pan Canvas / Hand Tool", key: "H", category: "Navigation", icon: "hand" },
-                      { action: "Freehand Pen (Draw)", key: "P", category: "Drawing", icon: "pen" },
-                      { action: "Stroke Eraser", key: "E", category: "Drawing", icon: "eraser" },
-                      { action: "Neon Highlighter", key: "Shift + H", category: "Drawing", icon: "highlighter" },
-                      { action: "Laser Pointer", key: "L", category: "Presentation", icon: "laser" },
-                      { action: "Shapes & Architecture Menu", key: "S", category: "Architecture", icon: "shapes" },
-                      { action: "Text Architecture Note", key: "T", category: "Annotation", icon: "text" },
-                      { action: "Sticky Note", key: "N", category: "Annotation", icon: "stickyNote" },
-                      { action: "Undo Last Action", key: "Ctrl + Z / ⌘Z", category: "Edit & History", icon: "undo" },
-                      { action: "Copy Selected Node(s)", key: "Ctrl + C / ⌘C", category: "Edit & History", icon: "copy" },
-                      { action: "Paste Copied Node(s)", key: "Ctrl + V / ⌘V", category: "Edit & History", icon: "paste" },
-                      { action: "Group into Boundary (VPC)", key: "Ctrl + G / ⌘G", category: "Architecture", icon: "group" },
-                      { action: "Fit Blueprint to Screen", key: "F", category: "View", icon: "fit" },
-                      { action: "Cancel Tool / Reset to Pointer", key: "Esc", category: "General", icon: "esc" },
+                      { action: "Select & Pointer Mode", key: "V", category: "Navigation" },
+                      { action: "Pan Canvas (Hand)", key: "H", category: "Navigation" },
+                      { action: "Pen Tool", key: "P", category: "Drawing" },
+                      { action: "Stroke Eraser", key: "E", category: "Drawing" },
+                      { action: "Highlighter Tool", key: "Shift + H", category: "Drawing" },
+                      { action: "Laser Pointer", key: "L", category: "Presentation" },
+                      { action: "Architecture Shapes", key: "S", category: "Elements" },
+                      { action: "Architecture Text Note", key: "T", category: "Notes" },
+                      { action: "Sticky Task Note", key: "N", category: "Notes" },
+                      { action: "Undo Action", key: "Ctrl + Z", category: "History" },
+                      { action: "Copy Selection", key: "Ctrl + C", category: "Clipboard" },
+                      { action: "Paste At Cursor", key: "Ctrl + V", category: "Clipboard" },
+                      { action: "Group into Subnet", key: "Ctrl + G", category: "Organization" },
+                      { action: "Zoom to Fit", key: "F", category: "View" },
+                      { action: "Deselect / Cancel", key: "Esc", category: "General" },
                     ].map((shortcut, idx) => (
                       <div
                         key={idx}
-                        className="px-5 py-3 flex items-center justify-between hover:bg-white/[0.03] transition-colors group"
+                        className="px-4 py-2.5 flex items-center justify-between hover:bg-zinc-800/40 transition-colors"
                       >
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-zinc-200 group-hover:text-cyan-300 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-medium text-zinc-200">
                             {shortcut.action}
                           </span>
-                          <span className="text-[10px] text-zinc-500 font-mono">
+                          <span className="text-[11px] text-zinc-500">
                             {shortcut.category}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          {shortcut.key.split(" / ").map((k, kIdx) => (
-                            <React.Fragment key={kIdx}>
-                              {kIdx > 0 && <span className="text-[10px] text-zinc-600">or</span>}
-                              <kbd className="px-2.5 py-1 rounded-lg bg-[#181820] border border-white/20 text-cyan-300 font-mono text-xs font-bold shadow-[0_2px_6px_rgba(0,0,0,0.5)]">
-                                {k}
-                              </kbd>
-                            </React.Fragment>
-                          ))}
-                        </div>
+                        <kbd className="px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700/80 text-zinc-300 font-mono text-xs shadow-none">
+                          {shortcut.key}
+                        </kbd>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Pro Tip Callout */}
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/30 to-indigo-950/30 border border-cyan-400/30 text-xs text-zinc-300 flex items-start gap-3 shadow-[0_0_20px_rgba(6,182,212,0.1)]">
-                  <Sparkles className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-xs text-zinc-400 flex items-start gap-2.5">
+                  <Sparkles className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
                   <p className="leading-relaxed">
-                    <strong className="text-cyan-300 font-semibold">Pro Tip:</strong> Shortcuts are active globally across the canvas whenever you are not actively typing inside a text or sticky note editor. Press <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 text-cyan-300 font-mono text-[10px]">S</kbd> anytime to open the architecture shapes library.
+                    Shortcuts are active across the canvas whenever you are not actively typing in an input field or text note.
                   </p>
                 </div>
               </div>

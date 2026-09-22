@@ -30,6 +30,8 @@ import {
   AI_PROMPT_LIBRARY,
   AI_PROMPT_CATEGORIES,
 } from "@/lib/aiPromptLibrary";
+import { useMixAIChat } from "@/lib/useMixAI";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 
 export interface QuotaState {
   tier: "free" | "pro" | "enterprise";
@@ -93,6 +95,19 @@ export default function AICoPilotDrawer({
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { sendMessage: sendMixChatMessage } = useMixAIChat();
+
+  // ── Unified Global Quota State (Single Source of Truth) ──
+  // Sourced from SubscriptionContext — never maintains its own stale defaults.
+  const subscription = useSubscription();
+  const quota = {
+    tier: subscription.tier as "free" | "pro" | "enterprise",
+    isPro: subscription.isPro,
+    actionsUsed: subscription.actionsUsed,
+    actionLimit: subscription.actionLimit,
+    displayQuota: subscription.displayQuota,
+    resetAt: subscription.resetAt,
+  };
 
   // Chat message thread state
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -100,53 +115,17 @@ export default function AICoPilotDrawer({
       id: "welcome-msg",
       role: "assistant",
       content:
-        "👋 Welcome! I am **MIX AI**, your Principal Cloud & Architecture Partner.\n\nAsk me any deep technical question (e.g. *\"What is a reverse proxy?\"*, *\"Explain Kafka consumer groups\"*) or select an architecture command to synthesize connected topologies directly on your canvas.",
+        "\ud83d\udc4b Welcome! I am **MIX AI**, your Principal Cloud & Architecture Partner.\n\nAsk me any deep technical question (e.g. *\"What is a reverse proxy?\"*, *\"Explain Kafka consumer groups\"*) or select an architecture command to synthesize connected topologies directly on your canvas.",
       timestamp: "Just now",
     },
   ]);
 
-  // Quota state
-  const [quota, setQuota] = useState<QuotaState>({
-    tier: "free",
-    isPro: false,
-    actionsUsed: 12,
-    actionLimit: 15,
-    displayQuota: "12/15 Free Limits",
-  });
-
-  const refreshQuota = async () => {
-    try {
-      const res = await fetch("/api/generate?action=quota", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const isPro = Boolean(data.isPro || data.tier === "pro" || data.tier === "enterprise");
-        const actionsUsed = typeof data.used === "number" ? data.used : 12;
-        const actionLimit = isPro ? 300 : 15;
-        const displayQuota = isPro
-          ? `${actionsUsed}/300 Daily Pro Uses`
-          : `${actionsUsed}/15 Free Limits`;
-
-        setQuota({
-          tier: isPro ? "pro" : "free",
-          isPro,
-          actionsUsed,
-          actionLimit,
-          resetAt: data.resetAt,
-          displayQuota,
-        });
-      }
-    } catch {
-      // Keep state defaults
-    }
-  };
-
+  // Refresh quota from global context when drawer is opened
   useEffect(() => {
     if (isOpen) {
-      refreshQuota();
+      subscription.refreshQuota();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Auto-scroll chat to bottom
@@ -162,7 +141,7 @@ export default function AICoPilotDrawer({
     try {
       const stored =
         localStorage.getItem("favorited_prompt_ids") ||
-        localStorage.getItem("masmspace_favorite_prompts");
+        localStorage.getItem("Prathomix_favorite_prompts");
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -179,7 +158,7 @@ export default function AICoPilotDrawer({
       const next = isFav ? prev.filter((item) => item !== id) : [...prev, id];
       try {
         localStorage.setItem("favorited_prompt_ids", JSON.stringify(next));
-        localStorage.setItem("masmspace_favorite_prompts", JSON.stringify(next));
+        localStorage.setItem("Prathomix_favorite_prompts", JSON.stringify(next));
       } catch (err) {
         console.error("Failed to save favorited prompts:", err);
       }
@@ -292,15 +271,8 @@ export default function AICoPilotDrawer({
     setPromptInput("");
     setIsGenerating(true);
 
-    // Optimistically update quota
-    const newUsed = quota.actionsUsed + 1;
-    setQuota((prev) => ({
-      ...prev,
-      actionsUsed: newUsed,
-      displayQuota: prev.isPro
-        ? `${newUsed}/300 Daily Pro Uses`
-        : `${newUsed}/15 Free Limits`,
-    }));
+    // Refresh quota after sending — triggers context re-fetch
+    setTimeout(() => subscription.refreshQuota(), 1500);
 
     try {
       // 1. If it has architecture intent, synthesize blueprint on the React Flow canvas
@@ -308,28 +280,13 @@ export default function AICoPilotDrawer({
         onGenerateArchitecture(text);
       }
 
-      // 2. Fetch technical conversational response from LLM endpoint (/api/chat)
+      // 2. Fetch technical conversational response via SWR with caching & exponential backoff
       const systemPrompt = isArchRequest
         ? "You are MIX AI, a Principal Systems & Cloud Architect. The user requested an architecture blueprint. Provide a clear, technical architectural breakdown in clean Markdown, highlighting Key Components, Ingress/Egress data flow, Security & Resilience, and Recommended Metrics."
         : "You are MIX AI, an expert Principal Full-Stack Developer and Cloud Architect. Provide crisp, structured, deeply informative technical answers in Markdown format with code snippets, architecture diagrams (ASCII/Markdown), trade-offs, and best practices.";
 
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: text,
-          systemPrompt,
-          mode: "chat",
-        }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `HTTP ${res.status}: Failed to reach AI endpoint`);
-      }
-
-      const data = await res.json();
-      const answer = data.text || "I processed your request. See canvas topology.";
+      const chatData = await sendMixChatMessage(text, systemPrompt, "chat", quota.isPro);
+      const answer = chatData?.text || "I processed your request. See canvas topology.";
 
       setMessages((prev) => [
         ...prev,

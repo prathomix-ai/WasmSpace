@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { handleApiError } from "@/lib/api-error";
+import { validateAndApplyCoupon } from "@/lib/coupon";
+import { getPlanPrice, CurrencyCode, BillingPlan } from "@/lib/currency";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -56,28 +59,43 @@ export async function POST(req: NextRequest) {
     const key_secret = process.env.RAZORPAY_KEY_SECRET;
 
     const body = await req.json().catch(() => ({}));
-    const { plan = "monthly", currency = "USD", amount, receipt, user_email } = body;
-    const isYearly = plan === "yearly";
-    const effectiveEmail = authenticatedUserEmail || user_email || "user@masmspace.online";
+    const { plan = "monthly", currency = "USD", receipt, user_email, coupon_code } = body;
+    const effectiveEmail = authenticatedUserEmail || user_email || "user@masmspace.tech";
 
-    // ── 1. Normalize Multi-Currency & Subunit Amounts (* 100) ───────────────
-    const normalizedCurrency: "USD" | "INR" =
+    // ── 1. Normalize Multi-Currency & Plan ───────────────────────────────────
+    const normalizedCurrency: CurrencyCode =
       String(currency).toUpperCase() === "INR" ? "INR" : "USD";
+    const normalizedPlan: BillingPlan = plan === "yearly" ? "yearly" : "monthly";
 
-    let amountInSubunits: number;
-    if (amount && Number(amount) > 0) {
-      amountInSubunits = Math.round(Number(amount));
-    } else {
-      // USD: $5/mo -> 500 cents, $49/yr -> 4900 cents
-      // INR: ₹149/mo -> 14900 paise, ₹1499/yr -> 149900 paise
-      if (normalizedCurrency === "INR") {
-        amountInSubunits = isYearly ? 149900 : 14900;
-      } else {
-        amountInSubunits = isYearly ? 4900 : 500;
+    // ── 2. Calculate Subunits with Strict Backend Coupon Validation ─────────
+    const basePlanPrice = getPlanPrice(normalizedPlan, normalizedCurrency);
+    let amountInSubunits = basePlanPrice.subunits;
+    let appliedCoupon: string | null = null;
+    let discountPercent = 0;
+
+    if (coupon_code && typeof coupon_code === "string" && coupon_code.trim()) {
+      const couponResult = validateAndApplyCoupon(
+        coupon_code,
+        normalizedPlan,
+        normalizedCurrency
+      );
+
+      if (!couponResult.valid) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: couponResult.error || "Invalid coupon code.",
+          },
+          { status: 400 }
+        );
       }
+
+      amountInSubunits = couponResult.discountedSubunits || amountInSubunits;
+      appliedCoupon = couponResult.code || null;
+      discountPercent = couponResult.discountPercent || 0;
     }
 
-    // ── 2. Attempt Order Creation via FastAPI Backend (Primary) ─────────────
+    // ── 3. Attempt Order Creation via FastAPI Backend (Primary) ─────────────
     try {
       const fastApiResponse = await fetch(
         `${AI_BACKEND_URL}/create-razorpay-order`,
@@ -85,12 +103,14 @@ export async function POST(req: NextRequest) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            plan,
+            plan: normalizedPlan,
             amount: amountInSubunits,
             currency: normalizedCurrency,
             receipt,
             user_email: effectiveEmail,
             user_id: authenticatedUserId,
+            coupon_code: appliedCoupon,
+            discount_percent: discountPercent,
           }),
           signal: AbortSignal.timeout(4000),
         }
@@ -105,6 +125,8 @@ export async function POST(req: NextRequest) {
             amount: fastApiData.amount,
             currency: fastApiData.currency,
             key_id: fastApiData.key_id || key_id,
+            coupon_applied: appliedCoupon,
+            discount_percent: discountPercent,
           });
         }
       }
@@ -112,14 +134,15 @@ export async function POST(req: NextRequest) {
       // FastAPI unreachable or timed out; fall through to direct Node Razorpay SDK
     }
 
-    // ── 3. Node SDK Fallback ───────────────────────────────────────────────
+    // ── 4. Node SDK Direct Integration ──────────────────────────────────────
     if (!key_id || !key_secret) {
+      console.error("[create-order] Razorpay credentials missing on server.");
       return NextResponse.json(
         {
           success: false,
-          error: "Razorpay credentials not configured in environment (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET)",
+          error: "Payment service is temporarily unavailable. Please try again later.",
         },
-        { status: 500 }
+        { status: 503 }
       );
     }
 
@@ -130,19 +153,22 @@ export async function POST(req: NextRequest) {
 
     const receiptId =
       receipt ||
-      `rcpt_${plan}_${normalizedCurrency.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      `rcpt_${normalizedPlan}_${normalizedCurrency.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     const options = {
       amount: amountInSubunits,
       currency: normalizedCurrency,
       receipt: receiptId,
       notes: {
-        plan,
+        plan: normalizedPlan,
         currency: normalizedCurrency,
-        base_price: normalizedCurrency === "INR" ? (isYearly ? 1499 : 149) : (isYearly ? 49 : 5),
+        base_price: basePlanPrice.amount,
+        final_amount: amountInSubunits / 100,
+        coupon_code: appliedCoupon || "NONE",
+        discount_percent: discountPercent,
         user_email: effectiveEmail,
         user_id: authenticatedUserId,
-        service: "PRATHOMIX MasmSpace Pro",
+        service: "MasmSpace Pro (Powered by PRATHOMIX)",
       },
     };
 
@@ -154,17 +180,15 @@ export async function POST(req: NextRequest) {
       amount: order.amount,
       currency: order.currency,
       key_id,
+      coupon_applied: appliedCoupon,
+      discount_percent: discountPercent,
     });
   } catch (error: any) {
-    console.error("Razorpay Create Order Error:", error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: error?.message || "Internal server error during order creation",
-        detail: error?.description || null,
-      },
-      { status: error?.statusCode || 500 }
+    return handleApiError(
+      error,
+      "[POST /api/create-order]",
+      "Failed to create payment order. Please try again later.",
+      error?.statusCode || 500
     );
   }
 }

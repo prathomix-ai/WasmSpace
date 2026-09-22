@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// MasmSpace — Pyodide WebAssembly Client
+// Prathomix — Pyodide WebAssembly Client
 // Secure, 100% in-browser Python execution via WebAssembly
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsPDF } from "jspdf";
+import { validateUploadedDocument } from "@/lib/file-validator";
+import { handleApiError } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -15,33 +17,35 @@ export async function POST(req: NextRequest) {
 
     if (!file) {
       return NextResponse.json(
-        { error: "No document file provided in request." },
+        { success: false, error: "No document file provided in request." },
         { status: 400 }
       );
     }
 
-    const fileName = file.name || "document";
-    const fileExt = fileName.split(".").pop()?.toLowerCase() || "";
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // 1. If it's already a PDF, return it immediately
+    // Deep validation: size, extension, magic byte signatures, and executable blocking
+    const validation = validateUploadedDocument(buffer, file.name, file.size);
+    if (!validation.valid) {
+      return NextResponse.json(
+        { success: false, error: validation.error },
+        { status: 400 }
+      );
+    }
+
+    const fileName = validation.sanitizedFileName;
+    const fileExt = validation.detectedFormat || fileName.split(".").pop()?.toLowerCase() || "";
+
+    // 1. If it's already a PDF, return it immediately with security headers
     if (fileExt === "pdf") {
       return new NextResponse(buffer, {
         headers: {
           "Content-Type": "application/pdf",
           "Content-Disposition": `attachment; filename="${fileName}"`,
+          "X-Content-Type-Options": "nosniff",
         },
       });
-    }
-
-    // Supported formats check
-    const supportedFormats = ["docx", "doc", "pptx", "ppt", "odt", "txt"];
-    if (!supportedFormats.includes(fileExt)) {
-      return NextResponse.json(
-        { error: `Unsupported file format (.${fileExt}). Please upload .pdf, .docx, or .pptx.` },
-        { status: 400 }
-      );
     }
 
     const formatParam = (formData.get("format") as string | null) || req.nextUrl.searchParams.get("format");
@@ -225,13 +229,14 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${fileName.replace(/\.[^/.]+$/, "")}.pdf"`,
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (error: any) {
-    console.error("Document conversion route failed:", error);
-    return NextResponse.json(
-      { error: error.message || "Document conversion failed. Please try another file." },
-      { status: 500 }
+    return handleApiError(
+      error,
+      "[POST /api/convert-document]",
+      "Document conversion failed. Please verify the document is valid and try again."
     );
   }
 }

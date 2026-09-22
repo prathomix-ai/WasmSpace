@@ -2,402 +2,35 @@
 
 import React, { useRef, useEffect, useCallback, KeyboardEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Search,
+  Sparkles,
+  Layers,
+  Calendar,
+  X,
+  ArrowRight,
+  Database,
+  Tag,
+  Loader2,
+  AlertCircle,
+  HelpCircle,
+} from "lucide-react";
 import { type SessionResult, type SearchMode } from "@/types/rag";
 import { useRagSearch } from "@/hooks/useRagSearch";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Styles (injected via a <style> tag — avoids needing a separate CSS file)
-// ─────────────────────────────────────────────────────────────────────────────
-const PANEL_STYLES = `
-.rag-backdrop {
-  position: fixed;
-  inset: 0;
-  background: hsla(230, 30%, 4%, 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  z-index: 450;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 80px;
-  padding-left: 16px;
-  padding-right: 16px;
-}
-
-.rag-panel {
-  position: relative;
-  width: 100%;
-  max-width: 620px;
-  border-radius: 20px;
-  overflow: hidden;
-  background: hsla(230, 18%, 10%, 0.9);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid hsla(195, 90%, 60%, 0.18);
-  box-shadow:
-    0 28px 64px hsla(0, 0%, 0%, 0.5),
-    0 0 0 1px hsla(195, 90%, 60%, 0.1) inset,
-    0 0 48px hsla(195, 90%, 60%, 0.06);
-}
-
-/* Animated top-accent bar */
-.rag-panel::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-accent), var(--color-primary));
-  background-size: 200% 100%;
-  animation: shimmer 2.4s ease-in-out infinite;
-}
-
-.rag-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid hsla(230, 16%, 22%, 0.8);
-}
-
-.rag-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, hsla(195, 90%, 60%, 0.2), hsla(265, 85%, 65%, 0.15));
-  border: 1px solid hsla(195, 90%, 60%, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  flex-shrink: 0;
-}
-
-.rag-title {
-  flex: 1;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.rag-mode-toggle {
-  display: flex;
-  gap: 3px;
-  padding: 3px;
-  border-radius: 8px;
-  background: hsla(230, 16%, 14%, 0.8);
-  border: 1px solid hsla(230, 16%, 22%, 0.6);
-}
-
-.rag-mode-btn {
-  padding: 4px 10px;
-  border-radius: 5px;
-  border: none;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.15s;
-  color: var(--color-text-muted);
-  background: transparent;
-  font-family: var(--font-sans);
-}
-
-.rag-mode-btn.active {
-  background: linear-gradient(135deg, hsla(195, 90%, 60%, 0.2), hsla(265, 85%, 65%, 0.15));
-  color: var(--color-accent);
-  border: 1px solid hsla(195, 90%, 60%, 0.3);
-}
-
-.rag-search-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 20px;
-}
-
-.rag-input-wrap {
-  flex: 1;
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.rag-input-icon {
-  position: absolute;
-  left: 12px;
-  font-size: 15px;
-  pointer-events: none;
-  opacity: 0.5;
-}
-
-.rag-input {
-  width: 100%;
-  padding: 10px 12px 10px 38px;
-  border-radius: 10px;
-  border: 1px solid hsla(195, 90%, 60%, 0.2);
-  background: hsla(230, 18%, 8%, 0.7);
-  color: var(--color-text);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  caret-color: var(--color-accent);
-}
-
-.rag-input::placeholder {
-  color: var(--color-text-faint);
-}
-
-.rag-input:focus {
-  border-color: hsla(195, 90%, 60%, 0.5);
-  box-shadow: 0 0 0 3px hsla(195, 90%, 60%, 0.1);
-}
-
-.rag-search-btn {
-  padding: 10px 18px;
-  border-radius: 10px;
-  border: 1px solid hsla(195, 90%, 60%, 0.3);
-  background: linear-gradient(135deg, hsla(195, 90%, 60%, 0.15), hsla(265, 85%, 65%, 0.1));
-  color: var(--color-accent);
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.rag-search-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, hsla(195, 90%, 60%, 0.25), hsla(265, 85%, 65%, 0.18));
-  box-shadow: 0 0 16px hsla(195, 90%, 60%, 0.2);
-  transform: translateY(-1px);
-}
-
-.rag-search-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.rag-results {
-  max-height: 400px;
-  overflow-y: auto;
-  padding: 0 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.rag-empty {
-  padding: 28px 20px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.rag-empty-icon { font-size: 28px; }
-
-.rag-empty-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.rag-empty-text {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  max-width: 340px;
-  line-height: 1.5;
-}
-
-.rag-result-card {
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid hsla(230, 16%, 22%, 0.6);
-  background: hsla(230, 18%, 12%, 0.5);
-  cursor: pointer;
-  transition: all 0.18s;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.rag-result-card:hover {
-  border-color: hsla(195, 90%, 60%, 0.35);
-  background: hsla(230, 18%, 14%, 0.7);
-  box-shadow: 0 4px 16px hsla(0, 0%, 0%, 0.2);
-  transform: translateY(-1px);
-}
-
-.rag-result-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.rag-result-title {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--color-text);
-  line-height: 1.35;
-  flex: 1;
-}
-
-.rag-score-bar-wrap {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-}
-
-.rag-score-label {
-  font-size: 10px;
-  font-weight: 700;
-  font-family: var(--font-mono);
-  color: var(--color-accent);
-}
-
-.rag-score-bar {
-  width: 40px;
-  height: 4px;
-  border-radius: 99px;
-  background: hsla(230, 16%, 22%, 0.8);
-  overflow: hidden;
-}
-
-.rag-score-fill {
-  height: 100%;
-  border-radius: 99px;
-  background: linear-gradient(90deg, var(--color-accent), var(--color-primary));
-  transition: width 0.4s ease;
-}
-
-.rag-result-excerpt {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.rag-result-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.rag-meta-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--color-text-faint);
-}
-
-.rag-tag {
-  padding: 1px 7px;
-  border-radius: 99px;
-  background: hsla(195, 90%, 60%, 0.1);
-  color: var(--color-accent);
-  border: 1px solid hsla(195, 90%, 60%, 0.18);
-  font-size: 10px;
-  font-weight: 500;
-}
-
-.rag-footer {
-  padding: 10px 20px 14px;
-  border-top: 1px solid hsla(230, 16%, 16%, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.rag-footer-info {
-  font-size: 10px;
-  color: var(--color-text-faint);
-  font-family: var(--font-mono);
-}
-
-.rag-close-btn {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-family: var(--font-sans);
-  transition: all 0.15s;
-}
-
-.rag-close-btn:hover {
-  background: hsla(230, 16%, 18%, 0.8);
-  color: var(--color-text);
-}
-
-.rag-error {
-  padding: 14px 20px;
-  margin: 0 12px 10px;
-  border-radius: 10px;
-  background: hsla(0, 70%, 60%, 0.08);
-  border: 1px solid hsla(0, 70%, 60%, 0.2);
-  font-size: 13px;
-  color: var(--priority-high);
-  line-height: 1.5;
-}
-
-.rag-suggestions {
-  padding: 4px 20px 14px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.rag-suggestion-chip {
-  padding: 5px 12px;
-  border-radius: 99px;
-  border: 1px solid hsla(265, 70%, 60%, 0.2);
-  background: hsla(265, 70%, 60%, 0.07);
-  color: var(--color-text-muted);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.rag-suggestion-chip:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: hsla(265, 85%, 65%, 0.12);
-}
-`;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Suggested queries
+// Suggested queries for quick discovery
 // ─────────────────────────────────────────────────────────────────────────────
 const SUGGESTIONS = [
-  "Login architecture diagram",
-  "Last sprint retrospective",
-  "Payment flow refactor",
-  "System design session",
-  "Q4 planning meeting",
+  "Login architecture flow",
+  "Microservices blueprint",
+  "Payment gateway topology",
+  "Redis cache layer",
+  "Database cluster failover",
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Result Card
+// Result Card - Modern Whiteboard UI
 // ─────────────────────────────────────────────────────────────────────────────
 function ResultCard({
   result,
@@ -411,7 +44,7 @@ function ResultCard({
   const scorePercent = Math.round(
     result.mode === "vector"
       ? result.score * 100
-      : Math.min(result.score * 100 * 8, 100) // RRF scores are small (0-0.03 range)
+      : Math.min(result.score * 100 * 8, 100)
   );
 
   const formattedDate = result.session_date
@@ -424,62 +57,73 @@ function ResultCard({
 
   return (
     <motion.div
-      className="rag-result-card"
+      className="group p-3.5 rounded-xl border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-800/60 hover:border-zinc-700 transition-all duration-150 cursor-pointer flex flex-col gap-2 shadow-sm"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.06, duration: 0.3 }}
+      transition={{ delay: index * 0.04, duration: 0.2 }}
       onClick={() => onNavigate(result.board_id, result.session_id)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onNavigate(result.board_id, result.session_id)}
       aria-label={`Open board: ${result.title}`}
     >
-      <div className="rag-result-top">
-        <span className="rag-result-title">{result.title}</span>
-        <div className="rag-score-bar-wrap" title={`Match score: ${scorePercent}%`}>
-          <span className="rag-score-label">{scorePercent}%</span>
-          <div className="rag-score-bar">
-            <div
-              className="rag-score-fill"
-              style={{ width: `${Math.min(scorePercent, 100)}%` }}
-            />
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+            <Layers className="w-3.5 h-3.5" />
           </div>
+          <span className="font-semibold text-sm text-zinc-100 group-hover:text-white truncate">
+            {result.title}
+          </span>
+        </div>
+
+        {/* Relevance match pill */}
+        <div className="flex items-center gap-1.5 shrink-0 bg-zinc-800/80 px-2 py-0.5 rounded-md border border-zinc-700/60">
+          <span className="text-[10px] font-mono font-medium text-blue-400">
+            {scorePercent}% match
+          </span>
         </div>
       </div>
 
       {result.extracted_text && (
-        <p className="rag-result-excerpt">{result.extracted_text}</p>
+        <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+          {result.extracted_text}
+        </p>
       )}
 
-      <div className="rag-result-meta">
+      <div className="flex items-center gap-3 pt-1 border-t border-zinc-800/60 text-[11px] text-zinc-500">
         {formattedDate && (
-          <span className="rag-meta-item">
-            <span style={{ opacity: 0.6 }}>📅</span> {formattedDate}
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" /> {formattedDate}
           </span>
         )}
         {result.shape_count != null && result.shape_count > 0 && (
-          <span className="rag-meta-item">
-            <span style={{ opacity: 0.6 }}>⬡</span> {result.shape_count} shapes
+          <span className="flex items-center gap-1">
+            <Layers className="w-3 h-3" /> {result.shape_count} shapes
           </span>
         )}
-        {result.tags.slice(0, 3).map((tag) => (
-          <span key={tag} className="rag-tag">
-            {tag}
-          </span>
-        ))}
+        <div className="flex items-center gap-1 ml-auto overflow-hidden">
+          {result.tags?.slice(0, 3).map((tag) => (
+            <span
+              key={tag}
+              className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 font-medium"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
       </div>
     </motion.div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Main Panel
+// Main Panel - Spotlight Command Palette Style
 // ─────────────────────────────────────────────────────────────────────────────
 export interface BoardBrainSearchProps {
   isOpen: boolean;
   ownerId?: string;
   onClose: () => void;
-  /** Called when user clicks a result to navigate to a board */
   onNavigateToBoard?: (boardId: string, sessionId: string) => void;
 }
 
@@ -504,10 +148,10 @@ export default function BoardBrainSearch({
     resultCount,
   } = useRagSearch({ ownerId });
 
-  // Auto-focus input when panel opens
+  // Auto-focus input when opened
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 80);
+      setTimeout(() => inputRef.current?.focus(), 60);
     } else {
       clearResults();
     }
@@ -541,156 +185,188 @@ export default function BoardBrainSearch({
   const hasSearched = !isSearching && (hasResults || error || (query && resultCount === 0));
 
   return (
-    <>
-      {/* Inject styles */}
-      <style dangerouslySetInnerHTML={{ __html: PANEL_STYLES }} />
+    <AnimatePresence>
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 p-4"
+          onClick={(e) => e.target === e.currentTarget && onClose()}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Board Brain Search"
+        >
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity animate-in fade-in duration-150"
+            onClick={onClose}
+            aria-hidden="true"
+          />
 
-      <AnimatePresence>
-        {isOpen && (
+          {/* Modal Dialog */}
           <motion.div
-            className="rag-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            onClick={(e) => e.target === e.currentTarget && onClose()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Board Brain Search"
+            className="relative w-full max-w-xl rounded-2xl bg-[#121316] border border-zinc-800 shadow-2xl overflow-hidden z-10 text-zinc-100 flex flex-col max-h-[82vh]"
+            initial={{ opacity: 0, y: -16, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.96 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
           >
-            <motion.div
-              className="rag-panel"
-              initial={{ opacity: 0, y: -16, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -12, scale: 0.96 }}
-              transition={{ duration: 0.28, ease: [0.34, 1.56, 0.64, 1] }}
-            >
-              {/* Header */}
-              <div className="rag-header">
-                <div className="rag-icon">🔍</div>
-                <span className="rag-title">Board Brain Search</span>
+            {/* Header: Title + Mode Toggle + Close */}
+            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-zinc-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                  <Search className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-white tracking-tight font-sans">
+                    Board Brain Search
+                  </h3>
+                  <p className="text-[11px] text-zinc-400">
+                    Semantic neural search across all boards &amp; architecture notes
+                  </p>
+                </div>
+              </div>
 
-                {/* Mode toggle */}
-                <div className="rag-mode-toggle" role="group" aria-label="Search mode">
+              <div className="flex items-center gap-2">
+                {/* Segmented Mode Toggle */}
+                <div className="flex items-center bg-zinc-800/80 p-0.5 rounded-lg border border-zinc-700/60 text-[11px] font-medium">
                   {(["vector", "hybrid"] as SearchMode[]).map((m) => (
                     <button
                       key={m}
-                      id={`rag-mode-${m}`}
-                      className={`rag-mode-btn ${mode === m ? "active" : ""}`}
                       onClick={() => setMode(m)}
+                      className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                        mode === m
+                          ? "bg-zinc-700 text-white shadow-sm font-semibold"
+                          : "text-zinc-400 hover:text-zinc-200"
+                      }`}
                       title={
                         m === "vector"
-                          ? "Semantic similarity search"
-                          : "Semantic + keyword (BM25) fusion"
+                          ? "Semantic vector similarity"
+                          : "Hybrid vector + BM25 keyword fusion"
                       }
                     >
-                      {m === "vector" ? "⚡ Vector" : "🔀 Hybrid"}
+                      {m === "vector" ? "Vector" : "Hybrid"}
                     </button>
                   ))}
                 </div>
-              </div>
 
-              {/* Search input */}
-              <div className="rag-search-row">
-                <div className="rag-input-wrap">
-                  <span className="rag-input-icon">🔎</span>
-                  <input
-                    ref={inputRef}
-                    id="rag-search-input"
-                    className="rag-input"
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Find the login architecture diagram from last week…"
-                    aria-label="Search query"
-                    autoComplete="off"
-                    spellCheck={false}
-                  />
-                </div>
                 <button
-                  id="rag-search-submit"
-                  className="rag-search-btn"
-                  onClick={() => search()}
-                  disabled={isSearching || !query.trim()}
-                  aria-label="Search"
+                  onClick={onClose}
+                  className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                  aria-label="Close search"
                 >
-                  {isSearching ? (
-                    <>
-                      <span className="spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
-                      Searching…
-                    </>
-                  ) : (
-                    "Search"
-                  )}
+                  <X className="w-4 h-4" />
                 </button>
               </div>
+            </div>
 
-              {/* Suggestion chips (shown when no results) */}
-              {!hasResults && !isSearching && (
-                <div className="rag-suggestions" aria-label="Suggested searches">
-                  {SUGGESTIONS.map((s) => (
-                    <button
-                      key={s}
-                      className="rag-suggestion-chip"
-                      onClick={() => handleSuggestion(s)}
-                    >
-                      {s}
-                    </button>
-                  ))}
+            {/* Search Input Bar */}
+            <div className="p-4 border-b border-zinc-800/80 flex items-center gap-2.5 bg-zinc-900/40">
+              <div className="relative flex-1 flex items-center">
+                <Search className="w-4 h-4 text-zinc-400 absolute left-3 pointer-events-none" />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask or search your boards (e.g., 'authentication topology', 'redis cache')..."
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700/70 text-zinc-100 text-xs placeholder-zinc-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => search()}
+                disabled={isSearching || !query.trim()}
+                className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:hover:bg-blue-600 text-white font-medium text-xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm"
+              >
+                {isSearching ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Searching...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Search</span>
+                    <kbd className="text-[10px] bg-blue-700/80 px-1 py-0.2 rounded text-blue-100 font-mono">↵</kbd>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Scrollable Results & Empty States */}
+            <div className="p-4 overflow-y-auto space-y-2.5 flex-1 min-h-[160px] max-h-[420px]">
+              {/* Suggestions chips */}
+              {!hasResults && !isSearching && !hasSearched && (
+                <div className="space-y-3 py-2">
+                  <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 block">
+                    Suggested Queries
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {SUGGESTIONS.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => handleSuggestion(s)}
+                        className="px-3 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-800 hover:text-white text-zinc-300 text-xs border border-zinc-700/60 transition-colors cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Sparkles className="w-3 h-3 text-blue-400" />
+                        <span>{s}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* Error */}
+              {/* Error Notice */}
               {error && !isSearching && (
-                <div className="rag-error" role="alert">
-                  ⚠️ {error}
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
                 </div>
               )}
 
-              {/* Empty state */}
+              {/* Empty Results */}
               {!isSearching && !error && query && resultCount === 0 && hasSearched && (
-                <div className="rag-empty">
-                  <span className="rag-empty-icon">🗂️</span>
-                  <p className="rag-empty-title">No boards found</p>
-                  <p className="rag-empty-text">
-                    Try different keywords or lower the similarity threshold. Make sure boards are indexed first via <strong>"Save &amp; Index"</strong>.
+                <div className="py-8 text-center flex flex-col items-center gap-2 text-zinc-400">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 mb-1">
+                    <Search className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs font-semibold text-zinc-200">No matching boards found</p>
+                  <p className="text-[11px] text-zinc-400 max-w-xs leading-relaxed">
+                    Try different keywords or index boards using &ldquo;Save &amp; Index&rdquo; in the sidebar.
                   </p>
                 </div>
               )}
 
-              {/* Results */}
-              {hasResults && (
-                <div className="rag-results" role="list" aria-label="Search results">
-                  {results.map((result, i) => (
-                    <ResultCard
-                      key={result.session_id}
-                      result={result}
-                      index={i}
-                      onNavigate={onNavigateToBoard}
-                    />
-                  ))}
-                </div>
-              )}
+              {/* Result Cards List */}
+              {hasResults &&
+                results.map((result, i) => (
+                  <ResultCard
+                    key={result.session_id}
+                    result={result}
+                    index={i}
+                    onNavigate={onNavigateToBoard}
+                  />
+                ))}
+            </div>
 
-              {/* Footer */}
-              {(hasResults || modelUsed) && (
-                <div className="rag-footer">
-                  <span className="rag-footer-info">
-                    {resultCount > 0
-                      ? `${resultCount} result${resultCount > 1 ? "s" : ""} · `
-                      : ""}
-                    {modelUsed.split("/").pop() ?? ""}
-                  </span>
-                  <button className="rag-close-btn" onClick={onClose}>
-                    Close ✕
-                  </button>
-                </div>
-              )}
-            </motion.div>
+            {/* Footer */}
+            <div className="px-5 py-3 border-t border-zinc-800 bg-zinc-900/40 flex items-center justify-between text-[11px] text-zinc-400">
+              <span>
+                {resultCount > 0 ? `${resultCount} result${resultCount > 1 ? "s" : ""} · ` : ""}
+                Neural RAG index
+              </span>
+              <div className="flex items-center gap-2">
+                <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-400 text-[10px]">
+                  Esc
+                </kbd>
+                <span>to close</span>
+              </div>
+            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

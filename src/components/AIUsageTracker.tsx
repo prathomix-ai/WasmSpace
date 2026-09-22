@@ -11,7 +11,7 @@ interface AIUsageTrackerProps {
 }
 
 export function AIUsageTracker({
-  actionsUsed = 4,
+  actionsUsed = 0,
   actionLimit = 15,
   tier = "free",
   onOpenUpgradeModal,

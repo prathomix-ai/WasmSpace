@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { handleApiError } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -118,7 +119,10 @@ export async function GET(req: NextRequest) {
       pro_expiry_date: profile.pro_expiry_date,
     });
   } catch (err: any) {
-    console.error("[CheckSubscription] Error:", err);
-    return NextResponse.json({ error: err?.message || "Internal error" }, { status: 500 });
+    return handleApiError(
+      err,
+      "[GET /api/check-subscription]",
+      "Failed to verify subscription status."
+    );
   }
 }

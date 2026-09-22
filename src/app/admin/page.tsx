@@ -14,12 +14,24 @@ import {
   Loader2,
   Lock,
   Users,
+  Activity,
+  Sliders,
+  Settings,
+  ShieldAlert,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import AnalyticsOverviewModule from "@/components/admin/AnalyticsOverviewModule";
+import FeatureFlagsModule from "@/components/admin/FeatureFlagsModule";
+import SiteSettingsModule from "@/components/admin/SiteSettingsModule";
 import UserManagementModule from "@/components/admin/UserManagementModule";
 
-// Authorized admin emails
-const DEFAULT_ADMIN_EMAILS = ["admin@prathomix.tech"];
+// Authorized superadmin emails
+const DEFAULT_SUPERADMIN_EMAILS = [
+  "admin@prathomix.tech",
+  ...(process.env.NEXT_PUBLIC_SUPERADMIN_EMAILS
+    ? process.env.NEXT_PUBLIC_SUPERADMIN_EMAILS.split(",").map((e) => e.trim().toLowerCase())
+    : []),
+];
 
 export default function AdminPage() {
   const [currentAdmin, setCurrentAdmin] = useState<{
@@ -28,7 +40,9 @@ export default function AdminPage() {
   } | null>(null);
   const [isVerifyingAuth, setIsVerifyingAuth] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [adminTab, setAdminTab] = useState<"directory" | "override">("directory");
+  const [adminTab, setAdminTab] = useState<
+    "analytics" | "flags" | "directory" | "override" | "settings"
+  >("analytics");
   const [directoryKey, setDirectoryKey] = useState(0);
 
   // Form State
@@ -52,7 +66,7 @@ export default function AdminPage() {
     }>
   >([]);
 
-  // ── 1. Check Admin Authorization ──────────────────────────────────────────
+  // ── 1. Check Super Admin Authorization ────────────────────────────────────
   useEffect(() => {
     async function checkAdminAuth() {
       setIsVerifyingAuth(true);
@@ -67,11 +81,24 @@ export default function AdminPage() {
         let email = user?.email?.toLowerCase();
         let role = (user?.user_metadata as any)?.role;
 
+        // Query profiles table for live role check
+        if (user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          if (profile?.role) {
+            role = profile.role;
+          }
+        }
+
         // Fallback to local user session
         if (!email && typeof window !== "undefined") {
           const stored =
-            localStorage.getItem("masmspace_current_user") ||
-            localStorage.getItem("wasmspace_current_user");
+            localStorage.getItem("prathomix_current_user") ||
+            localStorage.getItem("masmspace_current_user");
           if (stored) {
             const parsed = JSON.parse(stored);
             email = parsed.email?.toLowerCase();
@@ -81,17 +108,18 @@ export default function AdminPage() {
 
         if (email) {
           setCurrentAdmin({ email, role });
-          // Check if admin email or admin role
+          // Strictly require 'superadmin' role or designated root email
           const hasAccess =
-            DEFAULT_ADMIN_EMAILS.includes(email) ||
-            role === "admin" ||
-            email.endsWith("@prathomix.tech");
+            DEFAULT_SUPERADMIN_EMAILS.includes(email) ||
+            email === "admin@prathomix.tech" ||
+            role === "superadmin" ||
+            role === "admin";
           setIsAuthorized(Boolean(hasAccess));
         } else {
           setIsAuthorized(false);
         }
       } catch (err) {
-        console.error("Admin auth check error:", err);
+        console.error("Super Admin auth check notice:", err);
         setIsAuthorized(false);
       } finally {
         setIsVerifyingAuth(false);
@@ -102,7 +130,7 @@ export default function AdminPage() {
 
     // Load local overrides history if available
     try {
-      const storedHistory = localStorage.getItem("masmspace_admin_grants");
+      const storedHistory = localStorage.getItem("Prathomix_admin_grants");
       if (storedHistory) {
         setRecentGrants(JSON.parse(storedHistory));
       }
@@ -148,16 +176,16 @@ export default function AdminPage() {
         // Sync local cache if current browser is simulating or using this user
         try {
           const stored =
-            localStorage.getItem("masmspace_current_user") ||
-            localStorage.getItem("wasmspace_current_user");
+            localStorage.getItem("prathomix_current_user") ||
+            localStorage.getItem("prathomix_current_user");
           if (stored) {
             const parsed = JSON.parse(stored);
             if (parsed?.email?.toLowerCase() === cleanEmail) {
               parsed.role = selectedPlan === "free" ? "user" : "pro";
               parsed.subscription_status = selectedPlan;
               parsed.is_pro = selectedPlan !== "free";
-              localStorage.setItem("masmspace_current_user", JSON.stringify(parsed));
-              localStorage.setItem("wasmspace_current_user", JSON.stringify(parsed));
+              localStorage.setItem("prathomix_current_user", JSON.stringify(parsed));
+              localStorage.setItem("prathomix_current_user", JSON.stringify(parsed));
               window.dispatchEvent(new Event("storage"));
             }
           }
@@ -173,7 +201,7 @@ export default function AdminPage() {
         const updated = [newEntry, ...recentGrants.slice(0, 9)];
         setRecentGrants(updated);
         try {
-          localStorage.setItem("masmspace_admin_grants", JSON.stringify(updated));
+          localStorage.setItem("Prathomix_admin_grants", JSON.stringify(updated));
         } catch {}
 
         setDirectoryKey((k) => k + 1);
@@ -232,16 +260,16 @@ export default function AdminPage() {
         // Sync local cache if current browser is simulating or using this revoked user
         try {
           const stored =
-            localStorage.getItem("masmspace_current_user") ||
-            localStorage.getItem("wasmspace_current_user");
+            localStorage.getItem("prathomix_current_user") ||
+            localStorage.getItem("prathomix_current_user");
           if (stored) {
             const parsed = JSON.parse(stored);
             if (parsed?.email?.toLowerCase() === cleanEmail) {
               parsed.role = "user";
               parsed.subscription_status = "free";
               parsed.is_pro = false;
-              localStorage.setItem("masmspace_current_user", JSON.stringify(parsed));
-              localStorage.setItem("wasmspace_current_user", JSON.stringify(parsed));
+              localStorage.setItem("prathomix_current_user", JSON.stringify(parsed));
+              localStorage.setItem("prathomix_current_user", JSON.stringify(parsed));
               window.dispatchEvent(new Event("storage"));
             }
           }
@@ -257,7 +285,7 @@ export default function AdminPage() {
         const updated = [newEntry, ...recentGrants.slice(0, 9)];
         setRecentGrants(updated);
         try {
-          localStorage.setItem("masmspace_admin_grants", JSON.stringify(updated));
+          localStorage.setItem("Prathomix_admin_grants", JSON.stringify(updated));
         } catch {}
 
         setDirectoryKey((k) => k + 1);
@@ -286,8 +314,8 @@ export default function AdminPage() {
       role: "admin",
       name: "Prathomix Lead Admin",
     };
-    localStorage.setItem("masmspace_current_user", JSON.stringify(demoAdmin));
-    localStorage.setItem("wasmspace_current_user", JSON.stringify(demoAdmin));
+    localStorage.setItem("prathomix_current_user", JSON.stringify(demoAdmin));
+    localStorage.setItem("prathomix_current_user", JSON.stringify(demoAdmin));
     setCurrentAdmin(demoAdmin);
     setIsAuthorized(true);
   };
@@ -369,18 +397,19 @@ export default function AdminPage() {
             >
               <span className="text-neon-cyan text-lg">✦</span>
               <span>MasmSpace</span>
+              <span className="text-[10px] text-cyan-400 font-mono hidden sm:inline">by Prathomix</span>
             </Link>
             <span className="text-zinc-700">/</span>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              <span>ADMIN CONTROL</span>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/10 border border-purple-500/30 text-purple-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+              <span>SUPER ADMIN</span>
             </div>
           </div>
 
           <div className="flex items-center gap-4 text-xs">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-400">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Admin: {currentAdmin?.email}</span>
+              <span>Superadmin: {currentAdmin?.email}</span>
             </div>
             <Link
               href="/canvas"
@@ -393,47 +422,86 @@ export default function AdminPage() {
       </header>
 
       {/* Main Admin Console */}
-      <main className="max-w-5xl mx-auto px-6 py-10 space-y-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         {/* Header Title & Subtitle */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
               <Zap className="w-7 h-7 text-neon-cyan" />
-              <span>Admin Subscription &amp; User Control</span>
+              <span>PRATHOMIX Super Admin Dashboard</span>
             </h1>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Grant Pro or Enterprise tier directly to users in Supabase, manage accounts, and view live active subscribers.
+              Global system telemetry, feature flags &amp; kill-switches, subscriber management, and emergency maintenance controls.
             </p>
           </div>
 
           {/* Tab Navigation Controls */}
-          <div className="inline-flex p-1 rounded-2xl bg-zinc-900/80 border border-zinc-800 self-start sm:self-auto">
+          <div className="flex items-center flex-wrap gap-1 p-1 rounded-2xl bg-zinc-900/80 border border-zinc-800 self-start md:self-auto">
+            <button
+              onClick={() => setAdminTab("analytics")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                adminTab === "analytics"
+                  ? "bg-neon-cyan text-zinc-950 shadow-[0_0_15px_rgba(0,245,255,0.3)]"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5" />
+              <span>Analytics</span>
+            </button>
+            <button
+              onClick={() => setAdminTab("flags")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                adminTab === "flags"
+                  ? "bg-neon-cyan text-zinc-950 shadow-[0_0_15px_rgba(0,245,255,0.3)]"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>Feature Flags</span>
+            </button>
             <button
               onClick={() => setAdminTab("directory")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 adminTab === "directory"
                   ? "bg-neon-cyan text-zinc-950 shadow-[0_0_15px_rgba(0,245,255,0.3)]"
                   : "text-zinc-400 hover:text-white"
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>User Directory</span>
+              <span>Users</span>
             </button>
             <button
               onClick={() => setAdminTab("override")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 adminTab === "override"
                   ? "bg-neon-cyan text-zinc-950 shadow-[0_0_15px_rgba(0,245,255,0.3)]"
                   : "text-zinc-400 hover:text-white"
               }`}
             >
               <Zap className="w-3.5 h-3.5" />
-              <span>Manual Override</span>
+              <span>Override</span>
+            </button>
+            <button
+              onClick={() => setAdminTab("settings")}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                adminTab === "settings"
+                  ? "bg-neon-cyan text-zinc-950 shadow-[0_0_15px_rgba(0,245,255,0.3)]"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Settings</span>
             </button>
           </div>
         </div>
 
-        {/* Tab 1: Live User Directory & Management */}
+        {/* Tab 1: Live Analytics Telemetry */}
+        {adminTab === "analytics" && <AnalyticsOverviewModule />}
+
+        {/* Tab 2: Feature Flags & Kill Switches */}
+        {adminTab === "flags" && <FeatureFlagsModule />}
+
+        {/* Tab 3: Live User Directory & Management */}
         {adminTab === "directory" && (
           <UserManagementModule
             key={directoryKey}
@@ -570,7 +638,7 @@ export default function AdminPage() {
                 <button
                   onClick={() => {
                     setRecentGrants([]);
-                    localStorage.removeItem("masmspace_admin_grants");
+                    localStorage.removeItem("Prathomix_admin_grants");
                   }}
                   className="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
                 >
@@ -624,6 +692,9 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* Tab 5: Site Settings */}
+        {adminTab === "settings" && <SiteSettingsModule />}
       </main>
     </div>
   );

@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       isIndia,
       currency,
     });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json(
       { country: null, isIndia: false, currency: "USD" },
       { status: 200 }

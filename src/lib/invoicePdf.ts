@@ -12,9 +12,9 @@ export interface InvoiceItem {
 }
 
 /**
- * Generates and downloads a modern, premium SaaS receipt PDF for PRATHOMIX MasmSpace.
+ * Generates and downloads a modern, premium SaaS receipt PDF for MasmSpace (Powered by PRATHOMIX).
  * Styled after Stripe / Vercel minimalist invoices.
- * Output file: PRATHOMIX_Invoice_[InvoiceID].pdf
+ * Output file: MasmSpace_Invoice_[InvoiceID].pdf
  */
 export async function downloadInvoicePdf(invoice: InvoiceItem): Promise<string> {
   // 1. Resolve customer email from parameter or active Supabase session
@@ -34,7 +34,7 @@ export async function downloadInvoicePdf(invoice: InvoiceItem): Promise<string> 
     }
   }
 
-  const billedEmail = userEmail || "customer@masmspace.online";
+  const billedEmail = userEmail || "customer@prathomix.tech";
   const tierDescription = invoice.tier || "MasmSpace PRO - 1 Month";
   const invoiceId = invoice.id || "INV-0000";
   const invoiceDate = invoice.date || new Date().toLocaleDateString("en-US", {
@@ -59,12 +59,12 @@ export async function downloadInvoicePdf(invoice: InvoiceItem): Promise<string> 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
   doc.setTextColor(15, 23, 42); // #0f172a slate-900
-  doc.text("PRATHOMIX", margin, 26);
+  doc.text("MasmSpace", margin, 26);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9.5);
   doc.setTextColor(100, 116, 139); // #64748b slate-500
-  doc.text("masmspace.online", margin, 32);
+  doc.text("Powered by PRATHOMIX", margin, 32);
 
   doc.setFontSize(8.5);
   doc.setTextColor(148, 163, 184); // #94a3b8 slate-400
@@ -215,21 +215,21 @@ export async function downloadInvoicePdf(invoice: InvoiceItem): Promise<string> 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   doc.setTextColor(148, 163, 184); // #94a3b8
-  doc.text("Thank you for choosing PRATHOMIX MasmSpace.", pageWidth / 2, footerY + 6.5, {
+  doc.text("Thank you for choosing MasmSpace, powered by PRATHOMIX.", pageWidth / 2, footerY + 6.5, {
     align: "center",
   });
 
   doc.setFontSize(8);
   doc.setTextColor(148, 163, 184); // #94a3b8
   doc.text(
-    "PRATHOMIX Cloud Platform • masmspace.online • For inquiries: support@prathomix.tech",
+    "PRATHOMIX SOLUTION • MasmSpace Platform • For inquiries: support@prathomix.tech",
     pageWidth / 2,
     footerY + 11.5,
     { align: "center" }
   );
 
   // 3. Trigger Browser Download
-  const filename = `PRATHOMIX_Invoice_${invoiceId}.pdf`;
+  const filename = `MasmSpace_Invoice_${invoiceId}.pdf`;
   doc.save(filename);
 
   return filename;

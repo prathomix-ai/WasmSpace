@@ -24,7 +24,7 @@ export function ContactSalesModal({ isOpen, onClose }: ContactSalesModalProps) {
 
   const emailSubject = encodeURIComponent("MasmSpace Enterprise Plan Inquiry");
   const emailBody = encodeURIComponent(
-    "Hi Prathomix Sales Team,\n\nI am interested in custom Enterprise licensing for MasmSpace Whiteboard OS.\n\nCompany Name:\nTeam Size:\nSpecific Requirements (e.g. Custom LLM, On-Premise/Dedicated Clusters, SSO):\n\nLooking forward to hearing from you!\n"
+    "Hi Sales Team,\n\nI am interested in custom Enterprise licensing for MasmSpace Whiteboard OS (Powered by Prathomix).\n\nCompany Name:\nTeam Size:\nSpecific Requirements (e.g. Custom LLM, On-Premise/Dedicated Clusters, SSO):\n\nLooking forward to hearing from you!\n"
   );
 
   const mailtoUrl = `mailto:${salesEmail}?subject=${emailSubject}&body=${emailBody}`;
@@ -72,7 +72,7 @@ export function ContactSalesModal({ isOpen, onClose }: ContactSalesModalProps) {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono font-bold uppercase tracking-widest text-purple-400">
-                  Prathomix Enterprise
+                  MasmSpace Enterprise
                 </span>
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
                   Direct Line
@@ -167,7 +167,7 @@ export function ContactSalesModal({ isOpen, onClose }: ContactSalesModalProps) {
           <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-zinc-400">
             <span className="flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5 text-purple-400" />
-              Prathomix Solutions Inc.
+              PRATHOMIX SOLUTION
             </span>
             <span className="flex items-center gap-1 text-purple-400">
               <Sparkles className="w-3 h-3" />

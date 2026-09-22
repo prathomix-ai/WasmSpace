@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { handleApiError } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
     const { error: updateErr } = await adminClient.from("profiles").upsert(
       {
         id: currentUserId,
-        email: currentUserEmail || profile?.email || "user@masmspace.online",
+        email: currentUserEmail || profile?.email || "user@Prathomix.online",
         role: currentRole,
         tier: "pro",
         subscription_status: "pro",
@@ -158,13 +159,10 @@ export async function POST(req: NextRequest) {
       pro_expiry_date: expiryIso,
     });
   } catch (err: any) {
-    console.error("[RedeemPromo] Unexpected error:", err);
-    return NextResponse.json(
-      {
-        success: false,
-        error: err?.message || "Internal server error during promo redemption.",
-      },
-      { status: 500 }
+    return handleApiError(
+      err,
+      "[POST /api/redeem-promo]",
+      "Failed to process promo redemption. Please try again."
     );
   }
 }

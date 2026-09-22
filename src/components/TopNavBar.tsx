@@ -63,11 +63,11 @@ export function TopNavBar({
         <Link
           href="/"
           className="flex items-center gap-2 group shrink-0 transition-all duration-300 ease-in-out hover:opacity-95"
-          title="MasmSpace Whiteboard OS"
+          title="MasmSpace Whiteboard OS - Powered by Prathomix"
         >
           <div className="relative w-7 h-7 flex items-center justify-center shrink-0 transition-transform duration-300 ease-in-out group-hover:scale-110">
             <Image
-              src="/masmspace-logo.png"
+              src="/Prathomix-logo.png"
               alt="MasmSpace Logo"
               width={28}
               height={28}
@@ -75,9 +75,14 @@ export function TopNavBar({
               priority
             />
           </div>
-          <span className="font-semibold text-white tracking-tight text-sm sm:text-base font-sans shrink-0">
-            MasmSpace
-          </span>
+          <div className="flex flex-col">
+            <span className="font-semibold text-white tracking-tight text-sm sm:text-base font-sans shrink-0 leading-tight">
+              MasmSpace
+            </span>
+            <span className="text-[8px] font-mono tracking-wider text-cyan-400 font-medium leading-none hidden sm:inline-block">
+              by Prathomix
+            </span>
+          </div>
         </Link>
 
         <div className="h-4 w-[1px] bg-white/10 hidden sm:block shrink-0" />

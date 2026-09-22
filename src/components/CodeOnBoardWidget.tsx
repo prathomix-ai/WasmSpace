@@ -426,7 +426,7 @@ export function CodeOnBoardWidget({
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed z-[100] code-on-board-widget glass bg-[#09090b]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col"
+        className="fixed z-[100] code-on-board-widget bg-[#121316]/98 backdrop-blur-2xl border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col font-sans"
         style={{
           left: position.x,
           top: position.y,
@@ -434,24 +434,24 @@ export function CodeOnBoardWidget({
           maxHeight: "92vh",
           zIndex: 100,
         }}
-        initial={{ opacity: 0, scale: 0.92, y: 15 }}
+        initial={{ opacity: 0, scale: 0.95, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.92, y: 15 }}
-        transition={{ duration: 0.2 }}
+        exit={{ opacity: 0, scale: 0.95, y: 12 }}
+        transition={{ duration: 0.18 }}
         role="dialog"
         aria-label="Universal Multi-Language Code Studio"
       >
         {/* ── Widget Header (Draggable) ─────────────────────────────────── */}
         <div
-          className="widget-header cursor-grab active:cursor-grabbing flex items-center justify-between p-3 border-b border-white/10 select-none"
+          className="widget-header cursor-grab active:cursor-grabbing flex items-center justify-between p-3 border-b border-zinc-800 select-none bg-zinc-900/40"
           onMouseDown={handleMouseDown}
         >
           <div className="flex items-center gap-2">
             <span className="text-base">{currentLangInfo.icon}</span>
-            <span className="font-bold text-sm text-zinc-100 font-sans tracking-tight">
+            <span className="font-semibold text-sm text-white tracking-tight">
               Code Studio
             </span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/15 text-neon-cyan border border-cyan-400/30">
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
               {currentLangInfo.badge}
             </span>
           </div>
@@ -461,23 +461,23 @@ export function CodeOnBoardWidget({
             <button
               type="button"
               onClick={() => setAutoIterate(!autoIterate)}
-              className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold transition-all flex items-center gap-1 cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
                 autoIterate
-                  ? "bg-neon-green/20 text-neon-green border border-neon-green/50 shadow-[0_0_8px_rgba(0,255,136,0.3)]"
-                  : "bg-white/5 text-zinc-400 border border-white/10 hover:text-zinc-200"
+                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                  : "bg-zinc-800 text-zinc-400 border border-zinc-700 hover:text-zinc-200"
               }`}
               title={
                 autoIterate
-                  ? "Auto-Iteration ON: Automatically iterates & runs as you type"
-                  : "Auto-Iteration OFF: Click Run Code manually"
+                  ? "Auto-Iteration ON: Runs automatically as you type"
+                  : "Auto-Iteration OFF: Manual run only"
               }
             >
-              <span className="text-[11px]">{autoIterate ? "⚡" : "⏸"}</span>
-              <span>{autoIterate ? "Auto-Iterate ON" : "Manual Run"}</span>
+              <span className="text-xs">{autoIterate ? "⚡" : "⏸"}</span>
+              <span>{autoIterate ? "Live Loop" : "Manual"}</span>
             </button>
 
             <button
-              className="widget-btn p-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-zinc-100 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors"
               onClick={() => setIsMinimized(!isMinimized)}
               title={isMinimized ? "Expand" : "Minimize"}
               aria-label={isMinimized ? "Expand widget" : "Minimize widget"}
@@ -485,7 +485,7 @@ export function CodeOnBoardWidget({
               {isMinimized ? "◻" : "–"}
             </button>
             <button
-              className="widget-btn close-btn p-1 rounded-lg hover:bg-red-500/20 text-zinc-400 hover:text-red-400 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-rose-400 transition-colors"
               onClick={onClose}
               title="Close widget"
               aria-label="Close widget"
@@ -498,17 +498,17 @@ export function CodeOnBoardWidget({
         {/* ── Collapsed view ────────────────────────────────────────────── */}
         {isMinimized ? (
           <div
-            className="minimized-strip p-3 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
+            className="p-3 flex items-center justify-between cursor-pointer hover:bg-zinc-800/40 transition-colors"
             onClick={() => setIsMinimized(false)}
           >
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-neon-green animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-xs font-mono text-zinc-400">
                 {currentLangInfo.name} • {statusMessage}
               </span>
             </div>
             <button
-              className="btn-run-sm px-2.5 py-1 rounded-lg bg-neon-cyan text-black font-bold text-xs"
+              className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs shadow-sm"
               onClick={(e) => {
                 e.stopPropagation();
                 handleRun();
@@ -521,8 +521,8 @@ export function CodeOnBoardWidget({
           /* ── Expanded Content ─────────────────────────────────────────── */
           <div className="widget-body flex flex-col">
             {/* ── Language Selector Bar ──────────────────────────────────── */}
-            <div className="px-3 pt-2 pb-1.5 border-b border-white/5 flex items-center gap-2 overflow-x-auto no-scrollbar">
-              <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider flex-shrink-0">
+            <div className="px-3 py-2 border-b border-zinc-800/80 flex items-center gap-2 overflow-x-auto no-scrollbar bg-zinc-900/20">
+              <span className="text-[11px] font-mono text-zinc-500 uppercase tracking-wider flex-shrink-0">
                 Lang:
               </span>
               <div className="flex items-center gap-1">
@@ -532,10 +532,10 @@ export function CodeOnBoardWidget({
                     <button
                       key={lang.id}
                       onClick={() => handleSelectLanguage(lang.id)}
-                      className={`px-2 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer ${
                         isActive
-                          ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/50 shadow-[0_0_10px_rgba(0,245,255,0.2)] font-bold"
-                          : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
+                          ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm font-semibold"
+                          : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 border border-transparent"
                       }`}
                       title={`${lang.name} (${lang.badge}) - ${lang.description}`}
                     >
@@ -548,13 +548,13 @@ export function CodeOnBoardWidget({
             </div>
 
             {/* ── Preset Template Picker & Subbar ────────────────────────── */}
-            <div className="code-subbar flex items-center justify-between p-2.5 border-b border-white/10 bg-white/[0.02]">
+            <div className="code-subbar flex items-center justify-between p-2.5 border-b border-zinc-800 bg-zinc-900/40">
               <div className="template-picker flex items-center gap-2 flex-1 mr-2">
                 <span className="text-zinc-400 text-xs font-mono">Preset:</span>
                 <select
                   value={selectedTemplate}
                   onChange={(e) => handleSelectTemplate(e.target.value)}
-                  className="template-select bg-[#121622] text-zinc-200 text-xs rounded-lg px-2 py-1 border border-white/15 outline-none focus:border-neon-cyan flex-1 max-w-[260px]"
+                  className="template-select bg-zinc-800 text-zinc-200 text-xs rounded-lg px-2.5 py-1.5 border border-zinc-700 outline-none focus:border-blue-500 flex-1 max-w-[260px] font-sans cursor-pointer"
                   aria-label="Select code iteration template"
                 >
                   {currentTemplates.length > 0 ? (
@@ -571,27 +571,26 @@ export function CodeOnBoardWidget({
 
               <div className="subbar-actions flex items-center gap-1.5">
                 <button
-                  className="subbar-btn px-2.5 py-1 rounded-lg text-xs text-zinc-300 hover:text-white hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+                  className="subbar-btn px-2.5 py-1 rounded-lg text-xs text-zinc-300 hover:text-white hover:bg-zinc-800 border border-zinc-700 transition-colors cursor-pointer"
                   onClick={handleCopy}
                   title="Copy code to clipboard"
                 >
-                  {isCopied ? "✓ Copied" : "📋 Copy"}
+                  {isCopied ? "✓ Copied" : "Copy"}
                 </button>
                 <button
-                  className="subbar-btn insert-btn px-2.5 py-1 rounded-lg text-xs bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-400/30 transition-all cursor-pointer shadow-[0_0_10px_rgba(6,182,212,0.15)] flex items-center gap-1 font-medium"
+                  className="subbar-btn insert-btn px-2.5 py-1 rounded-lg text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-all cursor-pointer flex items-center gap-1 font-medium"
                   onClick={handleAddCodeToCanvas}
                   title="Paste source code onto canvas"
                 >
-                  <span>📄</span>
-                  <span>Add Code</span>
+                  <span>Add to Board</span>
                 </button>
               </div>
             </div>
 
             {/* ── Code Editor ────────────────────────────────────────────── */}
-            <div className="code-editor-container flex relative bg-[#090b10] border-b border-white/10 min-h-[160px] max-h-[260px] overflow-hidden">
+            <div className="code-editor-container flex relative bg-[#0d0e12] border-b border-zinc-800 min-h-[160px] max-h-[260px] overflow-hidden">
               <div
-                className="editor-line-numbers py-2 px-2.5 text-right text-zinc-600 font-mono text-xs select-none border-r border-white/5 bg-[#07080d]"
+                className="editor-line-numbers py-2 px-2.5 text-right text-zinc-600 font-mono text-xs select-none border-r border-zinc-800/80 bg-[#090a0d]"
                 aria-hidden="true"
               >
                 {code.split("\n").map((_, i) => (
@@ -613,7 +612,7 @@ export function CodeOnBoardWidget({
             </div>
 
             {/* ── Action Bar ─────────────────────────────────────────────── */}
-            <div className="code-action-bar flex items-center justify-between p-2 border-b border-white/10 bg-[#0d1017]">
+            <div className="code-action-bar flex items-center justify-between p-2.5 border-b border-zinc-800 bg-zinc-900/60">
               <div className="flex items-center gap-2">
                 <span
                   className={`w-2 h-2 rounded-full ${
@@ -621,7 +620,7 @@ export function CodeOnBoardWidget({
                       ? "bg-amber-400 animate-spin"
                       : result?.error
                       ? "bg-red-400"
-                      : "bg-neon-green"
+                      : "bg-emerald-400"
                   }`}
                 />
                 <span className="text-xs font-mono text-zinc-400">
@@ -629,8 +628,8 @@ export function CodeOnBoardWidget({
                 </span>
 
                 {autoIterate && (
-                  <span className="text-[10px] font-mono text-neon-green px-1.5 py-0.2 rounded bg-neon-green/10 border border-neon-green/20">
-                    ⚡ live
+                  <span className="text-[10px] font-mono text-emerald-400 px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/20">
+                    live
                   </span>
                 )}
               </div>
@@ -638,7 +637,7 @@ export function CodeOnBoardWidget({
               <div className="action-buttons flex items-center gap-2">
                 {result && (
                   <button
-                    className="btn-clear text-xs text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded hover:bg-white/5 transition-colors cursor-pointer"
+                    className="btn-clear text-xs text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded hover:bg-zinc-800 transition-colors cursor-pointer"
                     onClick={handleClearOutput}
                     title="Clear console output"
                   >
@@ -646,21 +645,21 @@ export function CodeOnBoardWidget({
                   </button>
                 )}
                 <button
-                  className="btn-run px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-black font-extrabold text-xs flex items-center gap-1.5 shadow-[0_0_14px_rgba(0,245,255,0.25)] hover:opacity-95 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                   onClick={handleRun}
                   disabled={isRunning}
                   title="Run Code & Compute Iterations (Ctrl+Enter)"
                 >
                   {isRunning ? (
                     <>
-                      <span className="spinner-sm w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                      <span>Iterating…</span>
+                      <span className="spinner-sm w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Running…</span>
                     </>
                   ) : (
                     <>
                       <span>▶</span>
                       <span>Run {currentLangInfo.name}</span>
-                      <kbd className="kbd-shortcut text-[10px] px-1 py-0.5 rounded bg-black/20 text-black/80 font-mono">
+                      <kbd className="text-[10px] px-1 py-0.2 rounded bg-blue-700 text-blue-100 font-mono">
                         Ctrl+↵
                       </kbd>
                     </>
@@ -670,13 +669,13 @@ export function CodeOnBoardWidget({
             </div>
 
             {/* ── Output & Iterations Inspector Panel ─────────────────────── */}
-            <div className="output-panel bg-[#07080d] flex flex-col min-h-[140px] max-h-[220px] overflow-hidden">
-              <div className="output-header flex items-center justify-between px-3 py-1.5 border-b border-white/10 bg-[#0a0d14]">
-                <div className="output-tabs flex items-center gap-2">
+            <div className="output-panel bg-[#0d0e12] flex flex-col min-h-[140px] max-h-[220px] overflow-hidden">
+              <div className="output-header flex items-center justify-between px-3 py-1.5 border-b border-zinc-800 bg-zinc-900/60">
+                <div className="output-tabs flex items-center gap-1.5">
                   <button
-                    className={`output-tab text-xs font-mono px-2 py-0.5 rounded transition-all cursor-pointer ${
+                    className={`output-tab text-xs font-mono px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                       activeTab === "output"
-                        ? "text-neon-cyan bg-neon-cyan/15 font-bold"
+                        ? "text-white bg-zinc-800 font-semibold border border-zinc-700 shadow-sm"
                         : "text-zinc-400 hover:text-zinc-200"
                     }`}
                     onClick={() => setActiveTab("output")}
@@ -686,15 +685,15 @@ export function CodeOnBoardWidget({
 
                   {result?.steps && result.steps.length > 0 && (
                     <button
-                      className={`output-tab text-xs font-mono px-2 py-0.5 rounded transition-all flex items-center gap-1 cursor-pointer ${
+                      className={`output-tab text-xs font-mono px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
                         activeTab === "trace"
-                          ? "text-neon-green bg-neon-green/15 font-bold"
+                          ? "text-emerald-400 bg-emerald-500/10 font-semibold border border-emerald-500/20"
                           : "text-zinc-400 hover:text-zinc-200"
                       }`}
                       onClick={() => setActiveTab("trace")}
                     >
-                      <span>🔄 Loop Trace</span>
-                      <span className="text-[10px] px-1 rounded-full bg-neon-green/20 text-neon-green">
+                      <span>Loop Trace</span>
+                      <span className="text-[10px] px-1.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
                         {result.steps.length}
                       </span>
                     </button>
@@ -702,38 +701,37 @@ export function CodeOnBoardWidget({
 
                   {language === "html" && (
                     <button
-                      className={`output-tab text-xs font-mono px-2 py-0.5 rounded transition-all cursor-pointer ${
+                      className={`output-tab text-xs font-mono px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                         activeTab === "preview"
-                          ? "text-purple-400 bg-purple-400/15 font-bold"
+                          ? "text-blue-400 bg-blue-500/10 font-semibold border border-blue-500/20"
                           : "text-zinc-400 hover:text-zinc-200"
                       }`}
                       onClick={() => setActiveTab("preview")}
                     >
-                      🌐 Component Preview
+                      Component Preview
                     </button>
                   )}
                 </div>
 
                 <div className="flex items-center gap-2 text-[11px] font-mono text-zinc-400">
                   {result?.iterationCount !== undefined && (
-                    <span className="text-neon-green">
-                      🔄 {result.iterationCount}
+                    <span className="text-zinc-300">
+                      {result.iterationCount} iters
                     </span>
                   )}
                   {result && (
                     <span className="execution-time text-zinc-500">
-                      ⚡ {result.executionTimeMs}ms
+                      {result.executionTimeMs}ms
                     </span>
                   )}
                   <button
                     type="button"
-                    className="px-2.5 py-0.5 rounded-lg text-xs bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-400/30 transition-all cursor-pointer shadow-[0_0_10px_rgba(168,85,247,0.15)] flex items-center gap-1 font-medium disabled:opacity-40"
+                    className="px-2.5 py-1 rounded-lg text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition-all cursor-pointer flex items-center gap-1 font-medium disabled:opacity-40"
                     onClick={handleAddOutputToCanvas}
                     title="Paste terminal output onto canvas"
                     disabled={!result && !isRunning}
                   >
-                    <span>📌</span>
-                    <span>Add Output</span>
+                    <span>Paste to Board</span>
                   </button>
                 </div>
               </div>
@@ -742,11 +740,11 @@ export function CodeOnBoardWidget({
               <div className="output-body p-3 overflow-y-auto font-mono text-xs flex-1 no-scrollbar">
                 {isRunning ? (
                   <div className="output-loading flex items-center gap-2 text-zinc-400">
-                    <span className="spinner-sm w-3 h-3 border-2 border-neon-cyan border-t-transparent rounded-full animate-spin" />
+                    <span className="spinner-sm w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                     <span>Executing {currentLangInfo.name} iterations…</span>
                   </div>
                 ) : activeTab === "preview" && language === "html" ? (
-                  <div className="w-full h-full p-2 bg-[#0d1017] rounded-xl border border-white/10">
+                  <div className="w-full h-full p-2 bg-zinc-900 rounded-xl border border-zinc-800">
                     <iframe
                       srcDoc={code}
                       title="HTML Preview"
@@ -762,9 +760,9 @@ export function CodeOnBoardWidget({
                     {result.steps.map((s, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center gap-2 py-0.5 px-2 rounded bg-white/[0.03] border border-white/5 hover:border-neon-green/30 transition-colors"
+                        className="flex items-center gap-2 py-0.5 px-2 rounded bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 transition-colors"
                       >
-                        <span className="text-neon-green font-bold text-[10px] w-14">
+                        <span className="text-blue-400 font-semibold text-[10px] w-14">
                           Step #{s.step}:
                         </span>
                         <span className="text-zinc-200 text-xs font-mono flex-1">

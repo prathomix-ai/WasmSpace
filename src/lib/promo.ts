@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { getSafeClientErrorMessage } from "@/lib/api-error";
 
 export interface RedeemPromoResponse {
   success: boolean;
@@ -64,8 +65,8 @@ export async function redeemPromoCode(code: string): Promise<RedeemPromoResponse
     // Update local storage session caches for instant UI reactivity
     try {
       const stored =
-        localStorage.getItem("masmspace_current_user") ||
-        localStorage.getItem("wasmspace_current_user");
+        localStorage.getItem("prathomix_current_user") ||
+        localStorage.getItem("prathomix_current_user");
       let parsed = stored ? JSON.parse(stored) : {};
       parsed = {
         ...parsed,
@@ -77,12 +78,12 @@ export async function redeemPromoCode(code: string): Promise<RedeemPromoResponse
         subscription_status: "pro",
         pro_expiry_date: data.pro_expiry_date,
       };
-      localStorage.setItem("masmspace_current_user", JSON.stringify(parsed));
-      localStorage.setItem("wasmspace_current_user", JSON.stringify(parsed));
+      localStorage.setItem("prathomix_current_user", JSON.stringify(parsed));
+      localStorage.setItem("prathomix_current_user", JSON.stringify(parsed));
 
       // Broadcast subscription state change to all active components
       window.dispatchEvent(
-        new CustomEvent("masmspace_subscription_change", {
+        new CustomEvent("Prathomix_subscription_change", {
           detail: { tier: "pro", is_pro: true, pro_expiry_date: data.pro_expiry_date },
         })
       );
@@ -98,7 +99,7 @@ export async function redeemPromoCode(code: string): Promise<RedeemPromoResponse
   } catch (err: any) {
     return {
       success: false,
-      error: err?.message || "Network error while connecting to promo activation server.",
+      error: getSafeClientErrorMessage(err, "Network error while connecting to promo activation server."),
     };
   }
 }
@@ -124,8 +125,8 @@ export async function checkAndDeactivateExpiredPro(): Promise<SubscriptionStatus
       // Clear PRO privileges from local caches
       try {
         const stored =
-          localStorage.getItem("masmspace_current_user") ||
-          localStorage.getItem("wasmspace_current_user");
+          localStorage.getItem("prathomix_current_user") ||
+          localStorage.getItem("prathomix_current_user");
         if (stored) {
           const parsed = JSON.parse(stored);
           parsed.role = parsed.role === "admin" ? "admin" : "user";
@@ -133,12 +134,12 @@ export async function checkAndDeactivateExpiredPro(): Promise<SubscriptionStatus
           parsed.is_pro = false;
           parsed.subscription_status = "free";
           parsed.pro_expiry_date = null;
-          localStorage.setItem("masmspace_current_user", JSON.stringify(parsed));
-          localStorage.setItem("wasmspace_current_user", JSON.stringify(parsed));
+          localStorage.setItem("prathomix_current_user", JSON.stringify(parsed));
+          localStorage.setItem("prathomix_current_user", JSON.stringify(parsed));
         }
 
         window.dispatchEvent(
-          new CustomEvent("masmspace_subscription_change", {
+          new CustomEvent("Prathomix_subscription_change", {
             detail: { tier: "free", is_pro: false, pro_expiry_date: null },
           })
         );

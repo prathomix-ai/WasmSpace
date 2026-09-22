@@ -11,6 +11,7 @@
  */
 
 import { Node } from "@xyflow/react";
+import { validateImageBytes } from "@/lib/file-validator";
 
 export interface DocumentImportOptions {
   startX?: number;
@@ -194,7 +195,7 @@ export async function importDocumentFile(
   const fileExt = fileName.split(".").pop()?.toLowerCase() || "";
   const isImage =
     file.type.startsWith("image/") ||
-    /\.(png|jpe?g|webp|gif|svg)$/i.test(fileName);
+    /\.(png|jpe?g|webp|gif)$/i.test(fileName);
   const isPdf =
     file.type === "application/pdf" ||
     fileExt === "pdf";
@@ -203,6 +204,29 @@ export async function importDocumentFile(
 
   // ── 1. Image File Handling ──
   if (isImage) {
+    // 1. File size check (max 15MB for canvas imports)
+    const MAX_IMAGE_SIZE = 15 * 1024 * 1024;
+    if (file.size > MAX_IMAGE_SIZE) {
+      throw new Error("Image file exceeds the maximum allowed size of 15MB.");
+    }
+
+    // 2. Reject SVG or script-bearing files (prevent script execution / XSS)
+    if (fileExt === "svg" || file.type.includes("svg")) {
+      throw new Error("SVG format is not supported for canvas image import. Please use PNG, JPG, or WebP.");
+    }
+
+    // 3. Inspect binary magic bytes to verify content authenticity
+    try {
+      const headerSlice = file.slice(0, 32);
+      const arrayBuf = await headerSlice.arrayBuffer();
+      const validation = validateImageBytes(new Uint8Array(arrayBuf), MAX_IMAGE_SIZE);
+      if (!validation.valid) {
+        throw new Error(validation.error || "Invalid image file header. Corrupted or disguised files are rejected.");
+      }
+    } catch (verr: any) {
+      throw new Error(verr?.message || "Image file verification failed.");
+    }
+
     if (onProgress) onProgress(1, 1, "Converting image to canvas node…");
 
     const base64 = await fileToBase64(file);

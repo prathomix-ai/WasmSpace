@@ -1,5 +1,5 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// MasmSpace — PDF & Document Importer Utility
+﻿// ─────────────────────────────────────────────────────────────────────────────
+// Prathomix — PDF & Document Importer Utility
 // Renders PDF pages into high-resolution images in-browser via PDF.js WebWorker & HTML5 Canvas
 // ─────────────────────────────────────────────────────────────────────────────
 

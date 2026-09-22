@@ -1,5 +1,5 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// MasmSpace — Whiteboard Canvas Utilities & Shape Helpers
+﻿// ─────────────────────────────────────────────────────────────────────────────
+// Prathomix — Whiteboard Canvas Utilities & Shape Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { type Editor, type TLShape } from "@tldraw/tldraw";

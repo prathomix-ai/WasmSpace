@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Crown, Check, X, Sparkles, Zap, Shield, ArrowRight, Globe } from "lucide-react";
+import { Crown, Check, X, Zap, Shield, Globe } from "lucide-react";
 import { Checkout } from "@/components/Checkout";
 import { useCurrency } from "@/lib/currency";
 
@@ -17,7 +17,7 @@ interface PricingModalProps {
 export function PricingModal({
   isOpen,
   onClose,
-  title = "Unlock MASMSPACE PRO",
+  title = "Unlock MasmSpace PRO",
   reason = "You have reached your free daily quota of AI actions.",
   onUpgradeSuccess,
 }: PricingModalProps) {
@@ -77,7 +77,7 @@ export function PricingModal({
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-cyan-400">
-                    PRATHOMIX ENTERPRISE
+                    MASMSPACE ENTERPRISE
                   </span>
                   <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold uppercase">
                     PRO SUITE
@@ -169,7 +169,7 @@ export function PricingModal({
             <div className="text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-2 pb-3 mb-4 border-b border-white/5">
               <Zap className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] shrink-0" />
               <span className="bg-gradient-to-r from-cyan-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent font-extrabold tracking-wider">
-                EVERYTHING INCLUDED IN PRATHOMIX PRO:
+                EVERYTHING INCLUDED IN MASMSPACE PRO:
               </span>
             </div>
 
@@ -234,8 +234,8 @@ export function PricingModal({
           {/* ── High-Contrast Glowing Razorpay Checkout CTA ── */}
           <Checkout
             plan={billingCycle}
-            amount={activePlanDetails.subunits}
             currency={currency}
+            showCouponInput={true}
             buttonText={`Upgrade to PRO — ${activePlanDetails.label}`}
             className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-black font-extrabold font-mono text-sm tracking-tight transition-all duration-200 shadow-[0_0_30px_rgba(0,245,255,0.45)] hover:shadow-[0_0_40px_rgba(0,245,255,0.65)] hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             onSuccess={() => {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { executeWithLoadBalancer } from "@/lib/ai-balancer";
 import { CanvasVoiceAction, VoiceCommandResponse } from "@/types/voiceControl";
+import { handleApiError } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -389,7 +390,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cleanEmail = (userEmail || "guest@masmspace.ai").trim().toLowerCase();
+    const cleanEmail = (userEmail || "guest@Prathomix.ai").trim().toLowerCase();
     const isAdmin = cleanEmail === "admin@prathomix.tech";
 
     // ── 1. Tier-Based Capability Routing via Supabase (With Safe 3.5s Timeout) ──
@@ -534,16 +535,10 @@ Active Selected Elements (${selectedSummary.length}): ${JSON.stringify(selectedS
 
     return NextResponse.json(responsePayload, { status: 200 });
   } catch (error: any) {
-    console.error("[/api/voice-command] Unexpected fatal route error:", error);
-    // Even on fatal route error, gracefully return a safe single-action fallback rather than breaking client
-    return NextResponse.json(
-      {
-        success: false,
-        error: error?.message || "Internal server error processing voice command",
-        actions: [],
-        rawTranscript: "",
-      },
-      { status: 500 }
+    return handleApiError(
+      error,
+      "[POST /api/voice-command]",
+      "Failed to process voice command. Please try again."
     );
   }
 }

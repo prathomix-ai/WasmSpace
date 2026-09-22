@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useCallback, useRef } from "react";
 import { driver, Driver } from "driver.js";
@@ -27,7 +27,7 @@ export function TutorialTour({ forceStart = false, onTourComplete }: TutorialTou
       overlayColor: "rgba(0, 0, 0, 0.82)",
       stagePadding: 8,
       stageRadius: 16,
-      popoverClass: "masmspace-tour-popover",
+      popoverClass: "Prathomix-tour-popover",
       nextBtnText: "Next →",
       prevBtnText: "← Back",
       doneBtnText: "Get Started 🚀",
@@ -122,76 +122,73 @@ export function TutorialTour({ forceStart = false, onTourComplete }: TutorialTou
 
   return (
     <>
-      {/* ── Cyberpunk Dark Theme Styles for Driver.js Popover ── */}
+      {/* ── Modern Clean Dark Theme Styles for Driver.js Popover ── */}
       <style jsx global>{`
-        .masmspace-tour-popover {
-          background: rgba(9, 9, 11, 0.95) !important;
-          backdrop-filter: blur(20px) !important;
-          -webkit-backdrop-filter: blur(20px) !important;
-          border: 1.5px solid rgba(6, 182, 212, 0.45) !important;
-          box-shadow: 0 0 35px rgba(6, 182, 212, 0.25), 0 10px 40px rgba(0, 0, 0, 0.8) !important;
-          border-radius: 20px !important;
+        .Prathomix-tour-popover {
+          background: #121316 !important;
+          border: 1px solid #27272a !important;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7) !important;
+          border-radius: 16px !important;
           padding: 18px 20px !important;
           color: #f4f4f5 !important;
           max-width: 340px !important;
           font-family: inherit !important;
         }
 
-        .masmspace-tour-popover .driver-popover-title {
+        .Prathomix-tour-popover .driver-popover-title {
           font-size: 15px !important;
-          font-weight: 700 !important;
+          font-weight: 600 !important;
           color: #ffffff !important;
           letter-spacing: -0.01em !important;
           margin-bottom: 6px !important;
         }
 
-        .masmspace-tour-popover .driver-popover-description {
+        .Prathomix-tour-popover .driver-popover-description {
           font-size: 13px !important;
           line-height: 1.55 !important;
           color: #a1a1aa !important;
           margin-bottom: 16px !important;
         }
 
-        .masmspace-tour-popover .driver-popover-progress-text {
+        .Prathomix-tour-popover .driver-popover-progress-text {
           font-size: 11px !important;
-          font-family: monospace !important;
-          color: #22d3ee !important;
-          font-weight: 600 !important;
+          font-family: inherit !important;
+          color: #3b82f6 !important;
+          font-weight: 500 !important;
         }
 
-        .masmspace-tour-popover .driver-popover-footer {
+        .Prathomix-tour-popover .driver-popover-footer {
           display: flex !important;
           align-items: center !important;
           justify-content: space-between !important;
           gap: 8px !important;
           margin-top: 14px !important;
           padding-top: 12px !important;
-          border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+          border-top: 1px solid #27272a !important;
         }
 
         /* Next Button */
-        .masmspace-tour-popover .driver-popover-next-btn {
-          background: linear-gradient(135deg, #22d3ee, #06b6d4) !important;
-          color: #000000 !important;
-          font-weight: 700 !important;
+        .Prathomix-tour-popover .driver-popover-next-btn {
+          background: #2563eb !important;
+          color: #ffffff !important;
+          font-weight: 500 !important;
           font-size: 12px !important;
           padding: 6px 14px !important;
-          border-radius: 10px !important;
+          border-radius: 8px !important;
           border: none !important;
-          box-shadow: 0 0 15px rgba(6, 182, 212, 0.4) !important;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
           cursor: pointer !important;
           transition: all 0.15s ease !important;
           text-shadow: none !important;
         }
 
-        .masmspace-tour-popover .driver-popover-next-btn:hover {
-          background: #38bdf8 !important;
-          box-shadow: 0 0 20px rgba(56, 189, 248, 0.6) !important;
+        .Prathomix-tour-popover .driver-popover-next-btn:hover {
+          background: #1d4ed8 !important;
           transform: translateY(-1px) !important;
         }
 
         /* Previous Button */
-        .masmspace-tour-popover .driver-popover-prev-btn {
+        .Prathomix-tour-popover .driver-popover-prev-btn {
           background: rgba(255, 255, 255, 0.06) !important;
           color: #d4d4d8 !important;
           font-weight: 600 !important;
@@ -204,33 +201,33 @@ export function TutorialTour({ forceStart = false, onTourComplete }: TutorialTou
           text-shadow: none !important;
         }
 
-        .masmspace-tour-popover .driver-popover-prev-btn:hover {
+        .Prathomix-tour-popover .driver-popover-prev-btn:hover {
           background: rgba(255, 255, 255, 0.12) !important;
           color: #ffffff !important;
         }
 
         /* Skip / Close Button */
-        .masmspace-tour-popover .driver-popover-close-btn {
+        .Prathomix-tour-popover .driver-popover-close-btn {
           color: #71717a !important;
           font-size: 16px !important;
           padding: 4px !important;
           transition: color 0.15s ease !important;
         }
 
-        .masmspace-tour-popover .driver-popover-close-btn:hover {
+        .Prathomix-tour-popover .driver-popover-close-btn:hover {
           color: #f43f5e !important;
         }
 
-        .masmspace-tour-popover .driver-popover-arrow-side-left.driver-popover-arrow {
+        .Prathomix-tour-popover .driver-popover-arrow-side-left.driver-popover-arrow {
           border-right-color: rgba(6, 182, 212, 0.45) !important;
         }
-        .masmspace-tour-popover .driver-popover-arrow-side-right.driver-popover-arrow {
+        .Prathomix-tour-popover .driver-popover-arrow-side-right.driver-popover-arrow {
           border-left-color: rgba(6, 182, 212, 0.45) !important;
         }
-        .masmspace-tour-popover .driver-popover-arrow-side-top.driver-popover-arrow {
+        .Prathomix-tour-popover .driver-popover-arrow-side-top.driver-popover-arrow {
           border-bottom-color: rgba(6, 182, 212, 0.45) !important;
         }
-        .masmspace-tour-popover .driver-popover-arrow-side-bottom.driver-popover-arrow {
+        .Prathomix-tour-popover .driver-popover-arrow-side-bottom.driver-popover-arrow {
           border-top-color: rgba(6, 182, 212, 0.45) !important;
         }
       `}</style>

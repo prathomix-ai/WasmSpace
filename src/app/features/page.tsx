@@ -4,17 +4,17 @@ import Link from "next/link";
 import { Sparkles, Terminal, Cpu, Zap, Cloud, Layers, ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Features - Cyber-Glassmorphism AI & Developer Workspace",
+  title: "Features - MasmSpace Architecture & Developer Workspace (Powered by Prathomix)",
   description:
-    "Explore MasmSpace features: interactive whiteboard canvas, in-browser WebAssembly Python runtime, Python FastAPI intelligence, and Supabase real-time cloud sync.",
+    "Explore MasmSpace features powered by Prathomix: interactive whiteboard canvas, in-browser WebAssembly Python runtime, Python FastAPI intelligence, and Supabase real-time cloud sync.",
   alternates: {
     canonical: "/features",
   },
   openGraph: {
-    title: "MasmSpace Features | Next-Gen AI Workspace",
+    title: "MasmSpace Features | Next-Gen AI Workspace - Powered by Prathomix",
     description:
-      "Engineered for developers, architects, and researchers. Discover WebAssembly execution, AI modeling, and collaborative infinite canvas.",
-    url: "https://masmspace.online/features",
+      "Engineered for developers, architects, and researchers. Discover WebAssembly execution, AI modeling, and collaborative infinite canvas on MasmSpace, powered by Prathomix.",
+    url: "https://prathomix.tech/features",
   },
 };
 
@@ -40,9 +40,9 @@ export default function FeaturesPage() {
     },
     {
       icon: <Layers className="w-7 h-7 text-amber-400" />,
-      title: "Cyber-Glassmorphism Canvas",
+      title: "High-Performance Whiteboard Canvas",
       description:
-        "An infinite whiteboard interface built with high-FPS rendering, customizable toolbars, and futuristic neon visual feedback.",
+        "An infinite whiteboard interface built with high-FPS rendering, customizable toolbars, and fluid visual feedback.",
     },
     {
       icon: <Terminal className="w-7 h-7 text-pink-400" />,

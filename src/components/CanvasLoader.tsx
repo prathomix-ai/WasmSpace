@@ -131,7 +131,7 @@ export function CanvasLoader({
             className="absolute inset-0 m-auto w-14 h-14 rounded-2xl bg-[#09090b]/80 border border-cyan-400/40 p-2.5 flex items-center justify-center shadow-[0_0_28px_rgba(6,182,212,0.45)]"
           >
             <Image
-              src="/masmspace-logo.png"
+              src="/Prathomix-logo.png"
               alt="MasmSpace"
               width={40}
               height={40}

@@ -141,10 +141,11 @@ export default function VSCodeExplorer({
     return (
       <div key={node.id} className="select-none text-xs">
         <div
-          className={`group flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer transition-all duration-150 ${isActive
-              ? "bg-neon-cyan/15 text-neon-cyan border-l-2 border-neon-cyan font-medium shadow-[0_0_12px_rgba(0,245,255,0.15)]"
-              : "text-zinc-400 hover:text-zinc-100 hover:bg-white/5"
-            }`}
+          className={`group flex items-center justify-between py-1.5 px-2 rounded-lg cursor-pointer transition-all duration-150 ${
+            isActive
+              ? "bg-blue-500/10 text-blue-400 border-l-2 border-blue-500 font-medium"
+              : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60"
+          }`}
           style={{ paddingLeft: `${Math.max(8, depth * 14 + 8)}px` }}
           onClick={() => {
             if (isFolder) {
@@ -166,7 +167,7 @@ export default function VSCodeExplorer({
             )}
 
             <span className="text-sm">
-              {isFolder ? (isExpanded ? "📂" : "📁") : "✦"}
+              {isFolder ? (isExpanded ? "📂" : "📁") : "📄"}
             </span>
 
             {isRenaming ? (
@@ -181,7 +182,7 @@ export default function VSCodeExplorer({
                   if (e.key === "Escape") setRenamingId(null);
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-zinc-900 text-white border border-neon-cyan rounded px-1.5 py-0.5 text-xs outline-none w-full shadow-neon-cyan"
+                className="bg-zinc-900 text-white border border-blue-500 rounded px-1.5 py-0.5 text-xs outline-none w-full"
               />
             ) : (
               <span className="truncate font-mono text-[11px] tracking-tight">
@@ -194,7 +195,7 @@ export default function VSCodeExplorer({
           <div className="hidden group-hover:flex items-center gap-1 text-[11px] text-zinc-400">
             {isFolder && (
               <button
-                className="p-1 hover:text-neon-cyan hover:bg-white/10 rounded"
+                className="p-1 hover:text-white hover:bg-zinc-700 rounded"
                 title="New Board in Folder"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -205,14 +206,14 @@ export default function VSCodeExplorer({
               </button>
             )}
             <button
-              className="p-1 hover:text-yellow-400 hover:bg-white/10 rounded"
+              className="p-1 hover:text-amber-300 hover:bg-zinc-700 rounded"
               title="Rename"
               onClick={(e) => startRename(node, e)}
             >
               ✎
             </button>
             <button
-              className="p-1 hover:text-red-400 hover:bg-white/10 rounded"
+              className="p-1 hover:text-rose-400 hover:bg-zinc-700 rounded"
               title="Delete"
               onClick={(e) => {
                 e.stopPropagation();
@@ -226,7 +227,7 @@ export default function VSCodeExplorer({
 
         {/* Children (if folder expanded) */}
         {isFolder && isExpanded && node.children && (
-          <div className="border-l border-zinc-800/60 ml-3">
+          <div className="border-l border-zinc-800/80 ml-3">
             {node.children.length === 0 ? (
               <div
                 className="py-1 text-[10px] text-zinc-600 italic"
@@ -252,18 +253,18 @@ export default function VSCodeExplorer({
         >
           <motion.div
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 260, opacity: 1 }}
+            animate={{ width: 270, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="h-full bg-void-surface/95 backdrop-blur-2xl border border-white/10 rounded-2xl flex flex-col overflow-hidden pointer-events-auto shadow-2xl"
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="h-full bg-[#121316]/98 backdrop-blur-2xl border border-zinc-800 rounded-2xl flex flex-col overflow-hidden pointer-events-auto shadow-2xl"
           >
             {/* Header */}
-            <div className="p-3 border-b border-white/10 flex items-center justify-between">
+            <div className="p-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/40">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold tracking-wider text-zinc-300 uppercase font-mono">
-                  Explorer
+                <span className="text-xs font-semibold text-zinc-200 tracking-tight font-sans">
+                  Project Explorer
                 </span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20">
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-mono">
                   WORKSPACE
                 </span>
               </div>
@@ -271,21 +272,21 @@ export default function VSCodeExplorer({
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => onCreateFile(null, "New Board")}
-                  className="p-1 hover:text-neon-cyan hover:bg-white/10 rounded text-zinc-400 text-xs"
+                  className="p-1 hover:text-white hover:bg-zinc-800 rounded text-zinc-400 text-xs"
                   title="New Board File"
                 >
                   📄+
                 </button>
                 <button
                   onClick={() => onCreateFolder(null, "New Folder")}
-                  className="p-1 hover:text-neon-purple hover:bg-white/10 rounded text-zinc-400 text-xs"
+                  className="p-1 hover:text-white hover:bg-zinc-800 rounded text-zinc-400 text-xs"
                   title="New Folder"
                 >
                   📁+
                 </button>
                 <button
                   onClick={onToggleOpen}
-                  className="p-1 hover:text-white hover:bg-white/10 rounded text-zinc-400 text-xs"
+                  className="p-1 hover:text-white hover:bg-zinc-800 rounded text-zinc-400 text-xs"
                   title="Collapse Sidebar"
                 >
                   ◀
@@ -303,14 +304,14 @@ export default function VSCodeExplorer({
             />
 
             {/* Universal Document Import Card */}
-            <div className="p-3 border-b border-white/10 bg-gradient-to-b from-neon-purple/5 to-transparent">
+            <div className="p-3 border-b border-zinc-800 bg-zinc-900/20">
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isImportingPdf}
-                className="w-full py-2 px-3 rounded-lg bg-neon-purple/15 hover:bg-neon-purple/25 border border-neon-purple/30 text-neon-purple font-medium text-xs flex items-center justify-center gap-2 transition-all shadow-[0_0_16px_rgba(168,85,247,0.15)] disabled:opacity-50"
+                className="w-full py-2 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 font-medium text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
               >
                 <span>{isImportingPdf ? "⏳" : "📥"}</span>
-                <span>{isImportingPdf ? "Synthesizing Document..." : "Import Document (PDF/Word/PPT)"}</span>
+                <span>{isImportingPdf ? "Synthesizing Document..." : "Import Document (PDF/Office)"}</span>
               </button>
 
               {isImportingPdf && importProgress && (
@@ -321,7 +322,7 @@ export default function VSCodeExplorer({
                   </div>
                   <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-neon-purple transition-all duration-200"
+                      className="h-full bg-blue-500 transition-all duration-200"
                       style={{
                         width: `${(importProgress.current / Math.max(1, importProgress.total)) * 100}%`,
                       }}
@@ -341,12 +342,12 @@ export default function VSCodeExplorer({
             </div>
 
             {/* Bottom Footer / Storage Status */}
-            <div className="p-2.5 border-t border-white/10 text-[10px] text-zinc-500 flex items-center justify-between font-mono bg-void-dark/50">
+            <div className="p-2.5 border-t border-zinc-800 text-[10px] text-zinc-500 flex items-center justify-between font-mono bg-zinc-950/40">
               <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-neon-green" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 <span>Local Sync</span>
               </div>
-              <span>v2.1 MasmSpace</span>
+              <span>v2.4 MasmSpace</span>
             </div>
           </motion.div>
         </div>

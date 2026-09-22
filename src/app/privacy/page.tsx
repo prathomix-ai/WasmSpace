@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy Policy | MasmSpace AI Whiteboard",
+  title: "Privacy Policy | MasmSpace - Powered by Prathomix",
   description: "Privacy Policy governing data processing, local execution, and third-party storage on MasmSpace.",
 };
 
@@ -40,7 +40,7 @@ export default function PrivacyPage() {
             PRIVACY &amp; DATA PROCESSING POLICY
           </h1>
           <p className="text-sm text-zinc-400 leading-relaxed">
-            This Privacy Policy describes how PRATHOMIX (&ldquo;Company&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;) handles information across the MasmSpace AI SaaS platform, specifically highlighting local browser sandboxing and third-party infrastructure boundaries.
+            This Privacy Policy describes how PRATHOMIX SOLUTION (&ldquo;Company&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;) handles information across the MasmSpace Smart Whiteboard platform, specifically highlighting local browser sandboxing and third-party infrastructure boundaries.
           </p>
         </div>
 
@@ -64,7 +64,7 @@ export default function PrivacyPage() {
             <li><strong>Content Delivery Networks (CDNs)</strong> for rapid asset distribution.</li>
           </ul>
           <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 text-xs sm:text-sm text-zinc-300 font-mono leading-relaxed mt-2">
-            <strong>Breach Disclaimer:</strong> The Company utilizes industry-standard cryptographic practices. However, PRATHOMIX holds zero liability for any security breaches, physical intrusions, zero-day vulnerabilities, or interception events originating from third-party cloud hosting providers, vector storage tiers, or external AI model inference APIs.
+            <strong>Breach Disclaimer:</strong> The Company utilizes industry-standard cryptographic practices. However, PRATHOMIX SOLUTION holds zero liability for any security breaches, physical intrusions, zero-day vulnerabilities, or interception events originating from third-party cloud hosting providers, vector storage tiers, or external AI model inference APIs.
           </div>
         </section>
 
@@ -119,7 +119,7 @@ export default function PrivacyPage() {
       <footer className="border-t border-zinc-800/80 bg-zinc-950 py-8 text-center text-xs text-zinc-500 font-mono">
         MasmSpace AI OS • Powered by{" "}
         <a href="https://prathomix.tech" className="text-zinc-300 hover:text-neon-cyan transition-colors font-bold">
-          PRATHOMIX
+          PRATHOMIX SOLUTION
         </a>
       </footer>
     </div>

@@ -32,8 +32,10 @@ interface DrawingOverlayProps {
   penColor?: string;
   penWidth?: number;
   highlighterColor?: string;
+  eraserRadius?: number;
   onStrokeComplete?: (stroke: DrawingStroke) => void;
-  onEraseStroke?: (pt: StrokePoint) => void;
+  onEraseStroke?: (pt: StrokePoint, prevPt?: StrokePoint | null, radius?: number) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
   className?: string;
 }
 
@@ -169,8 +171,10 @@ export default function DrawingOverlay({
   penColor = "#06b6d4",
   penWidth = 3,
   highlighterColor = "#facc15",
+  eraserRadius = 24,
   onStrokeComplete,
   onEraseStroke,
+  onContextMenu,
   className = "",
 }: DrawingOverlayProps) {
   const { screenToFlowPosition } = useReactFlow();
@@ -180,13 +184,16 @@ export default function DrawingOverlay({
   const [currentStroke, setCurrentStroke] = useState<DrawingStroke | null>(null);
   const [laserPoints, setLaserPoints] = useState<LaserPoint[]>([]);
   const [laserCursor, setLaserCursor] = useState<StrokePoint | null>(null);
+  const [eraserCursor, setEraserCursor] = useState<StrokePoint | null>(null);
 
   const isDrawingRef = useRef(false);
+  const lastErasePointRef = useRef<StrokePoint | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   const isDrawingToolActive =
     activeTool === "pen" ||
     activeTool === "highlighter" ||
+    activeTool === "eraser" ||
     activeTool === "laser";
   const isDrawingActive =
     activeTool === "pen" ||
@@ -227,11 +234,30 @@ export default function DrawingOverlay({
     [x, y, zoom]
   );
 
-  // Check if a point is near a stroke for erasing
-  const isPointNearStroke = (pt: StrokePoint, stroke: DrawingStroke, threshold: number = 18): boolean => {
+  // Check if points are near eraser coordinate or connecting drag segment
+  const isStrokeIntersectedByEraser = (
+    stroke: DrawingStroke,
+    pt: StrokePoint,
+    prevPt?: StrokePoint | null,
+    threshold: number = eraserRadius
+  ): boolean => {
     for (const p of stroke.points) {
-      const dist = Math.hypot(p.x - pt.x, p.y - pt.y);
-      if (dist < threshold) return true;
+      if (prevPt) {
+        const dx = pt.x - prevPt.x;
+        const dy = pt.y - prevPt.y;
+        const l2 = dx * dx + dy * dy;
+        if (l2 === 0) {
+          if (Math.hypot(p.x - pt.x, p.y - pt.y) < threshold) return true;
+        } else {
+          let t = ((p.x - prevPt.x) * dx + (p.y - prevPt.y) * dy) / l2;
+          t = Math.max(0, Math.min(1, t));
+          const projX = prevPt.x + t * dx;
+          const projY = prevPt.y + t * dy;
+          if (Math.hypot(p.x - projX, p.y - projY) < threshold) return true;
+        }
+      } else {
+        if (Math.hypot(p.x - pt.x, p.y - pt.y) < threshold) return true;
+      }
     }
     return false;
   };
@@ -243,8 +269,10 @@ export default function DrawingOverlay({
     const pt = getRawFlowCoordinates(e);
 
     if (activeTool === "eraser") {
-      setStrokes((prev) => prev.filter((s) => !isPointNearStroke(pt, s)));
-      onEraseStroke?.(pt);
+      lastErasePointRef.current = pt;
+      setEraserCursor(pt);
+      setStrokes((prev) => prev.filter((s) => !isStrokeIntersectedByEraser(s, pt, null, eraserRadius)));
+      onEraseStroke?.(pt, null, eraserRadius);
       return;
     }
 
@@ -276,13 +304,18 @@ export default function DrawingOverlay({
       return;
     }
 
-    if (!isDrawingRef.current) return;
-
     if (activeTool === "eraser") {
-      setStrokes((prev) => prev.filter((s) => !isPointNearStroke(pt, s)));
-      onEraseStroke?.(pt);
+      setEraserCursor(pt);
+      if (isDrawingRef.current) {
+        const prevPt = lastErasePointRef.current;
+        lastErasePointRef.current = pt;
+        setStrokes((prev) => prev.filter((s) => !isStrokeIntersectedByEraser(s, pt, prevPt, eraserRadius)));
+        onEraseStroke?.(pt, prevPt, eraserRadius);
+      }
       return;
     }
+
+    if (!isDrawingRef.current) return;
 
     if (currentStroke) {
       setCurrentStroke((prev) => {
@@ -302,6 +335,7 @@ export default function DrawingOverlay({
     } catch {}
 
     isDrawingRef.current = false;
+    lastErasePointRef.current = null;
 
     if (currentStroke && currentStroke.points.length > 0) {
       if (onStrokeComplete) {
@@ -317,7 +351,7 @@ export default function DrawingOverlay({
   const getCursorClass = () => {
     if (activeTool === "pen") return "cursor-crosshair";
     if (activeTool === "highlighter") return "cursor-crosshair";
-    if (activeTool === "eraser") return "cursor-cell";
+    if (activeTool === "eraser") return "cursor-crosshair";
     if (activeTool === "laser") return "cursor-none";
     return "pointer-events-none";
   };
@@ -333,7 +367,17 @@ export default function DrawingOverlay({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerLeave={() => setLaserCursor(null)}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onContextMenu?.(e);
+      }}
+      onPointerLeave={() => {
+        isDrawingRef.current = false;
+        lastErasePointRef.current = null;
+        setLaserCursor(null);
+        setEraserCursor(null);
+      }}
       style={{ touchAction: "none" }}
     >
       <defs>
@@ -361,7 +405,7 @@ export default function DrawingOverlay({
                 ? { mixBlendMode: "screen", filter: `drop-shadow(0 0 6px ${stroke.color})` }
                 : { filter: `drop-shadow(0 0 1px ${stroke.color}80)` }
             }
-            className={activeTool === "eraser" ? "pointer-events-auto cursor-cell hover:opacity-40" : "pointer-events-none"}
+            className={activeTool === "eraser" ? "pointer-events-auto cursor-crosshair hover:opacity-40" : "pointer-events-none"}
             onClick={(e) => {
               if (activeTool === "eraser") {
                 e.stopPropagation();
@@ -383,6 +427,20 @@ export default function DrawingOverlay({
                 : { filter: `drop-shadow(0 0 1px ${currentStroke.color}80)` }
             }
           />
+        )}
+
+        {/* ── Eraser Visual Target Indicator Ring ── */}
+        {eraserCursor && activeTool === "eraser" && (
+          <g transform={`translate(${eraserCursor.x}, ${eraserCursor.y})`} pointerEvents="none">
+            <circle
+              r={eraserRadius}
+              fill="rgba(244, 63, 94, 0.16)"
+              stroke="#f43f5e"
+              strokeWidth={Math.max(1, 1.5 / zoom)}
+              strokeDasharray={`${4 / zoom} ${3 / zoom}`}
+            />
+            <circle r={Math.min(4, Math.max(2, eraserRadius / 8))} fill="#f43f5e" />
+          </g>
         )}
 
         {/* ── Laser Pointer Dynamic Fading Trail ── */}

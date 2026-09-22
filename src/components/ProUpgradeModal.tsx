@@ -4,10 +4,8 @@ import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Crown,
-  Check,
   ArrowRight,
   X,
-  Zap,
   Sparkles,
   FileText,
   Brain,
@@ -47,7 +45,7 @@ export function ProUpgradeModal({
     <AnimatePresence>
       {/* Modal Overlay */}
       <div
-        className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 select-none"
+        className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 select-none"
         onClick={(e) => {
           if (e.target === e.currentTarget) onClose();
         }}
@@ -55,121 +53,117 @@ export function ProUpgradeModal({
         aria-modal="true"
         aria-labelledby="pro-upgrade-title"
       >
-        {/* Modal Card (Premium Glassmorphism) */}
+        {/* Modal Card - Clean Professional Enterprise UI */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.94, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.94, y: 20 }}
-          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-[#09090b] border border-white/10 rounded-2xl p-8 max-w-md w-full shadow-[0_0_50px_rgba(139,92,246,0.15)] relative overflow-hidden"
+          exit={{ opacity: 0, scale: 0.95, y: 12 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="bg-[#121316] border border-zinc-800 rounded-2xl p-6 sm:p-7 max-w-md w-full shadow-2xl relative text-zinc-100 font-sans"
         >
-          {/* Ambient Glows */}
-          <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-violet-600/20 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-20 -left-20 w-48 h-48 rounded-full bg-cyan-500/20 blur-3xl pointer-events-none" />
-
-          {/* Close Button (X icon) */}
+          {/* Close Button */}
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer z-10"
+            className="absolute top-4 right-4 p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer z-10"
             aria-label="Close modal"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
 
-          {/* Crown Badge */}
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600/20 to-cyan-500/20 border border-violet-500/30 flex items-center justify-center text-violet-400 shadow-[0_0_20px_rgba(139,92,246,0.3)] shrink-0">
-              <Crown className="w-6 h-6 fill-violet-400 text-violet-400" />
+          {/* Header & Crown Badge */}
+          <div className="flex items-center gap-3.5 mb-4">
+            <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+              <Crown className="w-5 h-5 fill-amber-400 text-amber-400" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-[10px] font-mono font-bold tracking-widest uppercase bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
-                  MASMSPACE PRO
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-amber-400">
+                  MasmSpace Pro
                 </span>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30 font-semibold uppercase">
-                  ELITE
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 font-medium">
+                  Tier Upgrade
                 </span>
               </div>
               <h2
                 id="pro-upgrade-title"
-                className="text-xl font-bold font-sans text-white tracking-tight leading-none"
+                className="text-lg font-semibold text-white tracking-tight"
               >
-                Upgrade to MasmSpace PRO
+                Upgrade to Professional
               </h2>
             </div>
           </div>
 
           {/* Value Prop Subtext */}
-          <p className="text-sm text-zinc-300 leading-relaxed mb-6 font-normal">
+          <p className="text-xs text-zinc-400 leading-relaxed mb-5">
             {featureName ? (
               <>
-                Unlock <strong className="text-white font-medium">{featureName}</strong> and take your architecture canvas to elite levels.
+                Unlock <strong className="text-zinc-200 font-medium">{featureName}</strong> and eliminate daily AI quota limitations.
               </>
             ) : (
-              "Unlock 300 AI Prompts/day, PDF Imports, and more."
+              "Get 300 daily AI generations, multi-page document imports, and priority collaboration."
             )}
           </p>
 
-          {/* Engaging Feature Highlights */}
-          <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 mb-6 space-y-3">
+          {/* Clean Feature List */}
+          <div className="bg-zinc-900/70 border border-zinc-800/80 rounded-xl p-3.5 mb-5 space-y-3">
             <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-md bg-violet-500/20 text-violet-400 flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-5 h-5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center shrink-0 mt-0.5">
                 <Sparkles className="w-3.5 h-3.5" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-white">300 AI Prompts / day</p>
-                <p className="text-[11px] text-zinc-400">Gemini 1.5 Pro & Groq Llama-3.3 architecture generation</p>
+                <p className="text-xs font-medium text-zinc-200">300 AI Generations / day</p>
+                <p className="text-[11px] text-zinc-400">Gemini 1.5 Pro & Groq Llama-3.3 full architecture intelligence</p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-md bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-5 h-5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
                 <FileText className="w-3.5 h-3.5" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-white">PDF & Universal Document Imports</p>
-                <p className="text-[11px] text-zinc-400">Convert specs and system diagrams instantly to graph nodes</p>
+                <p className="text-xs font-medium text-zinc-200">PDF & Document Extraction</p>
+                <p className="text-[11px] text-zinc-400">Convert PDFs, DOCX, and architecture diagrams to canvas nodes</p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-5 h-5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center shrink-0 mt-0.5">
                 <Brain className="w-3.5 h-3.5" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-white">Full Board Brain RAG & 4K Exports</p>
-                <p className="text-[11px] text-zinc-400">Semantic vector indexing and watermark-free presentation exports</p>
+                <p className="text-xs font-medium text-zinc-200">High-Resolution 4K Export</p>
+                <p className="text-[11px] text-zinc-400">Watermark-free ultra-high resolution PNG export for presentations</p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-md bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-5 h-5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
                 <Shield className="w-3.5 h-3.5" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-white">Live Multiplayer & VIP Priority</p>
-                <p className="text-[11px] text-zinc-400">Real-time laser pointers, session sync & priority cloud backup</p>
+                <p className="text-xs font-medium text-zinc-200">Real-Time Team Multiplayer</p>
+                <p className="text-[11px] text-zinc-400">Live multi-user cursor tracking, laser pointer, and cloud sync</p>
               </div>
             </div>
           </div>
 
           {/* Action Button & Pricing */}
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <Link
               href="/pricing"
               onClick={onClose}
-              className="w-full py-3.5 px-5 rounded-xl font-sans text-sm font-bold text-white bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:from-violet-500 hover:via-indigo-500 hover:to-cyan-400 shadow-[0_0_25px_rgba(139,92,246,0.35)] hover:shadow-[0_0_35px_rgba(6,182,212,0.5)] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer group"
+              className="w-full py-2.5 px-4 rounded-xl text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 shadow-sm active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer group"
             >
-              <span>Upgrade Now</span>
-              <span className="text-white/80 font-normal text-xs">
-                &bull; {currency === "INR" ? "₹149/mo" : "$5/mo"}
+              <span>Upgrade to Pro</span>
+              <span className="text-blue-200 font-normal">
+                &bull; {currency === "INR" ? "₹149/month" : "$5/month"}
               </span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
 
-            <p className="text-center text-[11px] font-mono text-zinc-500">
-              Cancel anytime &bull; Instant activation &bull; 100% money-back guarantee
+            <p className="text-center text-[11px] text-zinc-500">
+              Cancel anytime &bull; Instant secure activation
             </p>
           </div>
         </motion.div>

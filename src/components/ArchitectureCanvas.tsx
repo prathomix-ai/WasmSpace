@@ -13,16 +13,21 @@ import {
   Connection,
   Edge,
   Node,
+  NodeChange,
+  EdgeChange,
   MarkerType,
-  Panel,
   ReactFlowProvider,
   useReactFlow,
+  MiniMapNodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
 import CustomTechNode, { CustomTechNodeData } from "@/components/CustomTechNode";
 import GroupNode from "@/components/GroupNode";
+import ShapeNode from "@/components/ShapeNode";
 import BottomToolbar, { CanvasToolMode } from "@/components/BottomToolbar";
+import PresentationModeHUD, { PresentationShapeType } from "@/components/PresentationModeHUD";
+import { SHAPE_LIBRARY } from "@/constants/shapeLibrary";
 import DrawingOverlay, { DrawingStroke, StrokePoint, getSvgPathFromPoints, pointsToSvgPath } from "@/components/DrawingOverlay";
 import DrawingNode from "@/components/DrawingNode";
 import AlignmentGuides, { AlignmentGuideLine } from "@/components/AlignmentGuides";
@@ -32,10 +37,15 @@ import SettingsModal from "@/components/SettingsModal";
 import { toPng } from "html-to-image";
 import DocumentPageNode from "@/components/DocumentPageNode";
 import { importDocumentFile } from "@/utils/documentImporter";
+import { checkIsProUser } from "@/lib/userSubscription";
+import { LiveSyncManager, type LiveCursor, type CompactCoordinate } from "@/lib/liveSync";
+import { scheduleDebouncedSave, flushCanvasSave } from "@/lib/canvasPersistence";
+import { useMixAIGenerate } from "@/lib/useMixAI";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import {
-  Sparkles,
   CheckCircle,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 // ── 1. Clean Initial State: Completely Empty Canvas (No Pre-existing Nodes or Edges) ──
 const initialNodes: Node<any>[] = [];
@@ -48,7 +58,75 @@ export interface ArchitectureCanvasProps {
   onOpenSettings?: () => void;
   importedFile?: File | null;
   onClearImportedFile?: () => void;
+  roomId?: string;
+  isLiveSession?: boolean;
+  permission?: "edit" | "view";
+  boardTitle?: string;
+  onBoardTitleChange?: (title: string) => void;
+  isReadOnly?: boolean;
+  isPresentationOpen?: boolean;
+  onExitPresentation?: () => void;
+  onStartPresentation?: () => void;
 }
+
+const CustomMiniMapNode = React.memo(function CustomMiniMapNode({
+  id,
+  x,
+  y,
+  width,
+  height,
+  color,
+  strokeColor,
+  strokeWidth,
+  borderRadius = 4,
+  shapeRendering,
+  className,
+  onClick,
+}: MiniMapNodeProps) {
+  const { getNode } = useReactFlow();
+  const node = getNode(id);
+
+  // If node is a freehand drawing stroke, render the actual SVG stroke path instead of a solid bounding box
+  if (node?.type === "drawingNode") {
+    const dData = (node.data || {}) as any;
+    if (dData?.path) {
+      return (
+        <g
+          transform={`translate(${x}, ${y})`}
+          className={className}
+          onClick={onClick ? (e) => onClick(e, id) : undefined}
+          style={{ cursor: "pointer" }}
+        >
+          <path
+            d={dData.path}
+            fill={dData.color || color || "#06b6d4"}
+            opacity={dData.opacity ?? 1}
+          />
+        </g>
+      );
+    }
+  }
+
+  // Fallback for standard tech architecture nodes (render clean rounded rectangle)
+  return (
+    <rect
+      className={className}
+      x={x}
+      y={y}
+      rx={borderRadius}
+      ry={borderRadius}
+      width={width}
+      height={height}
+      style={{
+        fill: color,
+        stroke: strokeColor,
+        strokeWidth: strokeWidth,
+      }}
+      shapeRendering={shapeRendering}
+      onClick={onClick ? (e) => onClick(e, id) : undefined}
+    />
+  );
+});
 
 function ArchitectureCanvasInner({
   sidebarCollapsed = false,
@@ -57,12 +135,22 @@ function ArchitectureCanvasInner({
   onOpenSettings: externalOpenSettings,
   importedFile,
   onClearImportedFile,
+  roomId = "room-default",
+  isLiveSession = false,
+  permission = "edit",
+  boardTitle = "System Architecture Topology",
+  onBoardTitleChange,
+  isReadOnly = false,
+  isPresentationOpen = false,
+  onExitPresentation,
+  onStartPresentation,
 }: ArchitectureCanvasProps) {
-  const { screenToFlowPosition, fitView } = useReactFlow();
+  const { screenToFlowPosition, fitView, setCenter } = useReactFlow();
 
   const nodeTypes = useMemo(
     () => ({
       techNode: CustomTechNode,
+      shapeNode: ShapeNode,
       groupNode: GroupNode,
       documentPageNode: DocumentPageNode,
       imageNode: DocumentPageNode,
@@ -71,15 +159,174 @@ function ArchitectureCanvasInner({
     []
   );
 
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node<any>>(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initialEdges);
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
+  const [nodes, setNodes, rawOnNodesChange] = useNodesState<Node<any>>(initialNodes);
+  const [edges, setEdges, rawOnEdgesChange] = useEdgesState<Edge>(initialEdges);
+  const isDraggingRef = useRef(false);
+  const latestNodesRef = useRef(nodes);
+  const latestEdgesRef = useRef(edges);
+
+  useEffect(() => {
+    latestNodesRef.current = nodes;
+  }, [nodes]);
+
+  useEffect(() => {
+    latestEdgesRef.current = edges;
+  }, [edges]);
+
+  // SWR-powered AI topology generation hook
+  const { generateBlueprint } = useMixAIGenerate();
+
+  // 1. State Optimization: Debounced & Throttled onNodesChange
+  // Updates local UI smoothly at 60fps; suppresses DB sync during drag; streams 50ms batch coordinate deltas
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      let isDragActive = false;
+      for (const change of changes) {
+        if (change.type === "position" && change.dragging) {
+          isDragActive = true;
+          break;
+        }
+      }
+
+      isDraggingRef.current = isDragActive;
+      rawOnNodesChange(changes);
+
+      // If active drag, batch lightweight coordinate updates to peers
+      if (isDragActive && syncManagerRef.current) {
+        for (const change of changes) {
+          if (change.type === "position" && change.position) {
+            syncManagerRef.current.queueCoordinateUpdate(
+              change.id,
+              change.position.x,
+              change.position.y
+            );
+          }
+        }
+      }
+
+      // If NOT dragging (e.g. selection, dimension change, remove), schedule debounced save
+      if (!isDragActive && !isReadOnly) {
+        scheduleDebouncedSave(roomId, latestNodesRef.current, latestEdgesRef.current, boardTitle, 2500, false);
+      }
+    },
+    [rawOnNodesChange, roomId, boardTitle, isReadOnly]
+  );
+
+  // 2. Debounced onEdgesChange: Schedules DB save with 2.5s debounce
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      rawOnEdgesChange(changes);
+      if (!isReadOnly) {
+        scheduleDebouncedSave(roomId, latestNodesRef.current, latestEdgesRef.current, boardTitle, 2500, isDraggingRef.current);
+      }
+    },
+    [rawOnEdgesChange, roomId, boardTitle, isReadOnly]
+  );
   const [activeToolMode, setActiveToolMode] = useState<CanvasToolMode>("select");
-  const [drawingColor, setDrawingColor] = useState<string>("#06b6d4");
+  const [drawingColor, setDrawingColor] = useState<string>(isDark ? "#ffffff" : "#1e293b");
   const [drawingWidth, setDrawingWidth] = useState<number>(3);
+  const [eraserRadius, setEraserRadius] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("Prathomix_eraser_radius");
+      if (saved) return Number(saved);
+    }
+    return 24;
+  });
   const [isAICoPilotOpen, setIsAICoPilotOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isShapesMenuOpen, setIsShapesMenuOpen] = useState(false);
+  const [shapeNodesEnabled, setShapeNodesEnabled] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("prathomix_shape_nodes_enabled");
+      if (saved !== null) return saved === "true";
+    }
+    return true;
+  });
+
+  const handleToggleShapeNodes = useCallback(() => {
+    setShapeNodesEnabled((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("prathomix_shape_nodes_enabled", String(next));
+      }
+      return next;
+    });
+  }, []);
+
   const [synthesizeNotification, setSynthesizeNotification] = useState<string | null>(null);
+
+  // Real-time live collaboration sync state
+  const [remoteCursors, setRemoteCursors] = useState<Record<string, LiveCursor>>({});
+  const [, setLivePeersCount] = useState(1);
+  const syncManagerRef = useRef<LiveSyncManager | null>(null);
+  const isBroadcastingRef = useRef(false);
+
+  // Sync default pen color when switching between light whiteboard & dark studio
+  useEffect(() => {
+    setDrawingColor((prev) => {
+      if (prev === "#1e293b" && isDark) return "#ffffff";
+      if (prev === "#ffffff" && !isDark) return "#1e293b";
+      return prev;
+    });
+  }, [isDark]);
+
+  // ── Presentation Mode State & Slide Deck Navigation ──
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+  const slideNodes = useMemo(() => {
+    return nodes.filter((n) => !n.hidden && n.type !== "groupNode");
+  }, [nodes]);
+
+  const navigateToSlide = useCallback(
+    (targetIdx: number) => {
+      if (slideNodes.length === 0) return;
+      const boundedIdx = (targetIdx + slideNodes.length) % slideNodes.length;
+      setCurrentSlideIndex(boundedIdx);
+
+      const targetShape = slideNodes[boundedIdx];
+      if (targetShape) {
+        const posX = targetShape.position.x + (targetShape.width || 200) / 2;
+        const posY = targetShape.position.y + (targetShape.height || 120) / 2;
+        setCenter(posX, posY, { zoom: 1.15, duration: 450 });
+        setNodes((nds) => nds.map((n) => ({ ...n, selected: n.id === targetShape.id })));
+      }
+    },
+    [slideNodes, setCenter, setNodes]
+  );
+
+  const handleNextSlide = useCallback(() => {
+    navigateToSlide(currentSlideIndex + 1);
+  }, [navigateToSlide, currentSlideIndex]);
+
+  const handlePrevSlide = useCallback(() => {
+    navigateToSlide(currentSlideIndex - 1);
+  }, [navigateToSlide, currentSlideIndex]);
+
+  const handleExitPresentation = useCallback(() => {
+    setActiveToolMode("select");
+    if (onExitPresentation) {
+      onExitPresentation();
+    }
+  }, [onExitPresentation]);
+
+  // When entering presentation mode, auto-focus on first slide without forcing laser mode
+  useEffect(() => {
+    if (isPresentationOpen) {
+      if (slideNodes.length > 0) {
+        const target = slideNodes[0];
+        setCenter(
+          target.position.x + (target.width || 200) / 2,
+          target.position.y + (target.height || 120) / 2,
+          { zoom: 1.15, duration: 500 }
+        );
+      }
+    } else {
+      setActiveToolMode("select");
+    }
+  }, [isPresentationOpen, slideNodes, setCenter]);
 
   // Undo / History Stack
   const [, setHistory] = useState<{ nodes: Node<any>[]; edges: Edge[] }[]>([]);
@@ -98,14 +345,147 @@ function ArchitectureCanvasInner({
 
   // Smart Alignment Guides & Grid Snapping State
   const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuideLine[]>([]);
-  const [isSnappingEnabled, setIsSnappingEnabled] = useState(true);
+  const [isSnappingEnabled] = useState(true);
   const snapPosRef = useRef<{ x: number | null; y: number | null }>({ x: null, y: null });
 
-  // FORCE Empty Initial Canvas State: strictly guarantee canvas is completely blank on load
+  // Live AI Quota Tracking — synced from global SubscriptionContext
+  const subscription = useSubscription();
+  const [aiUsage, setAiUsage] = useState({
+    used: 0,
+    limit: 15,
+    tier: "free",
+  });
+
+  // Keep aiUsage in sync with SubscriptionContext (for SettingsModal)
   useEffect(() => {
-    setNodes([]);
-    setEdges([]);
-  }, [setNodes, setEdges]);
+    if (subscription.isResolved) {
+      setAiUsage({
+        used: subscription.actionsUsed,
+        limit: subscription.actionLimit,
+        tier: subscription.tier,
+      });
+    }
+  }, [subscription.isResolved, subscription.actionsUsed, subscription.actionLimit, subscription.tier]);
+
+  useEffect(() => {
+    const handleSubChange = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (detail?.tier === "pro" || detail?.is_pro) {
+        setAiUsage((prev) => ({ ...prev, limit: 300, tier: "pro" }));
+      }
+    };
+    window.addEventListener("Prathomix_subscription_change", handleSubChange);
+    return () => window.removeEventListener("Prathomix_subscription_change", handleSubChange);
+  }, [isSettingsModalOpen]);
+
+  // Live Sync Engine lifecycle
+  useEffect(() => {
+    if (!roomId) return;
+
+    let myId = `user_${Math.random().toString(36).substring(2, 7)}`;
+    let myName = isLiveSession ? "Collaborator" : "Host Architect";
+    const myColor = isLiveSession ? "#10b981" : "#06b6d4";
+
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("prathomix_current_user");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          myId = parsed.id || myId;
+          myName = parsed.name || myName;
+        }
+      } catch {}
+    }
+
+    const manager = new LiveSyncManager({
+      roomId,
+      userId: myId,
+      userName: myName,
+      userColor: myColor,
+      isHost: !isLiveSession,
+      onStateReceived: (incomingNodes, incomingEdges, incomingTitle) => {
+        isBroadcastingRef.current = true;
+        setNodes(incomingNodes);
+        setEdges(incomingEdges);
+        if (incomingTitle && onBoardTitleChange) {
+          onBoardTitleChange(incomingTitle);
+        }
+        setTimeout(() => {
+          isBroadcastingRef.current = false;
+        }, 80);
+      },
+      // 2. High-Concurrency Multiplayer Sync: Compact Coordinate Deltas
+      onCoordinatesReceived: (coords: CompactCoordinate[]) => {
+        setNodes((nds) => {
+          const map = new Map(coords.map((c) => [c.id, c]));
+          return nds.map((n) => {
+            const up = map.get(n.id);
+            if (up) {
+              return { ...n, position: { x: up.x, y: up.y } };
+            }
+            return n;
+          });
+        });
+      },
+      onCursorReceived: (cursor) => {
+        setRemoteCursors((prev) => ({ ...prev, [cursor.id]: cursor }));
+      },
+      onRequestState: () => {
+        return {
+          nodes: latestNodesRef.current,
+          edges: latestEdgesRef.current,
+          title: boardTitle,
+        };
+      },
+      onPeersUpdated: (count) => {
+        setLivePeersCount(count);
+      },
+    });
+
+    syncManagerRef.current = manager;
+
+    return () => {
+      manager.destroy();
+      syncManagerRef.current = null;
+    };
+  }, [roomId, isLiveSession, boardTitle, onBoardTitleChange, setNodes, setEdges]);
+
+  // Automatically broadcast settled state changes to peers (suppressed during active drag)
+  useEffect(() => {
+    if (isBroadcastingRef.current || !syncManagerRef.current || isReadOnly) return;
+    if (isDraggingRef.current) return; // Do not broadcast heavy state during drag
+    const timeout = setTimeout(() => {
+      syncManagerRef.current?.broadcastState(nodes, edges, boardTitle);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [nodes, edges, boardTitle, isReadOnly]);
+
+  // Stale remote cursor purger
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setRemoteCursors((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const [k, v] of Object.entries(next)) {
+          if (now - v.lastUpdated > 4000) {
+            delete next[k];
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Initial Empty Canvas: strictly guarantee canvas starts clean for host
+  useEffect(() => {
+    if (!isLiveSession) {
+      setNodes([]);
+      setEdges([]);
+    }
+  }, [setNodes, setEdges, isLiveSession]);
 
   // Push snapshot to undo stack before mutations
   const pushHistorySnapshot = useCallback(() => {
@@ -170,26 +550,93 @@ function ArchitectureCanvasInner({
     [pushHistorySnapshot, setNodes]
   );
 
-  // Freehand Drag-Eraser Handler: removes drawing nodes under eraser coordinate
+  // Freehand Drag-Eraser Handler: removes drawing nodes or elements under eraser coordinate or swept path
   const handleEraseAtPoint = useCallback(
-    (pt: StrokePoint) => {
-      setNodes((nds) =>
-        nds.filter((n) => {
-          if (n.type !== "drawingNode") return true;
-          const originalPoints = (n.data as any)?.originalPoints as StrokePoint[] | undefined;
-          if (!originalPoints) {
+    (pt: StrokePoint, prevPt?: StrokePoint | null, customRadius?: number) => {
+      setNodes((nds) => {
+        let hasDeleted = false;
+        const threshold = customRadius || eraserRadius || 26;
+
+        const nextNodes = nds.filter((n) => {
+          if (n.type === "drawingNode") {
+            const originalPoints = (n.data as any)?.originalPoints as StrokePoint[] | undefined;
             const nx = n.position.x;
             const ny = n.position.y;
             const nw = (n.data as any)?.boxWidth || 50;
             const nh = (n.data as any)?.boxHeight || 50;
-            return !(pt.x >= nx - 15 && pt.x <= nx + nw + 15 && pt.y >= ny - 15 && pt.y <= ny + nh + 15);
+            const pad = threshold + 15;
+
+            // Fast bounding box check
+            const inBox = (x: number, y: number) =>
+              x >= nx - pad && x <= nx + nw + pad && y >= ny - pad && y <= ny + nh + pad;
+
+            if (!inBox(pt.x, pt.y) && (!prevPt || !inBox(prevPt.x, prevPt.y))) {
+              return true;
+            }
+
+            if (!originalPoints || originalPoints.length === 0) {
+              hasDeleted = true;
+              return false;
+            }
+
+            for (const p of originalPoints) {
+              if (prevPt) {
+                const dx = pt.x - prevPt.x;
+                const dy = pt.y - prevPt.y;
+                const l2 = dx * dx + dy * dy;
+                if (l2 === 0) {
+                  if (Math.hypot(p.x - pt.x, p.y - pt.y) < threshold) {
+                    hasDeleted = true;
+                    return false;
+                  }
+                } else {
+                  let t = ((p.x - prevPt.x) * dx + (p.y - prevPt.y) * dy) / l2;
+                  t = Math.max(0, Math.min(1, t));
+                  const projX = prevPt.x + t * dx;
+                  const projY = prevPt.y + t * dy;
+                  if (Math.hypot(p.x - projX, p.y - projY) < threshold) {
+                    hasDeleted = true;
+                    return false;
+                  }
+                }
+              } else {
+                if (Math.hypot(p.x - pt.x, p.y - pt.y) < threshold) {
+                  hasDeleted = true;
+                  return false;
+                }
+              }
+            }
+            return true;
           }
-          const isNear = originalPoints.some((p) => Math.hypot(p.x - pt.x, p.y - pt.y) < 22);
-          return !isNear;
-        })
-      );
+
+          // Also allow erasing non-drawing architecture nodes when eraser crosses them
+          const nx = n.position.x;
+          const ny = n.position.y;
+          const nw = (n.measured?.width || (n as any).width || 140);
+          const nh = (n.measured?.height || (n as any).height || 70);
+
+          const inNode = (x: number, y: number) =>
+            x >= nx && x <= nx + nw && y >= ny && y <= ny + nh;
+
+          if (inNode(pt.x, pt.y) || (prevPt && inNode(prevPt.x, prevPt.y))) {
+            hasDeleted = true;
+            return false;
+          }
+
+          return true;
+        });
+
+        if (hasDeleted) {
+          const remainingNodeIds = new Set(nextNodes.map((n) => n.id));
+          setEdges((eds) =>
+            eds.filter((e) => remainingNodeIds.has(e.source) && remainingNodeIds.has(e.target))
+          );
+          return nextNodes;
+        }
+        return nds;
+      });
     },
-    [setNodes]
+    [setNodes, setEdges]
   );
 
   // Multi-Page Document Importer (PDFs, Images, DOCX, PPTX)
@@ -288,9 +735,9 @@ function ArchitectureCanvasInner({
     });
   }, [setNodes, setEdges]);
 
-  // Add architecture shape from toolbar dropdown or canvas click
+  // Add whiteboard shape from toolbar dropdown or canvas click
   const handleAddShape = useCallback(
-    (shapeType: "rectangle" | "circle" | "diamond" | "cylinder" | "cloud" | "folder") => {
+    (shapeType: string) => {
       pushHistorySnapshot();
       const id = `node-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
       const position = screenToFlowPosition({
@@ -298,129 +745,57 @@ function ArchitectureCanvasInner({
         y: window.innerHeight / 2 + (Math.random() * 80 - 40),
       });
 
-      let newNode: Node<any>;
+      const shapeDef = SHAPE_LIBRARY.find((s) => s.id.toLowerCase() === shapeType.toLowerCase());
+      const normalizedShape = (shapeDef?.id || shapeType).toLowerCase();
+      const isCircle = normalizedShape === "circle";
+      const isSquareLike = [
+        "circle",
+        "square",
+        "diamond",
+        "star",
+        "hexagon",
+        "pentagon",
+        "octagon",
+        "heart",
+        "triangle",
+      ].includes(normalizedShape);
+      const isText = normalizedShape === "text";
+      const isSticky = normalizedShape === "stickynote";
 
-      switch (shapeType) {
-        case "circle":
-          newNode = {
-            id,
-            type: "techNode",
-            position,
-            data: {
-              title: "Microservice Endpoint",
-              subtitle: "API Gateway Service",
-              category: "circle",
-              shape: "circle",
-              status: "active",
-              description: "High-throughput API gateway endpoint handling load-balanced ingress traffic.",
-              metrics: { latency: "2.4ms", throughput: "40k rps", uptime: "99.99%" },
-              tags: ["Endpoint", "Circle", "API Gateway"],
-            },
-            selected: true,
-          };
-          break;
+      const defaultWidth = isCircle ? 130 : isSquareLike ? 130 : isText ? 180 : 160;
+      const defaultHeight = isCircle ? 130 : isSquareLike ? 130 : isText ? 50 : 100;
 
-        case "diamond":
-          newNode = {
-            id,
-            type: "techNode",
-            position,
-            data: {
-              title: "Decision Router",
-              subtitle: "Rule Evaluation Engine",
-              category: "diamond",
-              shape: "diamond",
-              status: "active",
-              description: "Evaluates payload conditions and dispatches events to targeted downstream services.",
-              metrics: { latency: "0.9ms", uptime: "100%" },
-              tags: ["Decision", "Router", "Diamond", "Branch"],
-            },
-            selected: true,
-          };
-          break;
+      const label = isText
+        ? "Text Note"
+        : isSticky
+        ? "Sticky Note"
+        : "";
 
-        case "cylinder":
-          newNode = {
-            id,
-            type: "techNode",
-            position,
-            data: {
-              title: "Relational Database",
-              subtitle: "High-Availability Store",
-              category: "cylinder",
-              shape: "cylinder",
-              status: "healthy",
-              description: "Persistent transactional database with automated failover and read replicas.",
-              metrics: { latency: "1.8ms", throughput: "14k qps", uptime: "99.999%" },
-              tags: ["Database", "PostgreSQL", "Cylinder", "ACID"],
-            },
-            selected: true,
-          };
-          break;
-
-        case "cloud":
-          newNode = {
-            id,
-            type: "techNode",
-            position,
-            data: {
-              title: "Cloud Infrastructure",
-              subtitle: "AWS / Azure Cloud Region",
-              category: "cloud",
-              shape: "cloud",
-              status: "active",
-              description: "Multi-region cloud fabric hosting container clusters and serverless functions.",
-              metrics: { latency: "5.2ms", throughput: "120k rps", uptime: "99.99%" },
-              tags: ["AWS", "Azure", "Cloud", "Infra"],
-            },
-            selected: true,
-          };
-          break;
-
-        case "folder":
-          newNode = {
-            id,
-            type: "techNode",
-            position,
-            data: {
-              title: "Project Subnet",
-              subtitle: "Namespace / Service Group",
-              category: "folder",
-              shape: "folder",
-              status: "active",
-              description: "Logical boundary grouping environment microservices and internal queues.",
-              tags: ["Namespace", "Folder", "Subnet"],
-            },
-            selected: true,
-          };
-          break;
-
-        case "rectangle":
-        default:
-          newNode = {
-            id,
-            type: "techNode",
-            position,
-            data: {
-              title: "Compute Component",
-              subtitle: "Async Worker Service",
-              category: "rectangle",
-              shape: "rectangle",
-              status: "active",
-              description: "Scalable worker container processing asynchronous background workflows.",
-              metrics: { latency: "11ms", throughput: "9.5k rps", uptime: "99.9%" },
-              tags: ["Worker", "Compute", "Rectangle"],
-            },
-            selected: true,
-          };
-          break;
-      }
+      const newNode: Node<any> = {
+        id,
+        type: "shapeNode",
+        position,
+        style: {
+          width: defaultWidth,
+          height: defaultHeight,
+        },
+        data: {
+          shapeType: normalizedShape,
+          shapeStyle: shapeDef?.shapeStyle || normalizedShape,
+          label,
+          color: isSticky ? "#f59e0b" : "#3b82f6",
+          fillMode: isSticky ? "solid" : isText ? "outline" : "tint",
+          category: shapeDef?.category || "essentials",
+          hasHandles: shapeNodesEnabled,
+        },
+        selected: true,
+      };
 
       setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), newNode]);
-      setSynthesizeNotification(`Added ${newNode.data.title}`);
+      setSynthesizeNotification(`Added ${shapeDef?.label || normalizedShape}`);
       setTimeout(() => setSynthesizeNotification(null), 2500);
     },
-    [screenToFlowPosition, pushHistorySnapshot, setNodes]
+    [screenToFlowPosition, pushHistorySnapshot, setNodes, shapeNodesEnabled]
   );
 
   // Eraser Tool Handlers: Clicking a node or edge when Eraser tool is active removes it
@@ -453,6 +828,9 @@ function ArchitectureCanvasInner({
   const handlePaneContextMenu = useCallback(
     (event: MouseEvent | React.MouseEvent) => {
       event.preventDefault();
+      if ("stopPropagation" in event && typeof event.stopPropagation === "function") {
+        event.stopPropagation();
+      }
       const flowPos = screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
@@ -740,6 +1118,75 @@ function ArchitectureCanvasInner({
     }
   }, [nodes, contextMenu, setNodes]);
 
+  const handleContextMenuAddShape = useCallback(
+    (shapeType: "rectangle" | "circle" | "diamond" | "cylinder" | "cloud" | "folder") => {
+      pushHistorySnapshot();
+      const id = `node-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      const position = contextMenu?.flowPosition || screenToFlowPosition({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+      });
+
+      const isCircle = shapeType === "circle";
+      const isSquareLike = ["circle", "diamond"].includes(shapeType);
+      const width = isCircle ? 130 : isSquareLike ? 130 : 160;
+      const height = isCircle ? 130 : isSquareLike ? 130 : 100;
+      const label = "";
+
+      const newNode: Node<any> = {
+        id,
+        type: "shapeNode",
+        position,
+        style: {
+          width,
+          height,
+        },
+        data: {
+          shapeType,
+          shapeStyle: shapeType,
+          label,
+          color: "#3b82f6",
+          fillMode: "tint",
+          category: "essentials",
+          hasHandles: shapeNodesEnabled,
+        },
+        selected: true,
+      };
+
+      setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), newNode]);
+      setSynthesizeNotification(`Added ${shapeType.charAt(0).toUpperCase() + shapeType.slice(1)}`);
+      setTimeout(() => setSynthesizeNotification(null), 2500);
+    },
+    [contextMenu, screenToFlowPosition, pushHistorySnapshot, setNodes, shapeNodesEnabled]
+  );
+
+  const handleContextMenuDelete = useCallback(() => {
+    const selectedIds = nodes.filter((n) => n.selected).map((n) => n.id);
+    const targetId = contextMenu?.targetNode?.id;
+    const idsToDelete = new Set(selectedIds);
+    if (targetId) idsToDelete.add(targetId);
+
+    if (idsToDelete.size === 0) return;
+
+    pushHistorySnapshot();
+    setNodes((nds) => nds.filter((n) => !idsToDelete.has(n.id)));
+    setEdges((eds) =>
+      eds.filter(
+        (e) => !idsToDelete.has(e.source) && !idsToDelete.has(e.target)
+      )
+    );
+    setSynthesizeNotification(`Deleted ${idsToDelete.size} item${idsToDelete.size > 1 ? "s" : ""}`);
+    setTimeout(() => setSynthesizeNotification(null), 2000);
+  }, [nodes, contextMenu, pushHistorySnapshot, setNodes, setEdges]);
+
+  const handleContextMenuSelectAll = useCallback(() => {
+    setNodes((nds) => nds.map((n) => ({ ...n, selected: true })));
+  }, [setNodes]);
+
+  const handleContextMenuFitView = useCallback(() => {
+    fitView({ padding: 0.25, duration: 400 });
+  }, [fitView]);
+
   const handleContextMenuExportPNG = useCallback(async () => {
     try {
       const viewportElement = document.querySelector(".react-flow__viewport") as HTMLElement;
@@ -768,7 +1215,7 @@ function ArchitectureCanvasInner({
       });
 
       const a = document.createElement("a");
-      a.setAttribute("download", `masmspace-topology-${Date.now()}.png`);
+      a.setAttribute("download", `MasmSpace-topology-${Date.now()}.png`);
       a.setAttribute("href", dataUrl);
       document.body.appendChild(a);
       a.click();
@@ -1004,27 +1451,37 @@ function ArchitectureCanvasInner({
 
   const handleNodeDragStop = useCallback(
     (_event: MouseEvent | TouchEvent | React.MouseEvent, draggedNode: Node<any>) => {
+      isDraggingRef.current = false;
+
       const { x: snapX, y: snapY } = snapPosRef.current;
+      let finalNodes = latestNodesRef.current;
       if (snapX !== null || snapY !== null) {
-        setNodes((nds) =>
-          nds.map((n) => {
-            if (n.id === draggedNode.id) {
-              return {
-                ...n,
-                position: {
-                  x: snapX !== null ? snapX : n.position.x,
-                  y: snapY !== null ? snapY : n.position.y,
-                },
-              };
-            }
-            return n;
-          })
-        );
+        finalNodes = latestNodesRef.current.map((n) => {
+          if (n.id === draggedNode.id) {
+            return {
+              ...n,
+              position: {
+                x: snapX !== null ? snapX : n.position.x,
+                y: snapY !== null ? snapY : n.position.y,
+              },
+            };
+          }
+          return n;
+        });
+        setNodes(finalNodes);
       }
       snapPosRef.current = { x: null, y: null };
       setAlignmentGuides([]);
+
+      // ── REQUIREMENT 1: Sync to DB strictly on onNodeDragStop ──
+      if (!isReadOnly) {
+        flushCanvasSave(roomId, finalNodes, latestEdgesRef.current, boardTitle);
+      }
+
+      // ── REQUIREMENT 2: Broadcast settled full state to peers ──
+      syncManagerRef.current?.broadcastState(finalNodes, latestEdgesRef.current, boardTitle);
     },
-    [setNodes]
+    [roomId, boardTitle, isReadOnly, setNodes]
   );
 
   // Keyboard shortcut bindings for seamless enterprise workflow
@@ -1057,6 +1514,19 @@ function ArchitectureCanvasInner({
         if (e.key === "g" || e.key === "G") {
           e.preventDefault();
           handleContextMenuGroup();
+          return;
+        }
+        if (e.key === "a" || e.key === "A") {
+          e.preventDefault();
+          handleContextMenuSelectAll();
+          return;
+        }
+      }
+
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (nodes.some((n) => n.selected)) {
+          e.preventDefault();
+          handleContextMenuDelete();
           return;
         }
       }
@@ -1093,10 +1563,13 @@ function ArchitectureCanvasInner({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
     fitView,
+    nodes,
     handleUndo,
     handleContextMenuCopy,
     handleContextMenuPaste,
     handleContextMenuGroup,
+    handleContextMenuDelete,
+    handleContextMenuSelectAll,
   ]);
 
   // Handle drag-and-drop connections between node handles
@@ -1261,9 +1734,16 @@ function ArchitectureCanvasInner({
     [activeToolMode, screenToFlowPosition, setNodes]
   );
 
-  // Dynamic AI Architecture Synthesis directly onto Canvas
+  // Dynamic AI Architecture Synthesis directly onto Canvas with SWR Caching & Backoff
   const handleGenerateArchitecture = useCallback(
-    (promptText: string) => {
+    async (promptText: string) => {
+      try {
+        setSynthesizeNotification(`🧠 Synthesizing topology blueprint...`);
+        await generateBlueprint(promptText);
+      } catch (err: any) {
+        console.warn("[ArchitectureCanvas] SWR AI Notice:", err);
+      }
+
       const lower = promptText.toLowerCase();
       let generatedNodes: Node<CustomTechNodeData>[] = [];
       let generatedEdges: Edge[] = [];
@@ -1550,12 +2030,18 @@ function ArchitectureCanvasInner({
       setNodes(generatedNodes);
       setEdges(generatedEdges);
 
+      // ── REQUIREMENT 1 & 2: Sync to DB and broadcast full settled synthesized blueprint ──
+      if (!isReadOnly) {
+        flushCanvasSave(roomId, generatedNodes, generatedEdges, boardTitle);
+      }
+      syncManagerRef.current?.broadcastState(generatedNodes, generatedEdges, boardTitle);
+
       setTimeout(() => fitView({ padding: 0.3 }), 80);
 
       setSynthesizeNotification(`✨ Synthesized blueprint: "${promptText.slice(0, 48)}..."`);
       setTimeout(() => setSynthesizeNotification(null), 4500);
     },
-    [fitView, setNodes, setEdges]
+    [fitView, setNodes, setEdges, generateBlueprint, isReadOnly, roomId, boardTitle]
   );
 
   const isPlacementMode =
@@ -1571,34 +2057,54 @@ function ArchitectureCanvasInner({
       id="architecture-canvas-root"
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleCanvasDrop}
-      className={`absolute top-0 right-0 bottom-0 z-0 transition-all duration-300 overflow-hidden bg-[#09090b] text-white ${
+      onPointerMove={(e) => {
+        if (syncManagerRef.current) {
+          const flowPt = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+          syncManagerRef.current.broadcastCursor(flowPt.x, flowPt.y);
+        }
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        if ((e.target as HTMLElement)?.closest?.(".react-flow__node")) {
+          return;
+        }
+        handlePaneContextMenu(e);
+      }}
+      className={`absolute top-0 right-0 bottom-0 z-0 transition-all duration-300 overflow-hidden bg-[#09090b] text-zinc-100 ${
         sidebarCollapsed ? "left-0 md:left-[76px]" : "left-0 md:left-[260px]"
       } ${className}`}
     >
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
+        onNodesChange={isReadOnly ? undefined : onNodesChange}
+        onEdgesChange={isReadOnly ? undefined : onEdgesChange}
+        onConnect={isReadOnly ? undefined : onConnect}
         onPaneClick={handlePaneClick}
         onPaneContextMenu={handlePaneContextMenu}
         onNodeContextMenu={handleNodeContextMenu}
         onMoveStart={() => setContextMenu(null)}
         onNodeClick={handleNodeClick}
         onEdgeClick={handleEdgeClick}
-        onNodeDrag={handleNodeDrag}
-        onNodeDragStop={handleNodeDragStop}
+        onNodeDrag={isReadOnly ? undefined : handleNodeDrag}
+        onNodeDragStop={isReadOnly ? undefined : handleNodeDragStop}
+        nodesDraggable={!isReadOnly}
+        nodesConnectable={!isReadOnly}
+        elementsSelectable={!isReadOnly}
         snapToGrid={isSnappingEnabled && activeToolMode !== "pen" && activeToolMode !== "highlighter"}
         snapGrid={[12, 12]}
         nodeTypes={nodeTypes}
-        colorMode="dark"
+        colorMode={isDark ? "dark" : "dark"}
         fitView
         fitViewOptions={{ padding: 0.25 }}
         minZoom={0.2}
         maxZoom={2.5}
-        panOnDrag={activeToolMode === "pan"}
-        selectionOnDrag={activeToolMode === "select"}
+        panOnDrag={activeToolMode === "pan" || isReadOnly}
+        selectionOnDrag={!isReadOnly && activeToolMode === "select"}
+        onlyRenderVisibleElements={true}
+        elevateNodesOnSelect={false}
+        elevateEdgesOnSelect={false}
+        nodeOrigin={[0, 0]}
         className={
           activeToolMode === "eraser"
             ? "[&_.react-flow__node]:!cursor-cell [&_.react-flow__edge]:!cursor-cell cursor-cell"
@@ -1608,17 +2114,17 @@ function ArchitectureCanvasInner({
         }
         defaultEdgeOptions={{
           type: "smoothstep",
-          animated: true,
-          style: { stroke: "#06b6d4", strokeWidth: 2 },
+          animated: false,
+          style: { stroke: isDark ? "#52525b" : "#94a3b8", strokeWidth: 1.75 },
         }}
         proOptions={{ hideAttribution: true }}
       >
-        {/* ── Glowing Dark Dotted Blueprint Grid ── */}
+        {/* ── Clean Whiteboard Dot Grid ── */}
         <Background
           variant={BackgroundVariant.Dots}
           gap={24}
-          size={1.5}
-          color="#3f3f46"
+          size={1.2}
+          color={isDark ? "#27272a" : "#cbd5e1"}
           className="opacity-80"
         />
 
@@ -1626,81 +2132,57 @@ function ArchitectureCanvasInner({
         <Controls
           position="bottom-left"
           showInteractive={false}
-          className="z-[9999] pointer-events-auto !bg-[#18181b]/90 !backdrop-blur-md !border !border-white/10 !rounded-xl !p-1 !shadow-[0_8px_30px_rgba(0,0,0,0.5)] [&>button]:!bg-transparent [&>button]:!border-white/5 [&>button]:!rounded-lg [&>button]:!fill-zinc-300 hover:[&>button]:!bg-white/10 hover:[&>button]:!fill-cyan-400 [&>button]:transition-colors [&>button]:pointer-events-auto cursor-pointer"
+          className="z-[9999] pointer-events-auto !bg-[#18181b]/95 !backdrop-blur-md !border !border-zinc-800 !rounded-xl !p-1 !shadow-md [&>button]:!bg-transparent [&>button]:!border-zinc-800 [&>button]:!rounded-lg [&>button]:!fill-zinc-300 hover:[&>button]:!bg-zinc-800 hover:[&>button]:!fill-blue-400 [&>button]:transition-colors [&>button]:pointer-events-auto cursor-pointer"
           style={{ zIndex: 9999 }}
         />
 
-        {/* ── Blueprint MiniMap (High-Contrast Differentiated Navigation) ── */}
+        {/* ── Whiteboard MiniMap ── */}
         <MiniMap
           zoomable
           pannable
+          nodeComponent={CustomMiniMapNode}
           nodeColor={getMinimapNodeColor}
           nodeStrokeColor={getMinimapNodeStrokeColor}
-          nodeStrokeWidth={2}
-          nodeBorderRadius={6}
-          maskColor="rgba(5, 8, 20, 0.7)"
-          maskStrokeColor="#22d3ee"
-          maskStrokeWidth={2}
-          className="!bg-[#0d1222] !border-2 !border-cyan-500/40 !rounded-2xl !shadow-[0_12px_40px_rgba(0,0,0,0.8),0_0_20px_rgba(6,182,212,0.2)] overflow-hidden"
+          nodeStrokeWidth={1.5}
+          nodeBorderRadius={4}
+          maskColor={isDark ? "rgba(9, 9, 11, 0.75)" : "rgba(241, 245, 249, 0.75)"}
+          maskStrokeColor={isDark ? "#3f3f46" : "#94a3b8"}
+          maskStrokeWidth={1.5}
+          className="!bg-[#18181b]/95 !border !border-zinc-800 !rounded-xl !shadow-md overflow-hidden"
         />
 
-        {/* ── Clean Top HUD Panel (Navbar AI Prompt Explorer Removed) ── */}
-        <Panel
-          position="top-left"
-          className="m-4 flex items-center gap-3 bg-[#18181b]/80 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.4)] select-none"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-white tracking-tight">
-                  PRATHOMIX
-                </span>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                  Topology Studio
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-400 font-mono">
-                System Architecture Blueprint
-              </p>
-            </div>
-          </div>
-        </Panel>
-
-        {/* ── Top Right Synchronized Status Pill ── */}
-        <Panel
-          position="top-right"
-          className="m-4 flex items-center gap-2.5 bg-[#18181b]/80 backdrop-blur-xl border border-white/10 rounded-xl px-3.5 py-2 text-xs font-mono text-zinc-300 shadow-lg select-none"
-        >
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>Topology Synchronized</span>
-          <span className="text-zinc-600">|</span>
-          <span className="text-cyan-400 font-semibold">{nodes.length} Nodes</span>
-          <span className="text-zinc-600">|</span>
-          <span className="text-indigo-400 font-semibold">{edges.length} Edges</span>
-          <span className="text-zinc-600">|</span>
-          <button
-            onClick={() => setIsSnappingEnabled((prev) => !prev)}
-            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg border text-[11px] font-mono transition-colors ${isSnappingEnabled
-                ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/25"
-                : "bg-zinc-800/60 border-white/10 text-zinc-400 hover:bg-zinc-800"
-              }`}
-            title="Toggle Smart Alignment Guides & Grid Snapping"
+        {/* ── Remote Collaborators Real-Time Cursors ── */}
+        {Object.values(remoteCursors).map((c) => (
+          <div
+            key={c.id}
+            className="pointer-events-none absolute z-[99999] transition-transform duration-75 flex items-start gap-1"
+            style={{
+              transform: `translate(${c.x}px, ${c.y}px)`,
+            }}
           >
+            <svg
+              className="w-4 h-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]"
+              viewBox="0 0 24 24"
+              fill={c.color}
+            >
+              <path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.86a.5.5 0 0 0-.85.35Z" />
+            </svg>
             <span
-              className={`w-1.5 h-1.5 rounded-full ${isSnappingEnabled ? "bg-cyan-400 animate-pulse" : "bg-zinc-500"
-                }`}
-            />
-            <span>Snap & Guides {isSnappingEnabled ? "ON" : "OFF"}</span>
-          </button>
-        </Panel>
+              className="px-2 py-0.5 rounded-full text-[10px] font-mono text-white font-semibold shadow-md whitespace-nowrap"
+              style={{ backgroundColor: c.color }}
+            >
+              {c.name}
+            </span>
+          </div>
+        ))}
 
         {/* ── Complete Drawing Layer (Pen, Highlighter, Eraser, Laser Pointer) ── */}
         <div
           className={`absolute inset-0 z-50 ${
-            activeToolMode === "pen" || activeToolMode === "highlighter" || activeToolMode === "laser"
+            activeToolMode === "pen" ||
+            activeToolMode === "highlighter" ||
+            activeToolMode === "eraser" ||
+            activeToolMode === "laser"
               ? "pointer-events-auto"
               : "pointer-events-none"
           }`}
@@ -1710,8 +2192,10 @@ function ArchitectureCanvasInner({
             penColor={drawingColor}
             penWidth={drawingWidth}
             highlighterColor={drawingColor}
+            eraserRadius={eraserRadius}
             onStrokeComplete={handleStrokeComplete}
             onEraseStroke={handleEraseAtPoint}
+            onContextMenu={handlePaneContextMenu}
           />
         </div>
 
@@ -1729,38 +2213,67 @@ function ArchitectureCanvasInner({
         </div>
       )}
 
-      {/* ── Enterprise Apple-Style Floating Top Toolbar Wrapped in High Z-Index ── */}
-      <BottomToolbar
-        activeMode={activeToolMode}
-        strokeColor={drawingColor}
-        onChangeStrokeColor={setDrawingColor}
-        strokeWidth={drawingWidth}
-        onChangeStrokeWidth={setDrawingWidth}
-        onSelectMode={(mode) => {
-          if (["rectangle", "circle", "diamond", "cylinder", "cloud", "folder"].includes(mode)) {
-            handleAddShape(mode as any);
-            setActiveToolMode("select");
-          } else {
-            setActiveToolMode(mode);
+      {/* ── Enterprise Floating Toolbar: ONLY rendered when NOT in presentation mode ── */}
+      {!isPresentationOpen && (
+        <BottomToolbar
+          activeMode={activeToolMode}
+          strokeColor={drawingColor}
+          onChangeStrokeColor={setDrawingColor}
+          strokeWidth={drawingWidth}
+          onChangeStrokeWidth={setDrawingWidth}
+          eraserRadius={eraserRadius}
+          onChangeEraserRadius={setEraserRadius}
+          onSelectMode={(mode) => {
+            if (["text", "stickyNote"].includes(mode)) {
+              handleAddShape(mode as any);
+              setActiveToolMode("select");
+            } else {
+              setActiveToolMode(mode);
+            }
+          }}
+          onToggleAICoPilot={() => setIsAICoPilotOpen((prev) => !prev)}
+          isAICoPilotOpen={isAICoPilotOpen}
+          onFitView={() => fitView({ padding: 0.25 })}
+          onOpenSettings={externalOpenSettings || (() => setIsSettingsModalOpen(true))}
+          onAddShape={handleAddShape}
+          isShapesMenuOpen={isShapesMenuOpen}
+          onToggleShapesMenu={() => setIsShapesMenuOpen((prev) => !prev)}
+          shapeNodesEnabled={shapeNodesEnabled}
+          onToggleShapeNodes={handleToggleShapeNodes}
+          onStartPresentation={onStartPresentation}
+        />
+      )}
+
+      {/* ── Upgraded Presentation Mode HUD: ONLY rendered during presentation mode ── */}
+      {isPresentationOpen && (
+        <PresentationModeHUD
+          isActive={isPresentationOpen}
+          onExit={handleExitPresentation}
+          totalSlides={slideNodes.length}
+          currentSlideIndex={currentSlideIndex}
+          currentSlideTitle={
+            slideNodes[currentSlideIndex]?.data?.title ||
+            slideNodes[currentSlideIndex]?.data?.label ||
+            "Architecture Node"
           }
-        }}
-        onToggleAICoPilot={() => setIsAICoPilotOpen((prev) => !prev)}
-        isAICoPilotOpen={isAICoPilotOpen}
-        onFitView={() => fitView({ padding: 0.25 })}
-        onOpenSettings={externalOpenSettings || (() => setIsSettingsModalOpen(true))}
-        onAddShape={handleAddShape}
-        isShapesMenuOpen={isShapesMenuOpen}
-        onToggleShapesMenu={() => setIsShapesMenuOpen((prev) => !prev)}
-      />
+          onNextSlide={handleNextSlide}
+          onPrevSlide={handlePrevSlide}
+          activeTool={activeToolMode}
+          onSelectTool={(tool) => setActiveToolMode(tool as any)}
+          onAddShape={(shape) => handleAddShape(shape as any)}
+          penColor={drawingColor}
+          onChangePenColor={setDrawingColor}
+        />
+      )}
 
       {/* ── Enterprise Settings Modal (Strict Quota, Reset Countdown & Shortcuts) ── */}
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         onOpenUpgradeModal={onOpenUpgradeModal}
-        actionsUsed={12}
-        actionLimit={15}
-        tier="free"
+        actionsUsed={aiUsage.used}
+        actionLimit={aiUsage.limit}
+        tier={aiUsage.tier}
       />
 
       {/* ── AI Co-Pilot Slide Drawer (Chat, Quota & 100+ Prompt Library) ── */}
@@ -1778,13 +2291,21 @@ function ArchitectureCanvasInner({
         y={contextMenu?.y || 0}
         onClose={() => setContextMenu(null)}
         onAddNode={handleContextMenuAddNode}
+        onAddShape={handleContextMenuAddShape}
         onCopy={handleContextMenuCopy}
         onPaste={handleContextMenuPaste}
         onGroup={handleContextMenuGroup}
+        onDelete={handleContextMenuDelete}
+        onSelectAll={handleContextMenuSelectAll}
+        onFitView={handleContextMenuFitView}
         onExportPNG={handleContextMenuExportPNG}
         canCopy={nodes.some((n) => n.selected) || !!contextMenu?.targetNode}
         canPaste={clipboardNodes.length > 0}
-        selectedCount={nodes.filter((n) => n.selected).length}
+        canDelete={nodes.some((n) => n.selected) || !!contextMenu?.targetNode}
+        selectedCount={
+          nodes.filter((n) => n.selected).length ||
+          (contextMenu?.targetNode ? 1 : 0)
+        }
       />
     </div>
   );
