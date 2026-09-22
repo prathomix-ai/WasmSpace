@@ -45,6 +45,8 @@ export interface SubscriptionState {
   resetCountdown?: string;
   /** Trigger a manual quota refresh (e.g. after a message is sent) */
   refreshQuota: () => void;
+  /** Trigger a manual subscription & quota refresh (alias) */
+  refreshSubscription: () => void;
 }
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -57,6 +59,7 @@ const SubscriptionContext = createContext<SubscriptionState>({
   actionLimit: 15,
   displayQuota: "0/15 Free Limits",
   refreshQuota: () => {},
+  refreshSubscription: () => {},
 });
 
 // ── Provider ──────────────────────────────────────────────────────────────────
@@ -64,7 +67,7 @@ const SubscriptionContext = createContext<SubscriptionState>({
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5-minute in-memory cache
 
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<Omit<SubscriptionState, "refreshQuota">>({
+  const [state, setState] = useState<Omit<SubscriptionState, "refreshQuota" | "refreshSubscription">>({
     isResolved: false,
     isPro: false,
     tier: "free",
@@ -244,7 +247,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [fetchSubscriptionState]);
 
   return (
-    <SubscriptionContext.Provider value={{ ...state, refreshQuota }}>
+    <SubscriptionContext.Provider value={{ ...state, refreshQuota, refreshSubscription: refreshQuota }}>
       {children}
     </SubscriptionContext.Provider>
   );

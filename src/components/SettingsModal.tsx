@@ -44,6 +44,7 @@ import { useCurrency } from "@/lib/currency";
 import { redeemPromoCode } from "@/lib/promo";
 import { downloadInvoicePdf } from "@/lib/invoicePdf";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { checkIsProUser } from "@/lib/userSubscription";
 import { validateImageBytes } from "@/lib/file-validator";
 
 export interface SettingsModalProps {
@@ -242,10 +243,19 @@ export function SettingsModal({
   const [emailNotifications, setEmailNotifications] = useState<boolean>(true);
 
   // ── Unified Billing & Quota State (Single Source of Truth) ──
-  const userTier = subscription.tier || tier;
-  const isPro = subscription.isPro;
-  const dynamicActionsUsed = subscription.actionsUsed;
-  const dynamicActionLimit = subscription.actionLimit;
+  const [userTier, setUserTier] = useState<string>(subscription.tier || tier);
+  const [isPro, setIsPro] = useState<boolean>(subscription.isPro);
+  const [dynamicActionsUsed, setDynamicActionsUsed] = useState<number>(subscription.actionsUsed || actionsUsed);
+  const [dynamicActionLimit, setDynamicActionLimit] = useState<number>(subscription.actionLimit || actionLimit || 15);
+
+  useEffect(() => {
+    if (subscription.isResolved) {
+      setUserTier(subscription.tier);
+      setIsPro(subscription.isPro);
+      setDynamicActionsUsed(subscription.actionsUsed);
+      setDynamicActionLimit(subscription.actionLimit);
+    }
+  }, [subscription.isResolved, subscription.tier, subscription.isPro, subscription.actionsUsed, subscription.actionLimit]);
 
   // General Notification / Auto-Save indicator
   const [generalSaveSuccess, setGeneralSaveSuccess] = useState(false);

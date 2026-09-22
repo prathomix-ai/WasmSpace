@@ -110,8 +110,8 @@ function getNextRoundRobinKey(keys: string[], provider: AIProvider): { key: stri
 }
 
 // ── Hardcoded Model Names (Direct in Code) ──────────────────────────────────
-const GEMINI_MODEL = "gemini-1.5-flash";
-const GROQ_MODEL = "llama-3.1-8b-instant";
+const GEMINI_MODEL: string = "gemini-1.5-flash";
+const GROQ_MODEL: string = "llama-3.1-8b-instant";
 
 // ── Provider Execution: Google Gemini ────────────────────────────────────────
 async function callGemini(
