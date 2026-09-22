@@ -364,9 +364,14 @@ function ArchitectureCanvasInner({
     }
   }, [onExitPresentation]);
 
-  // When entering presentation mode, auto-focus on first slide without forcing laser mode
+  // When entering presentation mode, auto-focus on first slide without forcing laser mode.
+  // Only update tool mode on presentation open/close transitions, NOT on every stroke or node addition.
+  const prevPresentationOpenRef = useRef(isPresentationOpen);
   useEffect(() => {
-    if (isPresentationOpen) {
+    const wasOpen = prevPresentationOpenRef.current;
+    prevPresentationOpenRef.current = isPresentationOpen;
+
+    if (isPresentationOpen && !wasOpen) {
       if (slideNodes.length > 0) {
         const target = slideNodes[0];
         setCenter(
@@ -375,7 +380,7 @@ function ArchitectureCanvasInner({
           { zoom: 1.15, duration: 500 }
         );
       }
-    } else {
+    } else if (!isPresentationOpen && wasOpen) {
       setActiveToolMode("select");
     }
   }, [isPresentationOpen, slideNodes, setCenter]);
