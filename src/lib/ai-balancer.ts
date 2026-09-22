@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ─────────────────────────────────────────────────────────────────────────────
  * Prathomix — Elite AI Load Balancer & Key Rotator
  * ─────────────────────────────────────────────────────────────────────────────
@@ -103,6 +103,10 @@ function getNextRoundRobinKey(keys: string[], provider: AIProvider): { key: stri
   }
 }
 
+// ── Hardcoded Model Names (Direct in Code) ──────────────────────────────────
+const GEMINI_MODEL = "gemini-1.5-flash";
+const GROQ_MODEL = "llama-3.1-8b-instant";
+
 // ── Provider Execution: Google Gemini ────────────────────────────────────────
 async function callGemini(
   apiKey: string,
@@ -112,8 +116,8 @@ async function callGemini(
   temperature: number,
   responseMimeType: "text/plain" | "application/json"
 ): Promise<string> {
-  const geminiModel = process.env.GEMINI_MODEL || "gemini-1.5-flash";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
+  const preferredModel = GEMINI_MODEL;
+  const fallbackModel = "gemini-3.6-flash";
 
   const contents = [
     {
@@ -128,19 +132,29 @@ async function callGemini(
     },
   ];
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    signal: AbortSignal.timeout(8000), // 8s timeout to avoid hung connections
-    body: JSON.stringify({
-      contents,
-      generationConfig: {
-        temperature,
-        maxOutputTokens: maxTokens,
-        ...(responseMimeType === "application/json" ? { responseMimeType: "application/json" } : {}),
-      },
-    }),
-  });
+  async function sendGeminiReq(model: string) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    return fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(8000), // 8s timeout to avoid hung connections
+      body: JSON.stringify({
+        contents,
+        generationConfig: {
+          temperature,
+          maxOutputTokens: Math.max(maxTokens, 500),
+          ...(responseMimeType === "application/json" ? { responseMimeType: "application/json" } : {}),
+        },
+      }),
+    });
+  }
+
+  let res = await sendGeminiReq(preferredModel);
+
+  // If preferred model is sunset/404, fallback to active free model
+  if (!res.ok && res.status === 404 && preferredModel !== fallbackModel) {
+    res = await sendGeminiReq(fallbackModel);
+  }
 
   if (!res.ok) {
     const errBody = await res.text().catch(() => "");
@@ -152,12 +166,9 @@ async function callGemini(
   const data = await res.json();
 
   // ── Handle blocked / empty candidates gracefully ────────────────────────────
-  // Gemini can return a candidate with finishReason: "SAFETY" | "OTHER" | "RECITATION"
-  // and zero parts — this triggers the "model output must contain output text" error.
   const candidate = data?.candidates?.[0];
   const finishReason: string = candidate?.finishReason || "UNKNOWN";
 
-  // Try to extract text from any available part across all candidates
   let text: string | undefined;
   for (const c of data?.candidates || []) {
     for (const part of c?.content?.parts || []) {
@@ -170,7 +181,6 @@ async function callGemini(
   }
 
   if (!text) {
-    // Surface the real reason so callers can log it properly
     const blockReason = data?.promptFeedback?.blockReason || "none";
     throw new Error(
       `Gemini returned no usable text. finishReason=${finishReason}, blockReason=${blockReason}`
@@ -180,7 +190,7 @@ async function callGemini(
   return text;
 }
 
-// ── Provider Execution: Groq (Llama-3.3-70B-Versatile) ───────────────────────
+// ── Provider Execution: Groq ────────────────────────────────────────────────
 async function callGroq(
   apiKey: string,
   prompt: string,
@@ -197,23 +207,33 @@ async function callGroq(
   }
   messages.push({ role: "user", content: prompt });
 
-  const groqModel = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+  const preferredModel = GROQ_MODEL;
+  const fallbackModel = "qwen/qwen3.8-27b";
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    signal: AbortSignal.timeout(8000),
-    body: JSON.stringify({
-      model: groqModel,
-      messages,
-      temperature,
-      max_tokens: maxTokens,
-      ...(responseMimeType === "application/json" ? { response_format: { type: "json_object" } } : {}),
-    }),
-  });
+  async function sendGroqReq(model: string) {
+    return fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      signal: AbortSignal.timeout(8000),
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature,
+        max_tokens: maxTokens,
+        ...(responseMimeType === "application/json" ? { response_format: { type: "json_object" } } : {}),
+      }),
+    });
+  }
+
+  let res = await sendGroqReq(preferredModel);
+
+  // If preferred model is retired/not found, fallback to active model
+  if (!res.ok && res.status === 404 && preferredModel !== fallbackModel) {
+    res = await sendGroqReq(fallbackModel);
+  }
 
   if (!res.ok) {
     const errBody = await res.text().catch(() => "");

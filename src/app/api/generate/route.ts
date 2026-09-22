@@ -256,7 +256,9 @@ export async function POST(req: NextRequest) {
       apiKey,
     });
 
-    const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+    // Hardcoded Model Name directly in code
+    const GEMINI_MODEL = "gemini-1.5-flash";
+    const modelName = GEMINI_MODEL;
 
     // Dynamic prompt engineering based on task type
     const defaultSystemPrompt = isChatBotTask
@@ -266,17 +268,31 @@ export async function POST(req: NextRequest) {
     // ── 8. Execute Streaming LLM Generation ──────────────────────────────────
     let result;
     try {
-      result = streamText({
-        model: google(modelName),
-        system: systemPrompt || defaultSystemPrompt,
-        prompt: userPrompt.trim(),
-        temperature: isChatBotTask ? 0.7 : 0.2,
-        headers: {
-          "x-ratelimit-limit": String(quotaLimit),
-          "x-ratelimit-remaining": String(Math.max(0, quotaLimit - (currentUsage + 1))),
-          "x-key-rotated-index": String(keyDetails.keyIndex),
-        },
-      });
+      try {
+        result = streamText({
+          model: google(modelName),
+          system: systemPrompt || defaultSystemPrompt,
+          prompt: userPrompt.trim(),
+          temperature: isChatBotTask ? 0.7 : 0.2,
+          headers: {
+            "x-ratelimit-limit": String(quotaLimit),
+            "x-ratelimit-remaining": String(Math.max(0, quotaLimit - (currentUsage + 1))),
+            "x-key-rotated-index": String(keyDetails.keyIndex),
+          },
+        });
+      } catch {
+        result = streamText({
+          model: google("gemini-3.6-flash"),
+          system: systemPrompt || defaultSystemPrompt,
+          prompt: userPrompt.trim(),
+          temperature: isChatBotTask ? 0.7 : 0.2,
+          headers: {
+            "x-ratelimit-limit": String(quotaLimit),
+            "x-ratelimit-remaining": String(Math.max(0, quotaLimit - (currentUsage + 1))),
+            "x-key-rotated-index": String(keyDetails.keyIndex),
+          },
+        });
+      }
 
       // Return readable stream directly to prevent 504 gateway timeouts
       if (typeof (result as any).toDataStreamResponse === "function") {

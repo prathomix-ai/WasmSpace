@@ -95,7 +95,7 @@ export default function AICoPilotDrawer({
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { sendMessage: sendMixChatMessage } = useMixAIChat();
+  const { sendMessage: sendMixChatMessage, reset: resetChat } = useMixAIChat();
 
   // ── Unified Global Quota State (Single Source of Truth) ──
   // Sourced from SubscriptionContext — never maintains its own stale defaults.
@@ -229,14 +229,18 @@ export default function AICoPilotDrawer({
     const text = rawText.trim();
     if (!text || isGenerating) return;
 
-    // Check quota locally
-    if (!quota.isPro && quota.actionsUsed >= 15) {
-      if (onOpenUpgradeModal) onOpenUpgradeModal();
-      return;
-    }
-    if (quota.isPro && quota.actionsUsed >= 300) {
-      alert("You have reached your 300 daily PRO uses. Quota resets in 24 hours.");
-      return;
+    // Only enforce quota AFTER the subscription state has been resolved.
+    // While still loading (isResolved: false), allow through to avoid blocking PRO users.
+    if (subscription.isResolved) {
+      if (!quota.isPro && quota.actionsUsed >= quota.actionLimit) {
+        if (onOpenUpgradeModal) onOpenUpgradeModal();
+        else alert("You have reached your 15 free daily uses. Upgrade to PRO for 300 daily uses.");
+        return;
+      }
+      if (quota.isPro && quota.actionsUsed >= 300) {
+        alert("You have reached your 300 daily PRO uses. Quota resets in 24 hours.");
+        return;
+      }
     }
 
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -271,8 +275,11 @@ export default function AICoPilotDrawer({
     setPromptInput("");
     setIsGenerating(true);
 
+    // Reset SWR mutation to clear any stale error state from previous request
+    try { resetChat(); } catch {}
+
     // Refresh quota after sending — triggers context re-fetch
-    setTimeout(() => subscription.refreshQuota(), 1500);
+    setTimeout(() => subscription.refreshQuota(), 2000);
 
     try {
       // 1. If it has architecture intent, synthesize blueprint on the React Flow canvas

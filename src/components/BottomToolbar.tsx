@@ -359,7 +359,21 @@ export default function BottomToolbar({
       <button
         key={tool.id}
         type="button"
-        onClick={() => onSelectMode(isActive && tool.id !== "select" ? "select" : tool.id)}
+        onClick={() => {
+          // Drawing tools (pen, highlighter, eraser, laser) stay active when re-clicked.
+          // They should NOT auto-switch back to "select" — the user controls that explicitly.
+          const isDrawingTool =
+            tool.id === "pen" ||
+            tool.id === "highlighter" ||
+            tool.id === "eraser" ||
+            tool.id === "laser";
+          if (isDrawingTool) {
+            onSelectMode(tool.id);
+          } else {
+            // Navigation/placement tools: clicking the active tool deselects it (returns to select)
+            onSelectMode(isActive && tool.id !== "select" ? "select" : tool.id);
+          }
+        }}
         aria-label={tool.label}
         className={`relative group flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl transition-all duration-200 cursor-pointer pointer-events-auto ${
           isActive
