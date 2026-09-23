@@ -24,11 +24,11 @@ const siteUrl = "https://prathomix.tech";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "MasmSpace | Next-Gen AI & Developer Workspace - Powered by Prathomix",
-    template: "%s | MasmSpace - Powered by Prathomix",
+    default: "MasmSpace | The Visual Workspace for Thinking & Building",
+    template: "%s | MasmSpace",
   },
   description:
-    "Experience MasmSpace — the modern AI & cloud architecture workspace powered by Prathomix. Brainstorm, diagram, and execute code in real-time with native WebAssembly, multi-agent AI intelligence, Next.js App Router speed, and high-performance Python FastAPI & Supabase backend.",
+    "MasmSpace is an infinite collaborative workspace for brainstorming, diagramming, planning, building, and turning complex ideas into reality.",
   keywords: [
     "MasmSpace",
     "MasmSpace AI",

@@ -5,6 +5,7 @@ import { useReactFlow, useViewport } from "@xyflow/react";
 import { getStroke } from "perfect-freehand";
 
 export type DrawingTool = "select" | "pan" | "pen" | "highlighter" | "eraser" | "laser";
+export type PenType = "ballpen" | "pencil" | "marker" | "brush";
 
 export interface StrokePoint {
   x: number;
@@ -14,11 +15,12 @@ export interface StrokePoint {
 
 export interface DrawingStroke {
   id: string;
-  tool: "pen" | "highlighter";
+  tool: "pen" | "highlighter" | "ballpen" | "pencil" | "marker" | "brush" | string;
   points: StrokePoint[];
   color: string;
   width: number;
   opacity: number;
+  penType?: PenType;
 }
 
 interface LaserPoint {
@@ -29,8 +31,10 @@ interface LaserPoint {
 
 interface DrawingOverlayProps {
   activeTool: DrawingTool | string;
+  penType?: PenType;
   penColor?: string;
   penWidth?: number;
+  penOpacity?: number;
   highlighterColor?: string;
   eraserRadius?: number;
   onStrokeComplete?: (stroke: DrawingStroke) => void;
@@ -41,27 +45,63 @@ interface DrawingOverlayProps {
 
 /**
  * Natural handwriting and smooth chisel stroke options for perfect-freehand
+ * Distinguishes Ball Pen, Pencil, Marker, Brush, and Highlighter
  */
 export const getFreehandStrokeOptions = (
   width: number,
-  tool: "pen" | "highlighter" = "pen"
+  tool: string = "pen",
+  penType: PenType = "ballpen"
 ) => {
   if (tool === "highlighter") {
     return {
       size: Math.max(width * 2.8, 20),
-      thinning: 0.1,
+      thinning: 0.05,
       smoothing: 0.7,
       streamline: 0.5,
       simulatePressure: false,
     };
   }
-  return {
-    size: Math.max(width * 1.8, 3.5),
-    thinning: 0.3,
-    smoothing: 0.6,
-    streamline: 0.5,
-    simulatePressure: true,
-  };
+
+  const effectiveType: PenType =
+    tool === "pencil" || tool === "marker" || tool === "brush" || tool === "ballpen"
+      ? (tool as PenType)
+      : penType;
+
+  switch (effectiveType) {
+    case "pencil":
+      return {
+        size: Math.max(width * 0.9, 1.5),
+        thinning: 0.65,
+        smoothing: 0.35,
+        streamline: 0.35,
+        simulatePressure: true,
+      };
+    case "marker":
+      return {
+        size: Math.max(width * 2.8, 8),
+        thinning: -0.05,
+        smoothing: 0.75,
+        streamline: 0.6,
+        simulatePressure: false,
+      };
+    case "brush":
+      return {
+        size: Math.max(width * 2.4, 5),
+        thinning: 0.85,
+        smoothing: 0.65,
+        streamline: 0.65,
+        simulatePressure: true,
+      };
+    case "ballpen":
+    default:
+      return {
+        size: Math.max(width * 1.6, 2.5),
+        thinning: 0.2,
+        smoothing: 0.6,
+        streamline: 0.55,
+        simulatePressure: true,
+      };
+  }
 };
 
 /**
@@ -103,11 +143,12 @@ export function getSvgPathFromStroke(stroke: number[][], closed = true): string 
 export function getSvgPathFromPoints(
   points: StrokePoint[],
   width: number,
-  tool: "pen" | "highlighter" = "pen"
+  tool: string = "pen",
+  penType: PenType = "ballpen"
 ): string {
   if (points.length === 0) return "";
   const rawPoints = points.map((p) => [p.x, p.y, p.pressure ?? 0.5]);
-  const stroke = getStroke(rawPoints, getFreehandStrokeOptions(width, tool));
+  const stroke = getStroke(rawPoints, getFreehandStrokeOptions(width, tool, penType));
   return getSvgPathFromStroke(stroke);
 }
 
@@ -168,8 +209,10 @@ function laserPointsToSvgPaths(points: LaserPoint[]): string[] {
  */
 export default function DrawingOverlay({
   activeTool,
+  penType = "ballpen",
   penColor = "#06b6d4",
   penWidth = 3,
+  penOpacity = 1.0,
   highlighterColor = "#facc15",
   eraserRadius = 24,
   onStrokeComplete,
@@ -282,13 +325,36 @@ export default function DrawingOverlay({
       return;
     }
 
+    const isHighlighter = activeTool === "highlighter";
+    let calculatedWidth = penWidth;
+    let calculatedOpacity = penOpacity ?? 1;
+
+    if (isHighlighter) {
+      calculatedWidth = 24;
+      calculatedOpacity = 0.38;
+    } else if (penType === "pencil") {
+      calculatedWidth = Math.max(1.5, penWidth * 0.9);
+      calculatedOpacity = (penOpacity ?? 1) * 0.75;
+    } else if (penType === "marker") {
+      calculatedWidth = Math.max(8, penWidth * 2.2);
+      calculatedOpacity = Math.min(penOpacity ?? 1, 0.92);
+    } else if (penType === "brush") {
+      calculatedWidth = Math.max(5, penWidth * 1.8);
+      calculatedOpacity = penOpacity ?? 1;
+    } else {
+      // ballpen
+      calculatedWidth = Math.max(2, penWidth);
+      calculatedOpacity = penOpacity ?? 1;
+    }
+
     const newStroke: DrawingStroke = {
       id: `stroke-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      tool: activeTool === "highlighter" ? "highlighter" : "pen",
+      tool: isHighlighter ? "highlighter" : penType,
+      penType: isHighlighter ? undefined : penType,
       points: [pt],
-      color: activeTool === "highlighter" ? highlighterColor : penColor,
-      width: activeTool === "highlighter" ? 22 : penWidth,
-      opacity: activeTool === "highlighter" ? 0.38 : 1,
+      color: isHighlighter ? highlighterColor : penColor,
+      width: calculatedWidth,
+      opacity: calculatedOpacity,
     };
 
     setCurrentStroke(newStroke);
@@ -397,12 +463,18 @@ export default function DrawingOverlay({
         {strokes.map((stroke) => (
           <path
             key={stroke.id}
-            d={getSvgPathFromPoints(stroke.points, stroke.width, stroke.tool)}
+            d={getSvgPathFromPoints(stroke.points, stroke.width, stroke.tool, stroke.penType || penType)}
             fill={stroke.color}
             opacity={stroke.opacity}
             style={
               stroke.tool === "highlighter"
                 ? { mixBlendMode: "screen", filter: `drop-shadow(0 0 6px ${stroke.color})` }
+                : stroke.penType === "pencil"
+                ? { filter: "contrast(1.15)" }
+                : stroke.penType === "marker"
+                ? { filter: "saturate(1.2)" }
+                : stroke.penType === "brush"
+                ? { filter: `drop-shadow(0 0 1px ${stroke.color}60)` }
                 : { filter: `drop-shadow(0 0 1px ${stroke.color}80)` }
             }
             className={activeTool === "eraser" ? "pointer-events-auto cursor-crosshair hover:opacity-40" : "pointer-events-none"}
@@ -418,12 +490,23 @@ export default function DrawingOverlay({
         {/* ── Live In-Progress Smooth Stroke (perfect-freehand) ── */}
         {currentStroke && currentStroke.points.length > 0 && (
           <path
-            d={getSvgPathFromPoints(currentStroke.points, currentStroke.width, currentStroke.tool)}
+            d={getSvgPathFromPoints(
+              currentStroke.points,
+              currentStroke.width,
+              currentStroke.tool,
+              currentStroke.penType || penType
+            )}
             fill={currentStroke.color}
             opacity={currentStroke.opacity}
             style={
               currentStroke.tool === "highlighter"
                 ? { mixBlendMode: "screen", filter: `drop-shadow(0 0 6px ${currentStroke.color})` }
+                : currentStroke.penType === "pencil"
+                ? { filter: "contrast(1.15)" }
+                : currentStroke.penType === "marker"
+                ? { filter: "saturate(1.2)" }
+                : currentStroke.penType === "brush"
+                ? { filter: `drop-shadow(0 0 1px ${currentStroke.color}60)` }
                 : { filter: `drop-shadow(0 0 1px ${currentStroke.color}80)` }
             }
           />

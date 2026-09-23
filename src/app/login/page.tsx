@@ -20,9 +20,11 @@ import {
   Loader2,
   Sparkles,
   Layers,
-  Cpu,
+  Database,
   ShieldCheck,
   Check,
+  Workflow,
+  MousePointer2,
 } from "lucide-react";
 
 function LoginForm() {
@@ -43,7 +45,7 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Focus tracking for floating label animations
+  // Focus tracking
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   // Status states
@@ -173,10 +175,9 @@ function LoginForm() {
           is_pro: subStatus === "pro" || subStatus === "enterprise" || userRole === "admin",
         });
         localStorage.setItem("prathomix_current_user", sessionData);
-        localStorage.setItem("prathomix_current_user", sessionData);
 
         setSuccessMsg("Logged in successfully! Redirecting...");
-        setTimeout(() => router.push(targetPath), 800);
+        setTimeout(() => router.push(targetPath), 600);
       }
     } catch (err: any) {
       setErrorMsg(getSafeClientErrorMessage(err, "Authentication failed. Please check your credentials."));
@@ -187,30 +188,25 @@ function LoginForm() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 15 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className="w-full max-w-md mx-auto"
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="w-full max-w-[420px] mx-auto"
     >
-      {/* Frosted Glass Card Container */}
-      <div className="relative rounded-3xl bg-[#09090b]/70 backdrop-blur-2xl border border-white/10 p-7 sm:p-9 shadow-[0_20px_70px_rgba(0,0,0,0.8),0_0_40px_rgba(6,182,212,0.08)] overflow-hidden">
-        {/* Subtle Top Accent Glow Line */}
-        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-80" />
-
-        {/* Header inside Form Card */}
-        <div className="mb-6 text-left">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium tracking-wide uppercase bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
-              <Sparkles className="w-3 h-3" />
-              {isSignUp ? "Get Started Free" : "Welcome Back"}
-            </span>
+      {/* Clean White Surface Card with Subtle SaaS Elevation */}
+      <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-[0_4px_24px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] p-7 sm:p-9">
+        {/* Card Header */}
+        <div className="mb-6">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium tracking-wide uppercase bg-zinc-100 text-zinc-700 border border-zinc-200/80 mb-3">
+            <Sparkles className="w-3 h-3 text-[#635BFF]" />
+            {isSignUp ? "Get Started Free" : "Welcome Back"}
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+          <h2 className="text-2xl sm:text-[26px] font-bold tracking-tight text-zinc-900 leading-tight">
             {isSignUp ? "Create your workspace" : "Sign in to your account"}
           </h2>
-          <p className="mt-1.5 text-xs sm:text-sm text-zinc-400">
+          <p className="mt-1.5 text-xs sm:text-sm text-zinc-500">
             {isSignUp
-              ? "Join thousands of builders architecting systems in real-time."
+              ? "Start thinking, diagramming, and collaborating on an infinite canvas."
               : "Access your cloud canvases, AI diagrams, and workspaces."}
           </p>
         </div>
@@ -220,12 +216,12 @@ function LoginForm() {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={googleLoading || loading}
-          className="w-full py-3 px-4 rounded-xl font-medium text-sm text-zinc-200 bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.1] border border-white/10 hover:border-white/20 transition-all duration-200 flex items-center justify-center gap-3 group relative cursor-pointer disabled:opacity-50"
+          className="w-full py-2.5 px-4 rounded-xl font-medium text-xs sm:text-sm text-zinc-700 bg-white hover:bg-zinc-50 active:bg-zinc-100 border border-zinc-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-150 flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50"
         >
           {googleLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+            <Loader2 className="w-4 h-4 animate-spin text-[#635BFF]" />
           ) : (
-            <svg className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -248,12 +244,12 @@ function LoginForm() {
         </button>
 
         {/* Separator */}
-        <div className="relative my-6">
+        <div className="relative my-5">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/[0.08]" />
+            <div className="w-full border-t border-zinc-200" />
           </div>
           <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
-            <span className="bg-[#0c0d12] px-3 text-zinc-500 font-mono">
+            <span className="bg-white px-3 text-zinc-400 font-medium">
               or continue with email
             </span>
           </div>
@@ -263,48 +259,51 @@ function LoginForm() {
         <AnimatePresence mode="wait">
           {errorMsg && (
             <motion.div
-              initial={{ opacity: 0, y: -8 }}
+              initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="mb-4 p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2.5 shadow-[0_0_15px_rgba(239,68,68,0.15)]"
+              exit={{ opacity: 0, y: -6 }}
+              className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2.5"
             >
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
-              <span className="font-mono text-[11px] leading-snug">{errorMsg}</span>
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+              <span className="text-xs font-medium leading-snug">{errorMsg}</span>
             </motion.div>
           )}
 
           {successMsg && (
             <motion.div
-              initial={{ opacity: 0, y: -8 }}
+              initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="mb-4 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
+              exit={{ opacity: 0, y: -6 }}
+              className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2.5"
             >
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-              <span className="font-mono text-[11px] leading-snug">{successMsg}</span>
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+              <span className="text-xs font-medium leading-snug">{successMsg}</span>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Form Inputs with Modern Interactive Floating Labels */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Form Inputs */}
+        <form onSubmit={handleSubmit} className="space-y-3.5">
           {isSignUp && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="space-y-4"
+              className="space-y-3.5"
             >
               {/* Full Name */}
-              <div className="relative group">
+              <div>
+                <label className="block text-xs font-medium text-zinc-700 mb-1.5">
+                  Full Name
+                </label>
                 <div
-                  className={`relative flex items-center rounded-xl bg-white/[0.03] border transition-all duration-200 ${
+                  className={`relative flex items-center rounded-xl bg-white border transition-all duration-150 ${
                     focusedField === "name"
-                      ? "border-cyan-400/80 bg-white/[0.06] shadow-[0_0_15px_rgba(6,182,212,0.25)]"
-                      : "border-white/10 hover:border-white/20"
+                      ? "border-[#635BFF] ring-2 ring-[#635BFF]/15"
+                      : "border-zinc-200 hover:border-zinc-300"
                   }`}
                 >
-                  <div className="pl-3.5 text-zinc-400 group-focus-within:text-cyan-400 transition-colors">
+                  <div className="pl-3.5 text-zinc-400">
                     <User className="w-4 h-4" />
                   </div>
                   <input
@@ -314,22 +313,25 @@ function LoginForm() {
                     onChange={(e) => setFullName(e.target.value)}
                     onFocus={() => setFocusedField("name")}
                     onBlur={() => setFocusedField(null)}
-                    placeholder="Full Name (e.g. Alex Rivera)"
-                    className="w-full bg-transparent px-3 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none"
+                    placeholder="Alex Rivera"
+                    className="w-full bg-transparent px-3 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* Phone Number */}
-              <div className="relative group">
+              <div>
+                <label className="block text-xs font-medium text-zinc-700 mb-1.5">
+                  Phone Number <span className="text-zinc-400 font-normal">(Optional)</span>
+                </label>
                 <div
-                  className={`relative flex items-center rounded-xl bg-white/[0.03] border transition-all duration-200 ${
+                  className={`relative flex items-center rounded-xl bg-white border transition-all duration-150 ${
                     focusedField === "phone"
-                      ? "border-cyan-400/80 bg-white/[0.06] shadow-[0_0_15px_rgba(6,182,212,0.25)]"
-                      : "border-white/10 hover:border-white/20"
+                      ? "border-[#635BFF] ring-2 ring-[#635BFF]/15"
+                      : "border-zinc-200 hover:border-zinc-300"
                   }`}
                 >
-                  <div className="pl-3.5 text-zinc-400 group-focus-within:text-cyan-400 transition-colors">
+                  <div className="pl-3.5 text-zinc-400">
                     <Phone className="w-4 h-4" />
                   </div>
                   <input
@@ -338,8 +340,8 @@ function LoginForm() {
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     onFocus={() => setFocusedField("phone")}
                     onBlur={() => setFocusedField(null)}
-                    placeholder="Phone Number (Optional)"
-                    className="w-full bg-transparent px-3 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none"
+                    placeholder="+1 (555) 000-0000"
+                    className="w-full bg-transparent px-3 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none"
                   />
                 </div>
               </div>
@@ -347,15 +349,18 @@ function LoginForm() {
           )}
 
           {/* Email Address */}
-          <div className="relative group">
+          <div>
+            <label className="block text-xs font-medium text-zinc-700 mb-1.5">
+              Email Address
+            </label>
             <div
-              className={`relative flex items-center rounded-xl bg-white/[0.03] border transition-all duration-200 ${
+              className={`relative flex items-center rounded-xl bg-white border transition-all duration-150 ${
                 focusedField === "email"
-                  ? "border-cyan-400/80 bg-white/[0.06] shadow-[0_0_15px_rgba(6,182,212,0.25)]"
-                  : "border-white/10 hover:border-white/20"
+                  ? "border-[#635BFF] ring-2 ring-[#635BFF]/15"
+                  : "border-zinc-200 hover:border-zinc-300"
               }`}
             >
-              <div className="pl-3.5 text-zinc-400 group-focus-within:text-cyan-400 transition-colors">
+              <div className="pl-3.5 text-zinc-400">
                 <Mail className="w-4 h-4" />
               </div>
               <input
@@ -366,21 +371,26 @@ function LoginForm() {
                 onFocus={() => setFocusedField("email")}
                 onBlur={() => setFocusedField(null)}
                 placeholder="name@company.com"
-                className="w-full bg-transparent px-3 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none font-mono text-[13px]"
+                className="w-full bg-transparent px-3 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none"
               />
             </div>
           </div>
 
           {/* Password */}
-          <div className="relative group">
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-medium text-zinc-700">
+                Password
+              </label>
+            </div>
             <div
-              className={`relative flex items-center rounded-xl bg-white/[0.03] border transition-all duration-200 ${
+              className={`relative flex items-center rounded-xl bg-white border transition-all duration-150 ${
                 focusedField === "password"
-                  ? "border-cyan-400/80 bg-white/[0.06] shadow-[0_0_15px_rgba(6,182,212,0.25)]"
-                  : "border-white/10 hover:border-white/20"
+                  ? "border-[#635BFF] ring-2 ring-[#635BFF]/15"
+                  : "border-zinc-200 hover:border-zinc-300"
               }`}
             >
-              <div className="pl-3.5 text-zinc-400 group-focus-within:text-cyan-400 transition-colors">
+              <div className="pl-3.5 text-zinc-400">
                 <Lock className="w-4 h-4" />
               </div>
               <input
@@ -391,13 +401,13 @@ function LoginForm() {
                 onFocus={() => setFocusedField("password")}
                 onBlur={() => setFocusedField(null)}
                 placeholder="Password (minimum 6 characters)"
-                className="w-full bg-transparent px-3 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none font-mono text-[13px]"
+                className="w-full bg-transparent px-3 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 tabIndex={-1}
-                className="pr-3.5 text-zinc-500 hover:text-zinc-300 transition-colors"
+                className="pr-3.5 text-zinc-400 hover:text-zinc-600 transition-colors"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -410,16 +420,18 @@ function LoginForm() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="relative group"
             >
+              <label className="block text-xs font-medium text-zinc-700 mb-1.5">
+                Confirm Password
+              </label>
               <div
-                className={`relative flex items-center rounded-xl bg-white/[0.03] border transition-all duration-200 ${
+                className={`relative flex items-center rounded-xl bg-white border transition-all duration-150 ${
                   focusedField === "confirmPassword"
-                    ? "border-cyan-400/80 bg-white/[0.06] shadow-[0_0_15px_rgba(6,182,212,0.25)]"
-                    : "border-white/10 hover:border-white/20"
+                    ? "border-[#635BFF] ring-2 ring-[#635BFF]/15"
+                    : "border-zinc-200 hover:border-zinc-300"
                 }`}
               >
-                <div className="pl-3.5 text-zinc-400 group-focus-within:text-cyan-400 transition-colors">
+                <div className="pl-3.5 text-zinc-400">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -429,14 +441,14 @@ function LoginForm() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   onFocus={() => setFocusedField("confirmPassword")}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="Confirm password"
-                  className="w-full bg-transparent px-3 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none font-mono text-[13px]"
+                  placeholder="Repeat your password"
+                  className="w-full bg-transparent px-3 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   tabIndex={-1}
-                  className="pr-3.5 text-zinc-500 hover:text-zinc-300 transition-colors"
+                  className="pr-3.5 text-zinc-400 hover:text-zinc-600 transition-colors"
                 >
                   {showConfirmPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -448,12 +460,12 @@ function LoginForm() {
             </motion.div>
           )}
 
-          {/* Vibrant Aurora Continue Button */}
+          {/* Primary Submit Button */}
           <div className="pt-2">
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-6 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:via-blue-400 hover:to-indigo-500 shadow-[0_0_25px_rgba(6,182,212,0.35)] hover:shadow-[0_0_35px_rgba(6,182,212,0.55)] hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:hover:scale-100 disabled:cursor-not-allowed"
+              className="w-full py-2.5 px-4 rounded-xl font-medium text-sm text-white bg-[#635BFF] hover:bg-[#5248E2] active:bg-[#4338CA] shadow-[0_1px_2px_rgba(99,91,255,0.2)] transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -470,9 +482,9 @@ function LoginForm() {
           </div>
         </form>
 
-        {/* Switcher */}
-        <div className="text-center pt-5 mt-5 border-t border-white/[0.08]">
-          <p className="text-xs text-zinc-400">
+        {/* Mode Switcher */}
+        <div className="text-center pt-5 mt-5 border-t border-zinc-100">
+          <p className="text-xs text-zinc-500">
             {isSignUp ? "Already have an account?" : "New to MasmSpace?"}{" "}
             <button
               type="button"
@@ -481,7 +493,7 @@ function LoginForm() {
                 setErrorMsg(null);
                 setSuccessMsg(null);
               }}
-              className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors cursor-pointer ml-1"
+              className="text-[#635BFF] hover:text-[#5248E2] font-semibold transition-colors cursor-pointer ml-1"
             >
               {isSignUp ? "Sign In" : "Create an account"}
             </button>
@@ -494,180 +506,217 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen w-full bg-[#09090b] text-white flex flex-col lg:flex-row relative overflow-hidden font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
-      {/* ── Global Midnight Oceanic Gradient Orbs ───────────────────────── */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 left-1/3 w-[30rem] h-[30rem] bg-indigo-600/10 rounded-full blur-[140px]" />
-        <div className="absolute top-1/3 right-10 w-80 h-80 bg-purple-600/10 rounded-full blur-[120px]" />
-        <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-emerald-500/5 rounded-full blur-[130px]" />
-
-        {/* Subtle grid pattern */}
+    <div className="min-h-screen w-full bg-[#FAFAF9] text-zinc-900 flex flex-col lg:flex-row relative overflow-hidden font-sans selection:bg-[#635BFF]/10 selection:text-[#635BFF]">
+      {/* ── Left Side: Editorial Product Showcase ──────────────────────── */}
+      <div className="relative hidden lg:flex lg:w-1/2 xl:w-7/12 flex-col justify-between p-12 xl:p-16 border-r border-zinc-200 bg-[#F4F4F5]/60 overflow-hidden">
+        {/* Subtle grid background */}
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.4] pointer-events-none"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.9) 1px, transparent 0)",
-            backgroundSize: "36px 36px",
+              "radial-gradient(circle at 1px 1px, rgba(24, 24, 27, 0.08) 1px, transparent 0)",
+            backgroundSize: "24px 24px",
           }}
         />
-      </div>
-
-      {/* ── Left Side: Pure CSS Animated Gradient Mesh & Brand Visual ──── */}
-      <div className="relative hidden lg:flex lg:w-1/2 xl:w-7/12 flex-col justify-between p-12 xl:p-16 border-r border-white/10 overflow-hidden z-10">
-        {/* Animated Pure CSS Mesh Background */}
-        <div className="absolute inset-0 -z-10 overflow-hidden bg-[#09090b]">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-950/40 via-[#09090b] to-purple-950/30" />
-          {/* Animated glowing mesh orbs */}
-          <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] opacity-40 animate-aurora-mesh filter blur-[90px] pointer-events-none bg-[radial-gradient(ellipse_at_top_left,#06b6d4_0%,transparent_50%),radial-gradient(ellipse_at_bottom_right,#6366f1_0%,transparent_50%),radial-gradient(ellipse_at_center,#8b5cf6_0%,transparent_50%)]" />
-
-          {/* Micro-noise texture simulation */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-transparent to-[#09090b]/80" />
-        </div>
 
         {/* Brand Header */}
-        <div className="flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-3 group focus:outline-none">
-            <div className="w-11 h-11 rounded-2xl bg-white/[0.06] border border-white/15 p-2 flex items-center justify-center shadow-[0_0_25px_rgba(6,182,212,0.25)] group-hover:scale-105 group-hover:border-cyan-400/40 transition-all duration-300">
+        <div className="relative z-10 flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center gap-2.5 group focus:outline-none">
+            <div className="relative w-8 h-7 flex items-center justify-center shrink-0">
               <Image
-                src="/Prathomix-logo.png"
+                src="/masmspace-logo.png"
                 alt="MasmSpace"
-                width={38}
-                height={38}
+                width={32}
+                height={25}
                 className="object-contain"
                 priority
               />
             </div>
-            <div>
-              <span className="font-bold text-xl tracking-tight text-white group-hover:text-cyan-300 transition-colors leading-none block">
+            <div className="flex flex-col">
+              <span className="font-semibold text-base tracking-tight text-zinc-900 leading-none">
                 MasmSpace
               </span>
-              <span className="block text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-semibold mt-0.5">
-                Powered by PRATHOMIX
+              <span className="text-[10px] text-zinc-400 font-medium tracking-wide mt-0.5">
+                by Prathomix
               </span>
             </div>
           </Link>
 
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-medium bg-white/[0.04] border border-white/10 text-zinc-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            v2.4 Linear Studio
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-white border border-zinc-200 text-zinc-600 shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            Continuous Canvas
           </span>
         </div>
 
-        {/* Center Tagline & Dynamic 3D/Glass Graphic Showcase */}
-        <div className="my-auto py-12 max-w-xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-medium mb-6 backdrop-blur-md">
-            <Cpu className="w-3.5 h-3.5" />
-            Next-Gen Spatial Architecture
+        {/* Center Editorial Showcase */}
+        <div className="relative z-10 my-auto py-8 max-w-xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-zinc-200 text-zinc-700 text-xs font-medium mb-5 shadow-2xs">
+            <Workflow className="w-3.5 h-3.5 text-[#635BFF]" />
+            Spatial Architecture & Thinking
           </div>
 
-          <h1 className="text-4xl xl:text-5xl font-extrabold tracking-tight text-white leading-[1.15]">
+          <h1 className="text-3xl xl:text-4xl font-extrabold tracking-tight text-zinc-900 leading-tight">
             Architect systems at the{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-400 to-purple-400">
+            <span className="text-[#635BFF]">
               speed of thought.
             </span>
           </h1>
 
-          <p className="mt-5 text-base text-zinc-400 leading-relaxed max-w-lg">
-            The spatial whiteboard workspace built for engineers. Generate deep architectures,
-            collaborate across infinite canvases, and transform diagrams into production-ready specs.
+          <p className="mt-4 text-sm xl:text-base text-zinc-600 leading-relaxed max-w-lg">
+            The infinite collaborative workspace for engineers, designers, and visual thinkers.
+            Map complex topologies, collaborate in real time, and turn architecture into reality.
           </p>
 
-          {/* Floating Glassmorphic Capability Badges */}
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] backdrop-blur-md border border-white/10 hover:border-cyan-500/30 transition-colors">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400">
-                  <Layers className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-white">Infinite Multi-Canvas</h4>
-                  <p className="text-[11px] text-zinc-400">60FPS realtime collaborative sync</p>
-                </div>
+          {/* Interactive Miniature Canvas Preview */}
+          <div className="mt-8 p-4 rounded-2xl bg-white border border-zinc-200 shadow-sm relative overflow-hidden">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-zinc-100 text-[11px] text-zinc-500">
+              <span className="font-medium text-zinc-700">Live Architecture Session</span>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>2 Active Builders</span>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] backdrop-blur-md border border-white/10 hover:border-purple-500/30 transition-colors">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
-                  <Sparkles className="w-4 h-4" />
+            {/* Simulated Canvas Objects */}
+            <div className="relative h-32 rounded-xl bg-zinc-50 border border-dashed border-zinc-200 p-3 flex items-center justify-around">
+              {/* Node 1: API Gateway */}
+              <div className="bg-white border border-zinc-200 rounded-lg p-2.5 shadow-2xs text-left w-28">
+                <div className="text-[10px] font-semibold text-zinc-900 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Gateway
                 </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-white">Contextual AI Agent</h4>
-                  <p className="text-[11px] text-zinc-400">Click-to-place intelligent graphs</p>
+                <div className="text-[9px] text-zinc-400 mt-0.5">REST / WebSocket</div>
+              </div>
+
+              {/* Dynamic Connector */}
+              <div className="h-0.5 w-10 bg-zinc-300 relative">
+                <div className="absolute -top-1 right-0 w-2 h-2 border-t-2 border-r-2 border-zinc-400 rotate-45" />
+              </div>
+
+              {/* Node 2: Microservice */}
+              <div className="bg-white border border-[#635BFF] ring-2 ring-[#635BFF]/15 rounded-lg p-2.5 shadow-2xs text-left w-28 relative">
+                <div className="text-[10px] font-semibold text-zinc-900 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#635BFF]" /> Auth Cluster
                 </div>
+                <div className="text-[9px] text-zinc-400 mt-0.5">JWT / Session</div>
+
+                {/* Collaborator Cursor */}
+                <div className="absolute -bottom-5 right-2 flex items-center gap-1 pointer-events-none">
+                  <MousePointer2 className="w-3 h-3 text-[#635BFF] fill-[#635BFF]" />
+                  <span className="text-[9px] font-semibold bg-[#635BFF] text-white px-1.5 py-0.5 rounded shadow-xs">
+                    Alex M.
+                  </span>
+                </div>
+              </div>
+
+              {/* Dynamic Connector */}
+              <div className="h-0.5 w-10 bg-zinc-300 relative">
+                <div className="absolute -top-1 right-0 w-2 h-2 border-t-2 border-r-2 border-zinc-400 rotate-45" />
+              </div>
+
+              {/* Node 3: Database */}
+              <div className="bg-white border border-zinc-200 rounded-lg p-2.5 shadow-2xs text-left w-28">
+                <div className="text-[10px] font-semibold text-zinc-900 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Database
+                </div>
+                <div className="text-[9px] text-zinc-400 mt-0.5">PostgreSQL</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4 Feature Badges */}
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="p-3 rounded-xl bg-white border border-zinc-200 shadow-2xs flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-[#635BFF]">
+                <Layers className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold text-zinc-900">Infinite Multi-Canvas</h4>
+                <p className="text-[11px] text-zinc-500">Sub-20ms rendering engine</p>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] backdrop-blur-md border border-white/10 hover:border-emerald-500/30 transition-colors">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-white">Cloud State Persistence</h4>
-                  <p className="text-[11px] text-zinc-400">Supabase instant memory snapshot</p>
-                </div>
+            <div className="p-3 rounded-xl bg-white border border-zinc-200 shadow-2xs flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">
+                <Sparkles className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold text-zinc-900">Board Intelligence</h4>
+                <p className="text-[11px] text-zinc-500">AI topology understanding</p>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] backdrop-blur-md border border-white/10 hover:border-blue-500/30 transition-colors">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
-                  <Check className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-white">Enterprise Ready</h4>
-                  <p className="text-[11px] text-zinc-400">SOC2 compliant & encrypted</p>
-                </div>
+            <div className="p-3 rounded-xl bg-white border border-zinc-200 shadow-2xs flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <Database className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold text-zinc-900">Cloud Persistence</h4>
+                <p className="text-[11px] text-zinc-500">Continuous cloud autosave</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-white border border-zinc-200 shadow-2xs flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                <ShieldCheck className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold text-zinc-900">Enterprise Security</h4>
+                <p className="text-[11px] text-zinc-500">Encrypted data controls</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Footer info in Hero panel */}
-        <div className="pt-6 border-t border-white/[0.08] flex items-center justify-between text-xs text-zinc-500">
+        <div className="relative z-10 pt-4 border-t border-zinc-200 flex items-center justify-between text-xs text-zinc-500">
           <span>© 2026 PRATHOMIX Solution. All rights reserved.</span>
           <div className="flex items-center gap-4">
-            <Link href="/" className="hover:text-zinc-300 transition-colors">Privacy</Link>
-            <Link href="/" className="hover:text-zinc-300 transition-colors">Terms</Link>
-            <Link href="/" className="hover:text-zinc-300 transition-colors">Security</Link>
+            <Link href="/privacy" className="hover:text-zinc-900 transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-zinc-900 transition-colors">Terms</Link>
+            <Link href="/features" className="hover:text-zinc-900 transition-colors">Features</Link>
           </div>
         </div>
       </div>
 
-      {/* ── Right Side: High-Conversion Frosted Glass Auth ───────────────── */}
-      <div className="w-full lg:w-1/2 xl:w-5/12 min-h-screen flex flex-col justify-center items-center p-6 sm:p-10 relative z-10">
-        {/* Mobile Header Logo (visible only on small screens) */}
+      {/* ── Right Side: Clean White Auth Form Container ───────────────── */}
+      <div className="w-full lg:w-1/2 xl:w-5/12 min-h-screen flex flex-col justify-center items-center p-6 sm:p-10 relative z-10 bg-[#FAFAF9]">
+        {/* Mobile Header Logo */}
         <div className="lg:hidden mb-8 text-center">
           <Link href="/" className="inline-flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-2xl bg-white/[0.06] border border-white/15 p-1.5 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+            <div className="relative w-8 h-7 flex items-center justify-center shrink-0">
               <Image
-                src="/Prathomix-logo.png"
+                src="/masmspace-logo.png"
                 alt="MasmSpace"
                 width={32}
-                height={32}
+                height={25}
                 className="object-contain"
                 priority
               />
             </div>
             <div className="flex flex-col text-left">
-              <span className="font-bold text-2xl tracking-tight text-white leading-none">MasmSpace</span>
-              <span className="text-[10px] font-mono text-cyan-400 tracking-wider">by Prathomix</span>
+              <span className="font-semibold text-lg tracking-tight text-zinc-900 leading-none">
+                MasmSpace
+              </span>
+              <span className="text-[10px] text-zinc-400 font-medium">by Prathomix</span>
             </div>
           </Link>
         </div>
 
         <Suspense
           fallback={
-            <div className="w-full max-w-md p-8 rounded-3xl bg-[#09090b]/80 backdrop-blur-2xl border border-white/15 text-center font-mono text-xs text-zinc-400 shadow-2xl">
-              <Loader2 className="w-6 h-6 animate-spin mx-auto text-cyan-400 mb-2" />
-              <span>Initializing MasmSpace Auth...</span>
+            <div className="w-full max-w-[420px] p-8 rounded-2xl bg-white border border-zinc-200 text-center font-sans text-xs text-zinc-500 shadow-sm">
+              <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#635BFF] mb-2" />
+              <span>Loading MasmSpace...</span>
             </div>
           }
         >
           <LoginForm />
         </Suspense>
+
+        {/* Small footer link on mobile */}
+        <div className="lg:hidden mt-8 text-center text-xs text-zinc-400">
+          <span>© 2026 PRATHOMIX Solution.</span>
+        </div>
       </div>
     </div>
   );

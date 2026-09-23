@@ -4,75 +4,209 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import Tilt from "react-parallax-tilt";
 import {
   Sparkles,
-  Code2,
-  Cpu,
-  Zap,
   ArrowRight,
-  Terminal,
-  Mail,
   Check,
   ChevronDown,
   Layers,
-  BookOpen,
   Users,
-  Boxes,
-  Activity,
   Play,
   LogOut,
+  MousePointer,
+  Hand,
+  Shapes,
+  Pen,
+  Type,
+  StickyNote,
+  Code2,
+  Cpu,
+  ShieldCheck,
+  Download,
+  LayoutTemplate,
+  Workflow,
+  Wand2,
+  FileText,
+  Boxes,
+  Compass,
+  Zap,
+  Lock,
+  Cloud,
+  Terminal,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { CanvasLoader } from "@/components/CanvasLoader";
+
+// ── Interactive Workflow Steps ────────────────────────────────────────────────
+const WORKFLOW_STEPS = [
+  {
+    id: "think",
+    label: "Think",
+    title: "Capture ideas without friction",
+    desc: "Dump thoughts, notes, and early questions onto an open canvas. No rigid pages or forced structure.",
+    badge: "Infinite Canvas",
+    previewType: "notes",
+  },
+  {
+    id: "sketch",
+    label: "Sketch",
+    title: "Draw and shape your concept",
+    desc: "Use high-precision pen, shapes, and sticky notes to outline flows, wireframes, and mental models.",
+    badge: "Vector Shapes & Pen",
+    previewType: "sketch",
+  },
+  {
+    id: "connect",
+    label: "Connect",
+    title: "Map relationships & architecture",
+    desc: "Link concepts with smart directional connectors. Watch disparate ideas form a coherent system.",
+    badge: "Smart Connectors",
+    previewType: "diagram",
+  },
+  {
+    id: "build",
+    label: "Build",
+    title: "From visual model to execution",
+    desc: "Attach architecture specifications, runnable code blocks, and data flows directly on the canvas.",
+    badge: "Technical Workflows",
+    previewType: "code",
+  },
+  {
+    id: "collaborate",
+    label: "Collaborate",
+    title: "Work together with zero latency",
+    desc: "Co-create with your team in real time. Share a live room link with presence cursors and instant sync.",
+    badge: "Live Multiplayer",
+    previewType: "collab",
+  },
+];
+
+// ── Use Cases ────────────────────────────────────────────────────────────────
+const USE_CASES = [
+  {
+    id: "product",
+    label: "Product Teams",
+    title: "Roadmaps, specs, and feature discovery in one place",
+    desc: "Align PMs, designers, and engineers on user journeys, PRDs, and release milestones without switching between five different tools.",
+    highlights: ["User story mapping", "Sprint planning stickies", "Interactive wireframes"],
+  },
+  {
+    id: "engineering",
+    label: "Engineering",
+    title: "System architecture and cloud topology modeling",
+    desc: "Map microservices, database clusters, API gateways, and asynchronous event queues with clear technical hierarchy.",
+    highlights: ["Microservices blueprints", "Live code execution", "Data schema mapping"],
+  },
+  {
+    id: "research",
+    label: "Research & Strategy",
+    title: "Synthesize customer interviews and competitive analysis",
+    desc: "Group qualitative findings with AI assistance, discover common themes, and translate research insights into actionable next steps.",
+    highlights: ["Affinity clustering", "AI synthesis", "Strategic decision trees"],
+  },
+  {
+    id: "design",
+    label: "Design",
+    title: "Brainstorming and visual concept exploration",
+    desc: "Freehand sketching, moodboarding, and layout experiments that bridge the gap between rough sketches and polished design.",
+    highlights: ["Freehand sketching", "Moodboards & assets", "Design critique sessions"],
+  },
+  {
+    id: "startups",
+    label: "Startups & Founders",
+    title: "Pitch decks, business models, and launch planning",
+    desc: "Draft pitch architectures, brainstorm product-market fit, and track execution milestones on an unbounded board.",
+    highlights: ["Lean canvas modeling", "Go-to-market roadmaps", "Investor presentations"],
+  },
+];
+
+// ── Templates ────────────────────────────────────────────────────────────────
+const TEMPLATES = [
+  {
+    id: "microservices",
+    title: "Microservices Architecture",
+    category: "Architecture",
+    desc: "API gateway, auth worker, database clusters, and caching topology.",
+    nodes: 8,
+  },
+  {
+    id: "product-roadmap",
+    title: "Quarterly Product Roadmap",
+    category: "Product",
+    desc: "Categorized swimlanes for Now, Next, and Later feature epics.",
+    nodes: 12,
+  },
+  {
+    id: "brainstorm",
+    title: "Team Brainstorm & Synthesis",
+    category: "Ideation",
+    desc: "Color-coded sticky notes with AI affinity grouping and voting.",
+    nodes: 15,
+  },
+  {
+    id: "flowchart",
+    title: "User Onboarding Decision Flow",
+    category: "Diagrams",
+    desc: "Step-by-step logic nodes with conditional branches and error recovery.",
+    nodes: 9,
+  },
+];
 
 export default function LandingPage() {
-  // ── Canvas Launch Loading State ───────────────────────────────────────────
-  const [isLaunchingCanvas, setIsLaunchingCanvas] = useState(false);
-
-  // ── Segment-Wise Tabs State ────────────────────────────────────────────────
-  const [activeSegment, setActiveSegment] = useState<
-    "engineers" | "researchers" | "product"
-  >("engineers");
-
-  // ── FAQ Accordion State ────────────────────────────────────────────────────
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
-
-  // ── Pro Pricing Billing Cycle (Monthly: $5/mo, Yearly: $49/yr Save 18%) ──
+  const [activeWorkflow, setActiveWorkflow] = useState<string>("think");
+  const [activeUseCase, setActiveUseCase] = useState<string>("product");
   const [proBillingCycle, setProBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [isScrolled, setIsScrolled] = useState(false);
 
-  // ── Authentication & Sign-Out State ───────────────────────────────────────
+  // Authentication State
   const [currentUser, setCurrentUser] = useState<{ email?: string; name?: string } | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
+  // Track window scroll for subtle navbar transition
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Fetch Supabase authenticated user
   useEffect(() => {
     let isMounted = true;
     async function checkUser() {
       try {
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user && isMounted) {
           setCurrentUser({
             email: user.email,
-            name: (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || user.email?.split("@")[0],
+            name:
+              (user.user_metadata?.full_name as string) ||
+              (user.user_metadata?.name as string) ||
+              user.email?.split("@")[0],
           });
           return;
         }
-      } catch { }
+      } catch {}
 
       if (typeof window !== "undefined" && isMounted) {
         try {
-          const stored = localStorage.getItem("prathomix_current_user") || localStorage.getItem("prathomix_current_user");
+          const stored = localStorage.getItem("prathomix_current_user");
           if (stored) {
             const parsed = JSON.parse(stored);
             if (parsed) setCurrentUser(parsed);
           }
-        } catch { }
+        } catch {}
       }
     }
 
     checkUser();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleSignOut = async () => {
@@ -82,230 +216,109 @@ export default function LandingPage() {
       await supabase.auth.signOut();
       if (typeof window !== "undefined") {
         localStorage.removeItem("prathomix_current_user");
-        localStorage.removeItem("prathomix_current_user");
         localStorage.removeItem("prathomix_user_avatar");
       }
       setCurrentUser(null);
     } catch (err) {
       console.error("Sign out error:", err);
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("prathomix_current_user");
-      }
       setCurrentUser(null);
     } finally {
       setIsSigningOut(false);
     }
   };
 
-  const toggleFaq = (index: number) => {
-    setOpenFaq(openFaq === index ? null : index);
-  };
-
-  // ── Animation Variants ─────────────────────────────────────────────────────
-  const fadeUp = {
-    hidden: { opacity: 1, y: 0 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const },
-    },
-  };
-
-  const staggerContainer = {
-    hidden: { opacity: 1 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.08,
-      },
-    },
-  };
-
-  // ── Segments Data ──────────────────────────────────────────────────────────
-  const segments = {
-    engineers: {
-      title: "Software Engineers & Architects",
-      tag: "Deep Architecture",
-      icon: Terminal,
-      headline: "From System Doodles to Executable Architecture in Seconds.",
-      bullets: [
-        "Map microservices, event queues, and database schemas on an infinite grid.",
-        "Validate algorithms and data structures locally with in-canvas Pyodide runtime.",
-        "Generate OpenAPI specs and ready-to-paste boilerplate directly from diagrams.",
-      ],
-      codeSnippet: `// System Architecture Spec
-interface PipelineNode {
-  service: "api-gateway" | "auth-broker";
-  throughput: "100k req/sec";
-  wasmRuntime: true;
-}
-const gateway: PipelineNode = {
-  service: "api-gateway",
-  throughput: "100k req/sec",
-  wasmRuntime: true
-};`,
-    },
-    researchers: {
-      title: "AI Researchers & Students",
-      tag: "Mathematical Modeling",
-      icon: BookOpen,
-      headline: "Graph Equations, Run Computations, and Sketch Logic.",
-      bullets: [
-        "Interactive math sketching with instant matrix and vector computations.",
-        "Run Python data manipulation and chart generation directly on sticky nodes.",
-        "Neural semantic memory recalls every formula and model architecture you draw.",
-      ],
-      codeSnippet: `import numpy as np
-
-# Neural Layer Weight Simulation
-def simulate_forward_pass(inputs, weights):
-    activations = np.dot(inputs, weights)
-    return np.maximum(0, activations) # ReLU
-
-print("[Pyodide WASM] Tensor layer converged.")`,
-    },
-    product: {
-      title: "Product Teams & Founders",
-      tag: "Rapid Scoping",
-      icon: Users,
-      headline: "Bridge the Void Between Design, Strategy, and Engineering.",
-      bullets: [
-        "Wireframe user flows and state transitions with smart snap-to-grid shapes.",
-        "Export clean, presentation-ready vector assets for investor decks or specs.",
-        "Zero-latency multiplayer lets your whole team brainstorm together with live cursors.",
-      ],
-      codeSnippet: `/* Product Flow Specification */
-[Landing Page] ➔ {Auth Modal}
-       │
-       ├── (User Pro) ➔ [Pro Canvas + Unlimited AI]
-       └── (User Free) ➔ [Standard Canvas + 10 Actions/Day]`,
-    },
-  };
-
-  // ── FAQ Data ───────────────────────────────────────────────────────────────
-  const faqs = [
-    {
-      q: "Does MasmSpace really run smoothly on 4GB RAM or low-end PCs?",
-      a: "Yes, absolutely. The Pyodide WebAssembly compiler and canvas computation engine execute inside isolated Web Workers on background threads. The main rendering loop is strictly decoupled, guaranteeing a fluid 60 FPS without memory leaks or UI freeze even on budget hardware.",
-    },
-    {
-      q: "Where does my code and whiteboard data live? Is it private?",
-      a: "By default, MasmSpace adheres to a local-first philosophy. Code execution and diagram state happen client-side in your browser sandboxed via WebAssembly. With Pro Cloud Sync, state is stored in high-security encrypted Supabase tables, and your diagrams are never used to train third-party AI models.",
-    },
-    {
-      q: "Can I use MasmSpace offline without an internet connection?",
-      a: "Yes. Once the Pyodide WebAssembly runtime is cached in your browser's CacheStorage, core whiteboard drawing and local Python code execution work completely offline with zero dependency on external cloud servers.",
-    },
-    {
-      q: "How does the AI Architecture Swarm generate diagram elements?",
-      a: "Our backend load-balances between Google Gemini 1.5 and Groq Llama-3.3 high-speed inference pools. It returns deterministic diagram element geometry that renders natively onto your canvas with editable strokes, labels, and connectors.",
-    },
-    {
-      q: "Can I export my canvases to external tools?",
-      a: "Yes. You can export your full canvas or selected elements as clean vector SVGs, high-resolution PNGs, or portable `.masmspace` JSON files with zero platform lock-in.",
-    },
-  ];
+  const activeWorkflowItem =
+    WORKFLOW_STEPS.find((w) => w.id === activeWorkflow) || WORKFLOW_STEPS[0];
+  const activeUseCaseItem =
+    USE_CASES.find((u) => u.id === activeUseCase) || USE_CASES[0];
 
   return (
-    <div className="min-h-screen bg-[#030303] text-gray-100 font-sans selection:bg-cyan-500/20 selection:text-cyan-300 relative overflow-x-hidden">
-      {/* ── Seamless Full-Screen Canvas Loader Transition ── */}
-      <AnimatePresence>
-        {isLaunchingCanvas && (
-          <CanvasLoader
-            message="Loading Workspace Environment…"
-            submessage="Streaming WebAssembly Canvas Engine & Vector RAG Pipeline"
-          />
-        )}
-      </AnimatePresence>
-
-      {/* ── Ambient Neon Backdrops (Cyber-Glass Accents) ── */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute -top-48 left-1/2 -translate-x-1/2 w-[720px] h-[520px] bg-gradient-to-b from-cyan-500/15 via-purple-600/10 to-transparent blur-[160px] rounded-full" />
-        <div className="absolute top-[35%] right-[-12%] w-[550px] h-[550px] bg-purple-600/10 blur-[170px] rounded-full" />
-        <div className="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-cyan-600/10 blur-[160px] rounded-full" />
-        {/* Fine cyber dot matrix grid */}
-        <div
-          className="absolute inset-0 opacity-[0.025]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.9) 1px, transparent 0)",
-            backgroundSize: "32px 32px",
-          }}
-        />
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          NAVBAR
-         ═══════════════════════════════════════════════════════════════════════ */}
-      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-2xl bg-[#030303]/75 border-b border-white/[0.06] transition-all">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 h-20 flex items-center justify-between">
-          <Link href="/" className="group flex items-center gap-3.5 focus:outline-none">
-            <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-white/[0.03] border border-white/10 p-1 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.15)] group-hover:border-cyan-500/40 transition-colors">
+    <div className="min-h-screen bg-[#FAFAF9] text-[#18181B] selection:bg-[#635BFF]/15 selection:text-[#635BFF] font-sans antialiased">
+      {/* ── 1. SLIM STICKY NAVIGATION ── */}
+      <header
+        className={`sticky top-0 z-50 transition-all duration-200 ${
+          isScrolled
+            ? "bg-[#FAFAF9]/90 backdrop-blur-md border-b border-[#E4E4E7] shadow-[0_1px_3px_rgba(0,0,0,0.02)]"
+            : "bg-transparent border-b border-transparent"
+        }`}
+      >
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          {/* Left: Logo & Wordmark */}
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 group transition-opacity hover:opacity-85"
+            title="MasmSpace Homepage"
+          >
+            <div className="relative w-7 h-6 flex items-center justify-center shrink-0">
               <Image
-                src="/Prathomix-logo.png"
-                alt="MasmSpace Logo"
-                width={32}
-                height={32}
+                src="/masmspace-logo.png"
+                alt="MasmSpace"
+                width={28}
+                height={22}
                 className="object-contain"
                 priority
               />
             </div>
-            <div className="flex flex-col">
-              <span className="text-lg font-semibold tracking-tight text-white group-hover:text-cyan-300 transition-colors leading-none">
-                MasmSpace
-              </span>
-              <span className="text-[9px] font-mono text-cyan-400 font-medium tracking-wider mt-0.5">
-                by Prathomix
-              </span>
-            </div>
-            <span className="hidden sm:inline-block text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-              v2.4 Live
+            <span className="font-semibold text-sm tracking-tight text-[#18181B]">
+              MasmSpace
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
-            <a href="#problems" className="hover:text-white transition-colors">
+          {/* Center: Clean Nav Links */}
+          <nav className="hidden md:flex items-center gap-6 text-[13px] font-medium text-[#52525B]">
+            <a
+              href="#overview"
+              className="hover:text-[#18181B] transition-colors"
+            >
               Why MasmSpace
             </a>
-            <a href="#features" className="hover:text-white transition-colors">
+            <a
+              href="#features"
+              className="hover:text-[#18181B] transition-colors"
+            >
               Features
             </a>
-            <a href="#builders" className="hover:text-white transition-colors">
+            <a
+              href="#builders"
+              className="hover:text-[#18181B] transition-colors"
+            >
               For Builders
             </a>
-            <a href="#pricing" className="hover:text-white transition-colors">
-              Pricing
+            <a
+              href="#use-cases"
+              className="hover:text-[#18181B] transition-colors"
+            >
+              Use Cases
             </a>
-            <a href="#faq" className="hover:text-white transition-colors">
-              FAQ
+            <a
+              href="#pricing"
+              className="hover:text-[#18181B] transition-colors"
+            >
+              Pricing
             </a>
           </nav>
 
-          <div className="flex items-center gap-3 sm:gap-4">
+          {/* Right: Auth / CTA */}
+          <div className="flex items-center gap-3">
             {currentUser ? (
-              <>
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-mono text-zinc-300">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                  <span className="truncate max-w-[120px] md:max-w-[160px] text-zinc-200 font-medium">
-                    {currentUser.name || currentUser.email}
-                  </span>
-                </div>
-
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-[#52525B] hidden sm:inline max-w-[120px] truncate">
+                  {currentUser.name || currentUser.email}
+                </span>
                 <button
                   type="button"
                   onClick={handleSignOut}
                   disabled={isSigningOut}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 transition-all cursor-pointer shadow-sm"
-                  title="Sign out of MasmSpace"
+                  title="Sign Out"
+                  className="p-1 rounded-md text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] transition-colors"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span>{isSigningOut ? "Signing out..." : "Sign Out"}</span>
                 </button>
-              </>
+              </div>
             ) : (
               <Link
-                href="/login"
-                className="text-sm font-medium text-gray-400 hover:text-white transition-colors"
+                href="/signin"
+                className="text-[13px] font-medium text-[#52525B] hover:text-[#18181B] transition-colors px-2 py-1"
               >
                 Sign In
               </Link>
@@ -313,925 +326,1029 @@ print("[Pyodide WASM] Tensor layer converged.")`,
 
             <Link
               href="/canvas"
-              onClick={() => setIsLaunchingCanvas(true)}
-              className="group relative inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-cyan-500/20 via-cyan-400/20 to-purple-500/20 hover:from-cyan-500/30 hover:to-purple-500/30 border border-cyan-400/40 hover:border-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.25)] hover:shadow-[0_0_30px_rgba(6,182,212,0.45)] transition-all duration-300 active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#635BFF] hover:bg-[#5248E5] text-white text-[13px] font-medium shadow-sm transition-all active:scale-[0.98]"
             >
               <span>Launch Canvas</span>
-              <ArrowRight className="w-4 h-4 text-cyan-400 group-hover:translate-x-0.5 transition-transform" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
       </header>
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          1. HERO SECTION (ABOVE THE FOLD)
-         ═══════════════════════════════════════════════════════════════════════ */}
-      <main className="relative z-10 pt-20">
-        <section className="min-h-[calc(100vh-5rem)] flex flex-col justify-center px-6 sm:px-8 py-20 sm:py-28 max-w-7xl mx-auto">
-          <motion.div
-            variants={staggerContainer}
-            initial="visible"
-            animate="visible"
-            className="text-center flex flex-col items-center max-w-4xl mx-auto mb-14 sm:mb-18"
-          >
-            {/* Live Status Badge */}
-            <motion.div
-              variants={fadeUp}
-              className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/10 text-xs font-medium text-cyan-400 mb-8 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.12)]"
-            >
-              <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span>Pyodide WebAssembly + AI Intelligence Live</span>
-            </motion.div>
+      {/* ── 2. HERO SECTION ── */}
+      <section className="pt-16 pb-12 sm:pt-24 sm:pb-16 px-4 sm:px-6 max-w-5xl mx-auto text-center">
+        {/* Eyebrow */}
+        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#F4F4F5] border border-[#E4E4E7] text-[12px] font-medium text-[#52525B] mb-6">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#635BFF]" />
+          <span>The Visual Workspace for Thinking & Building</span>
+        </div>
 
-            {/* Headline with striking Cyan-to-Purple gradient */}
-            <motion.h1
-              variants={fadeUp}
-              className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.08] mb-6"
-            >
-              Your Brain&apos;s Operating System.{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-purple-500">
-                Sketch, Code, and Build—At the Speed of Thought.
+        {/* Hero Headline */}
+        <h1 className="text-4xl sm:text-6xl md:text-[68px] font-semibold tracking-[-0.03em] text-[#18181B] leading-[1.08] max-w-4xl mx-auto mb-6">
+          Think Visually.
+          <br />
+          <span className="text-[#52525B]">Build Faster.</span>
+        </h1>
+
+        {/* Supporting Text */}
+        <p className="text-base sm:text-lg text-[#52525B] max-w-2xl mx-auto leading-relaxed mb-8">
+          MasmSpace is an infinite collaborative workspace for brainstorming,
+          diagramming, planning, building, and turning complex ideas into reality.
+        </p>
+
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
+          <Link
+            href="/canvas"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#635BFF] hover:bg-[#5248E5] text-white text-sm font-medium shadow-sm transition-all active:scale-[0.98]"
+          >
+            <span>Launch Canvas</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+          <a
+            href="#showcase"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-[#F4F4F5] border border-[#E4E4E7] text-sm font-medium text-[#18181B] shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-colors"
+          >
+            See how it works
+          </a>
+        </div>
+
+        {/* Trust & Product Metadata */}
+        <div className="flex items-center justify-center gap-6 text-[12px] text-[#71717A]">
+          <span className="flex items-center gap-1.5">
+            <Check className="w-3.5 h-3.5 text-[#635BFF]" /> Free to start
+          </span>
+          <span className="w-1 h-1 rounded-full bg-[#E4E4E7]" />
+          <span className="flex items-center gap-1.5">
+            <Check className="w-3.5 h-3.5 text-[#635BFF]" /> Real-time collaboration
+          </span>
+          <span className="w-1 h-1 rounded-full bg-[#E4E4E7] hidden sm:inline" />
+          <span className="hidden sm:flex items-center gap-1.5">
+            <Check className="w-3.5 h-3.5 text-[#635BFF]" /> AI board intelligence
+          </span>
+        </div>
+      </section>
+
+      {/* ── 3. HERO PRODUCT VISUAL ── */}
+      <section id="showcase" className="max-w-6xl mx-auto px-4 sm:px-6 pb-20">
+        <div className="relative rounded-2xl border border-[#E4E4E7] bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.06)] overflow-hidden">
+          {/* Top Mockup Chrome: Floating Bar simulation */}
+          <div className="h-11 border-b border-[#E4E4E7] bg-[#FAFAF9]/80 px-4 flex items-center justify-between text-xs select-none">
+            {/* Left: Window controls & board title */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#E4E4E7]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#E4E4E7]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#E4E4E7]" />
+              </div>
+              <div className="h-3.5 w-px bg-[#E4E4E7] mx-1" />
+              <div className="flex items-center gap-1.5 font-medium text-[#18181B]">
+                <div className="w-4 h-4 rounded bg-[#635BFF] text-white text-[9px] font-bold flex items-center justify-center">
+                  M
+                </div>
+                <span>Product Launch Roadmap</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1" title="Saved" />
+              </div>
+            </div>
+
+            {/* Center: Compact tool switcher simulation */}
+            <div className="hidden md:flex items-center gap-1 bg-white border border-[#E4E4E7] px-1 py-0.5 rounded-lg shadow-sm">
+              <span className="px-2 py-0.5 rounded bg-[#635BFF]/10 text-[#635BFF] font-semibold text-[11px] flex items-center gap-1">
+                <MousePointer className="w-3 h-3" /> Select
               </span>
-            </motion.h1>
+              <span className="p-1 text-[#71717A]"><Hand className="w-3 h-3" /></span>
+              <span className="p-1 text-[#71717A]"><Shapes className="w-3 h-3" /></span>
+              <span className="p-1 text-[#71717A]"><Pen className="w-3 h-3" /></span>
+              <span className="p-1 text-[#71717A]"><Type className="w-3 h-3" /></span>
+              <span className="p-1 text-[#71717A]"><StickyNote className="w-3 h-3" /></span>
+            </div>
 
-            {/* Subheadline */}
-            <motion.p
-              variants={fadeUp}
-              className="text-lg sm:text-xl md:text-2xl text-gray-400 max-w-3xl font-normal leading-relaxed mb-10"
-            >
-              Live code execution with Pyodide WASM, AI architecture generation,
-              and infinite multi-user collaboration on a single high-performance canvas.
-            </motion.p>
-
-            {/* CTA Group */}
-            <motion.div
-              variants={fadeUp}
-              className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5 w-full sm:w-auto"
-            >
-              <Link
-                href="/canvas"
-                onClick={() => setIsLaunchingCanvas(true)}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-9 py-4 rounded-xl text-base font-semibold text-black bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-400 hover:brightness-110 shadow-[0_0_30px_rgba(6,182,212,0.45)] hover:shadow-[0_0_45px_rgba(6,182,212,0.7)] transition-all duration-300 active:scale-[0.98]"
-              >
-                <span>Launch Canvas</span>
-                <ArrowRight className="w-5 h-5 text-black" />
-              </Link>
-              <a
-                href="#features"
-                className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 rounded-xl text-base font-medium text-gray-300 hover:text-white bg-white/[0.02] hover:bg-white/[0.06] border border-white/10 hover:border-white/20 backdrop-blur-lg transition-all duration-200"
-              >
-                Explore Technology
-              </a>
-            </motion.div>
-          </motion.div>
-
-          {/* Visual: Sleek Dark-Mode Mockup (Canvas + Live Code Runner) */}
-          <motion.div
-            initial={{ opacity: 1, y: 0 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full max-w-6xl mx-auto rounded-2xl border border-white/10 bg-[#06080e]/80 backdrop-blur-2xl p-3 sm:p-5 shadow-[0_20px_80px_rgba(0,0,0,0.8),0_0_40px_rgba(6,182,212,0.1)] overflow-hidden"
-          >
-            {/* Window Chrome Header */}
-            <div className="flex items-center justify-between pb-3 px-2 border-b border-white/[0.06]">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500/70 border border-red-500" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500/70 border border-yellow-500" />
-                <div className="w-3 h-3 rounded-full bg-green-500/70 border border-green-500" />
-                <span className="ml-3 text-xs font-mono text-gray-400">
-                  masmspace://workspace/neural-cluster.masmspace
-                </span>
+            {/* Right: Presence Avatars */}
+            <div className="flex items-center gap-2">
+              <div className="flex -space-x-1.5">
+                <div className="w-5 h-5 rounded-full bg-indigo-100 border border-white text-indigo-700 text-[9px] font-bold flex items-center justify-center">
+                  SK
+                </div>
+                <div className="w-5 h-5 rounded-full bg-emerald-100 border border-white text-emerald-700 text-[9px] font-bold flex items-center justify-center">
+                  AP
+                </div>
               </div>
-              <div className="flex items-center gap-3 text-xs text-gray-400">
-                <span className="hidden sm:inline-flex items-center gap-1 text-cyan-400 font-mono">
-                  <Activity className="w-3.5 h-3.5" /> 60 FPS WASM
-                </span>
-                <span className="px-2 py-0.5 rounded bg-white/[0.05] border border-white/10">
-                  Pyodide v0.26
-                </span>
+              <span className="px-2 py-0.5 rounded bg-[#635BFF] text-white font-medium text-[11px]">
+                Share
+              </span>
+            </div>
+          </div>
+
+          {/* Canvas Canvas Simulation Area */}
+          <div className="relative h-[380px] sm:h-[480px] bg-[#FAFAF9] overflow-hidden select-none">
+            {/* Subtle Dot Grid */}
+            <div
+              className="absolute inset-0 opacity-40"
+              style={{
+                backgroundImage:
+                  "radial-gradient(#A1A1AA 1px, transparent 1px)",
+                backgroundSize: "24px 24px",
+              }}
+            />
+
+            {/* Simulated 48px Left Rail */}
+            <div className="absolute top-4 left-4 z-10 w-9 bg-white border border-[#E4E4E7] rounded-xl shadow-sm py-2 flex flex-col items-center gap-2 text-[#71717A]">
+              <span className="p-1 rounded text-[#635BFF] bg-[#635BFF]/10"><Boxes className="w-3.5 h-3.5" /></span>
+              <span className="p-1"><Sparkles className="w-3.5 h-3.5" /></span>
+              <span className="p-1"><LayoutTemplate className="w-3.5 h-3.5" /></span>
+            </div>
+
+            {/* Simulated Connected Whiteboard Elements */}
+            <div className="absolute inset-0 p-6 sm:p-12 flex items-center justify-center">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 max-w-4xl w-full relative">
+                {/* 1. Research Phase Note */}
+                <div className="p-4 rounded-xl bg-[#FEF3C7] border border-[#FDE68A] shadow-sm transform -rotate-1 hover:rotate-0 transition-transform">
+                  <div className="text-[10px] font-mono text-[#92400E] uppercase mb-1">
+                    01 · Research
+                  </div>
+                  <h4 className="text-xs font-semibold text-[#78350F] mb-1">
+                    Customer Interviews
+                  </h4>
+                  <p className="text-[11px] text-[#92400E] leading-snug">
+                    Synthesized 24 calls: need a single visual canvas over scattered docs.
+                  </p>
+                </div>
+
+                {/* 2. Architecture Spec Node */}
+                <div className="p-4 rounded-xl bg-white border border-[#E4E4E7] shadow-sm relative group">
+                  <div className="text-[10px] font-mono text-[#635BFF] uppercase mb-1 flex items-center gap-1">
+                    <Workflow className="w-2.5 h-2.5" /> 02 · Systems
+                  </div>
+                  <h4 className="text-xs font-semibold text-[#18181B] mb-1">
+                    Ingress & Vector RAG
+                  </h4>
+                  <p className="text-[11px] text-[#52525B] leading-snug">
+                    Real-time state synchronization via WebSocket & Supabase.
+                  </p>
+                  {/* Selection indicator pill */}
+                  <span className="absolute -top-2.5 -right-2 px-1.5 py-0.5 rounded bg-[#635BFF] text-white text-[9px] font-mono font-medium">
+                    Alex K.
+                  </span>
+                </div>
+
+                {/* 3. Product Action Sticky */}
+                <div className="p-4 rounded-xl bg-[#DCFCE7] border border-[#BBF7D0] shadow-sm transform rotate-1 hover:rotate-0 transition-transform">
+                  <div className="text-[10px] font-mono text-[#166534] uppercase mb-1">
+                    03 · Product
+                  </div>
+                  <h4 className="text-xs font-semibold text-[#14532D] mb-1">
+                    Infinite Canvas V2
+                  </h4>
+                  <p className="text-[11px] text-[#166534] leading-snug">
+                    Sub-20ms rendering with React Flow and WebAssembly.
+                  </p>
+                </div>
+
+                {/* 4. Launch Ready Card */}
+                <div className="p-4 rounded-xl bg-[#E0F2FE] border border-[#BAE6FD] shadow-sm">
+                  <div className="text-[10px] font-mono text-[#075985] uppercase mb-1">
+                    04 · Launch
+                  </div>
+                  <h4 className="text-xs font-semibold text-[#0C4A6E] mb-1">
+                    Public Release
+                  </h4>
+                  <p className="text-[11px] text-[#075985] leading-snug">
+                    Shareable live room links with presentation mode.
+                  </p>
+                </div>
+
+                {/* Live Collaborator Cursor 1 */}
+                <div className="absolute -top-4 left-1/4 pointer-events-none flex items-center gap-1 text-[#635BFF]">
+                  <MousePointer className="w-3.5 h-3.5 fill-[#635BFF]" />
+                  <span className="px-1.5 py-0.5 rounded bg-[#635BFF] text-white text-[9px] font-medium font-mono">
+                    Sarah P. (editing)
+                  </span>
+                </div>
+
+                {/* Live Collaborator Cursor 2 */}
+                <div className="absolute bottom-2 right-1/4 pointer-events-none flex items-center gap-1 text-emerald-600">
+                  <MousePointer className="w-3.5 h-3.5 fill-emerald-600" />
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-medium font-mono">
+                    Alex K.
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Mockup Body: Two Columns (Whiteboard Visuals + Code Runner) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-4 min-h-[380px] sm:min-h-[460px]">
-              {/* Left Column: Whiteboard Diagram Mockup (7 cols) */}
-              <div className="lg:col-span-7 rounded-xl bg-[#0a0d16] border border-white/[0.05] p-5 relative overflow-hidden flex flex-col justify-between">
-                {/* Canvas Toolbar Mockup */}
-                <div className="flex items-center gap-2 bg-[#030303]/70 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 w-fit text-xs text-gray-300">
-                  <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-medium">
-                    Selection
-                  </span>
-                  <span className="px-2 py-0.5 hover:text-white cursor-pointer">
-                    Rectangle
-                  </span>
-                  <span className="px-2 py-0.5 hover:text-white cursor-pointer">
-                    Arrow
-                  </span>
-                  <span className="px-2 py-0.5 hover:text-white cursor-pointer">
-                    AI Swarm
-                  </span>
-                </div>
-
-                {/* Drawn Diagram Nodes */}
-                <div className="my-auto py-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 relative">
-                  {/* Node 1: Client Gateway */}
-                  <div className="p-4 rounded-xl border border-cyan-400/40 bg-cyan-500/[0.06] backdrop-blur-md text-left w-48 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
-                    <div className="text-[11px] font-mono text-cyan-400 uppercase tracking-wide">
-                      Entry Gateway
-                    </div>
-                    <div className="text-sm font-semibold text-white mt-1">
-                      MasmSpace Client
-                    </div>
-                    <div className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
-                      <Zap className="w-3 h-3 text-cyan-400" /> Low Latency
-                    </div>
-                  </div>
-
-                  {/* Connector Arrow */}
-                  <div className="text-cyan-400 font-mono text-xs flex items-center">
-                    <span className="hidden sm:inline">──►</span>
-                    <span className="sm:hidden">▼</span>
-                  </div>
-
-                  {/* Node 2: WASM Worker */}
-                  <div className="p-4 rounded-xl border border-purple-400/40 bg-purple-500/[0.06] backdrop-blur-md text-left w-52 shadow-[0_0_20px_rgba(168,85,247,0.15)]">
-                    <div className="text-[11px] font-mono text-purple-400 uppercase tracking-wide">
-                      Browser Sandbox
-                    </div>
-                    <div className="text-sm font-semibold text-white mt-1">
-                      Pyodide WASM Core
-                    </div>
-                    <div className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
-                      <Cpu className="w-3 h-3 text-purple-400" /> Zero Server Latency
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom Canvas Footer */}
-                <div className="flex items-center justify-between text-[11px] text-gray-400 pt-2 border-t border-white/[0.04]">
-                  <span>Canvas scale: 100% (Infinite Grid)</span>
-                  <span className="text-cyan-400/80">3 Active Collaborators</span>
-                </div>
-              </div>
-
-              {/* Right Column: Code Runner Panel (5 cols) */}
-              <div className="lg:col-span-5 rounded-xl bg-[#04060a] border border-white/[0.08] p-4 flex flex-col justify-between font-mono text-xs">
-                <div>
-                  <div className="flex items-center justify-between pb-3 border-b border-white/[0.06] text-gray-400 text-[11px]">
-                    <div className="flex items-center gap-2">
-                      <Code2 className="w-4 h-4 text-cyan-400" />
-                      <span className="text-gray-200">algorithm_runner.py</span>
-                    </div>
-                    <span className="text-emerald-400 flex items-center gap-1">
-                      <Play className="w-3 h-3 fill-emerald-400" /> Running
-                    </span>
-                  </div>
-
-                  {/* Code Editor Body */}
-                  <div className="mt-3 text-gray-300 leading-relaxed overflow-x-auto">
-                    <p className="text-gray-400"># Native In-Browser WebAssembly</p>
-                    <p>
-                      <span className="text-purple-400">import</span> numpy{" "}
-                      <span className="text-purple-400">as</span> np
-                    </p>
-                    <p>
-                      <span className="text-purple-400">import</span> time
-                    </p>
-                    <br />
-                    <p>
-                      <span className="text-cyan-400">def</span>{" "}
-                      <span className="text-teal-300">benchmark_pipeline</span>():
-                    </p>
-                    <p className="pl-4">
-                      matrix = np.random.rand(1000, 1000)
-                    </p>
-                    <p className="pl-4">
-                      inv = np.linalg.pinv(matrix)
-                    </p>
-                    <p className="pl-4 text-gray-400">
-                      return f&quot;Solved 1M elements: &#123;inv.shape&#125;&quot;
-                    </p>
-                    <br />
-                    <p>
-                      <span className="text-purple-400">print</span>(
-                      benchmark_pipeline())
-                    </p>
-                  </div>
-                </div>
-
-                {/* Code Terminal Output */}
-                <div className="mt-4 p-3 rounded-lg bg-black/60 border border-emerald-500/20 text-emerald-400 text-[11px]">
-                  <p className="text-gray-400 text-[10px] uppercase tracking-wider mb-1">
-                    Terminal Output:
-                  </p>
-                  <p>✦ [Pyodide Engine] Solved 1M elements: (1000, 1000)</p>
-                  <p className="text-gray-400 mt-0.5">
-                    ⏱ Execution: 22ms • Memory: 14MB • Server hops: 0
-                  </p>
-                </div>
-              </div>
+            {/* Bottom-Left Zoom Indicator simulation */}
+            <div className="absolute bottom-3 left-4 bg-white border border-[#E4E4E7] px-2 py-1 rounded-lg shadow-sm text-[11px] font-mono text-[#71717A] flex items-center gap-2">
+              <span>-</span>
+              <span>100%</span>
+              <span>+</span>
             </div>
-          </motion.div>
-        </section>
 
-        {/* ═══════════════════════════════════════════════════════════════════════
-            2. PROBLEM SECTION (THE PAIN POINTS)
-           ═══════════════════════════════════════════════════════════════════════ */}
-        {/* ═══════════════════════════════════════════════════════════════════════
-            2. PROBLEM SECTION (THE PAIN POINTS)
-           ═══════════════════════════════════════════════════════════════════════ */}
-        <motion.section
-          id="problems"
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="max-w-7xl mx-auto px-6 sm:px-8 py-24 sm:py-32 scroll-mt-20 border-t border-white/[0.04]"
-        >
-          <div className="max-w-3xl mx-auto text-center mb-16 sm:mb-20">
-            <span className="text-xs uppercase font-mono tracking-widest text-red-400/80 mb-3 block">
-              The Architecture Bottleneck
+            {/* Bottom-Right AI Assistant Pill */}
+            <div className="absolute bottom-3 right-4 bg-white border border-[#E4E4E7] px-3 py-1.5 rounded-xl shadow-sm text-xs font-medium text-[#18181B] flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-[#635BFF]" />
+              <span>Ask AI: &quot;Organize board layout&quot;</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 4. PRODUCT INTERACTION SEQUENCE ── */}
+      <section className="py-16 bg-white border-y border-[#E4E4E7]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <span className="text-xs font-mono uppercase tracking-wider text-[#635BFF] block mb-2 font-semibold">
+              The Workflow
             </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
-              Modern Technical Planning is Broken.
+            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#18181B]">
+              From first spark to completed system
             </h2>
-            <p className="text-base sm:text-lg text-gray-400 leading-relaxed">
-              Engineers waste hours toggling between static sketch pads, external
-              IDEs, and sluggish canvas tools that choke on complex workflows.
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Pain Point 1 */}
-            <Tilt
-              tiltMaxAngleX={10}
-              tiltMaxAngleY={10}
-              scale={1.02}
-              transitionSpeed={2000}
-              glareEnable={true}
-              glareMaxOpacity={0.15}
-              glareColor="#ffffff"
-              glarePosition="all"
-              glareBorderRadius="1rem"
-              className="h-full rounded-2xl"
-            >
-              <div className="h-full p-8 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-xl hover:border-red-500/30 transition-all duration-300">
-                <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-6 text-red-400">
-                  <Boxes className="w-6 h-6" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
-                  Scattered Tools
-                </h3>
-                <p className="text-sm text-gray-400 leading-relaxed">
-                  Diagrams are trapped in one whiteboard, algorithm validation is
-                  buried in a local terminal, and AI prompting context is lost
-                  across browser tabs.
-                </p>
-              </div>
-            </Tilt>
-
-            {/* Pain Point 2 */}
-            <Tilt
-              tiltMaxAngleX={10}
-              tiltMaxAngleY={10}
-              scale={1.02}
-              transitionSpeed={2000}
-              glareEnable={true}
-              glareMaxOpacity={0.15}
-              glareColor="#ffffff"
-              glarePosition="all"
-              glareBorderRadius="1rem"
-              className="h-full rounded-2xl"
-            >
-              <div className="h-full p-8 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-xl hover:border-yellow-500/30 transition-all duration-300">
-                <div className="w-12 h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mb-6 text-yellow-400">
-                  <Activity className="w-6 h-6" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
-                  Heavy Latency & Crashes
-                </h3>
-                <p className="text-sm text-gray-400 leading-relaxed">
-                  Traditional cloud-rendered tools consume gigabytes of RAM, lag
-                  during screen shares, crash on 4GB laptops, and lack real local
-                  code compilation.
-                </p>
-              </div>
-            </Tilt>
-
-            {/* Pain Point 3 */}
-            <Tilt
-              tiltMaxAngleX={10}
-              tiltMaxAngleY={10}
-              scale={1.02}
-              transitionSpeed={2000}
-              glareEnable={true}
-              glareMaxOpacity={0.15}
-              glareColor="#ffffff"
-              glarePosition="all"
-              glareBorderRadius="1rem"
-              className="h-full rounded-2xl"
-            >
-              <div className="h-full p-8 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-xl hover:border-purple-500/30 transition-all duration-300">
-                <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-6 text-purple-400">
-                  <Layers className="w-6 h-6" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
-                  Brutal Context Switching
-                </h3>
-                <p className="text-sm text-gray-400 leading-relaxed">
-                  Every switch between whiteboard, documentation, and code editor
-                  costs 23 minutes of deep focus recovery. Your creative momentum
-                  evaporates.
-                </p>
-              </div>
-            </Tilt>
-          </div>
-        </motion.section>
-
-        {/* ═══════════════════════════════════════════════════════════════════════
-            3. SOLUTION & KEY FEATURES (THE TECH POWERHOUSE)
-           ═══════════════════════════════════════════════════════════════════════ */}
-        <motion.section
-          id="features"
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="max-w-7xl mx-auto px-6 sm:px-8 py-24 sm:py-32 scroll-mt-20 border-t border-white/[0.04]"
-        >
-          <div className="max-w-3xl mx-auto text-center mb-16 sm:mb-20">
-            <span className="text-xs uppercase font-mono tracking-widest text-cyan-400 mb-3 block">
-              The MasmSpace Solution
-            </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
-              Engineered for Pure Velocity.
-            </h2>
-            <p className="text-base sm:text-lg text-gray-400 leading-relaxed">
-              We fused high-performance WebAssembly with intelligent multi-agent
-              architecture to give you an unconstrained engineering workspace.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Feature 1: Pyodide WASM */}
-            <Tilt
-              tiltMaxAngleX={10}
-              tiltMaxAngleY={10}
-              scale={1.02}
-              transitionSpeed={2000}
-              glareEnable={true}
-              glareMaxOpacity={0.15}
-              glareColor="#ffffff"
-              glarePosition="all"
-              glareBorderRadius="1rem"
-              className="h-full rounded-2xl"
-            >
-              <div className="group h-full p-8 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-cyan-500/40 backdrop-blur-xl transition-all duration-300 flex flex-col justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
-                <div>
-                  <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-6 text-cyan-400 group-hover:scale-110 transition-transform">
-                    <Cpu className="w-6 h-6" />
-                  </div>
-                  <span className="text-xs font-mono uppercase text-cyan-400/80 mb-2 block">
-                    Client-Side Runtime
-                  </span>
-                  <h3 className="text-2xl font-bold text-white mb-3 tracking-tight group-hover:text-cyan-300 transition-colors">
-                    Browser-Based Python Engine (WASM)
-                  </h3>
-                  <p className="text-sm text-gray-400 leading-relaxed mb-6">
-                    Run authentic Python 3, NumPy, and algorithm scripts natively
-                    inside your browser via Pyodide WebAssembly. Zero round-trips
-                    to an external cloud server, zero server fees, zero latency.
-                  </p>
-                </div>
-                <div className="pt-4 border-t border-white/[0.05] flex items-center justify-between text-xs text-cyan-400/80 font-mono">
-                  <span>Pyodide WebAssembly</span>
-                  <span>Instant Exec</span>
-                </div>
-              </div>
-            </Tilt>
-
-            {/* Feature 2: AI Architecture Swarm */}
-            <Tilt
-              tiltMaxAngleX={10}
-              tiltMaxAngleY={10}
-              scale={1.02}
-              transitionSpeed={2000}
-              glareEnable={true}
-              glareMaxOpacity={0.15}
-              glareColor="#ffffff"
-              glarePosition="all"
-              glareBorderRadius="1rem"
-              className="h-full rounded-2xl"
-            >
-              <div className="group h-full p-8 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-purple-500/40 backdrop-blur-xl transition-all duration-300 flex flex-col justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
-                <div>
-                  <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-6 text-purple-400 group-hover:scale-110 transition-transform">
-                    <Sparkles className="w-6 h-6" />
-                  </div>
-                  <span className="text-xs font-mono uppercase text-purple-400/80 mb-2 block">
-                    Intelligent Generation
-                  </span>
-                  <h3 className="text-2xl font-bold text-white mb-3 tracking-tight group-hover:text-purple-300 transition-colors">
-                    AI Architecture Swarm
-                  </h3>
-                  <p className="text-sm text-gray-400 leading-relaxed mb-6">
-                    Multi-agent intelligence (Gemini 1.5 &amp; Groq Llama-3.3)
-                    transforms natural language prompts or rough wireframes into
-                    structured, editable architecture blueprints and deployment
-                    manifests.
-                  </p>
-                </div>
-                <div className="pt-4 border-t border-white/[0.05] flex items-center justify-between text-xs text-purple-400/80 font-mono">
-                  <span>Multi-Provider Balancer</span>
-                  <span>Sub-Second Output</span>
-                </div>
-              </div>
-            </Tilt>
-
-            {/* Feature 3: Infinite Cyber-Glass Canvas */}
-            <Tilt
-              tiltMaxAngleX={10}
-              tiltMaxAngleY={10}
-              scale={1.02}
-              transitionSpeed={2000}
-              glareEnable={true}
-              glareMaxOpacity={0.15}
-              glareColor="#ffffff"
-              glarePosition="all"
-              glareBorderRadius="1rem"
-              className="h-full rounded-2xl"
-            >
-              <div className="group h-full p-8 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-teal-500/40 backdrop-blur-xl transition-all duration-300 flex flex-col justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
-                <div>
-                  <div className="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-6 text-teal-400 group-hover:scale-110 transition-transform">
-                    <Zap className="w-6 h-6" />
-                  </div>
-                  <span className="text-xs font-mono uppercase text-teal-400/80 mb-2 block">
-                    Hardware Accelerated
-                  </span>
-                  <h3 className="text-2xl font-bold text-white mb-3 tracking-tight group-hover:text-teal-300 transition-colors">
-                    Infinite Architecture Canvas
-                  </h3>
-                  <p className="text-sm text-gray-400 leading-relaxed mb-6">
-                    High-throughput vector rendering engine optimized for locked 60
-                    FPS even on low-power 4GB RAM laptops. Unlimited board
-                    dimensions, smooth zoom, and crisp studio-grade visual
-                    precision.
-                  </p>
-                </div>
-                <div className="pt-4 border-t border-white/[0.05] flex items-center justify-between text-xs text-teal-400/80 font-mono">
-                  <span>Web Worker Threads</span>
-                  <span>60 FPS Locked</span>
-                </div>
-              </div>
-            </Tilt>
-          </div>
-        </motion.section>
-
-        {/* ═══════════════════════════════════════════════════════════════════════
-            4. FOR DIFFERENT BUILDERS (SEGMENT-WISE VALUE)
-           ═══════════════════════════════════════════════════════════════════════ */}
-        {/* ═══════════════════════════════════════════════════════════════════════
-            4. FOR DIFFERENT BUILDERS (SEGMENT-WISE VALUE)
-           ═══════════════════════════════════════════════════════════════════════ */}
-        <motion.section
-          id="builders"
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="max-w-7xl mx-auto px-6 sm:px-8 py-24 sm:py-32 scroll-mt-20 border-t border-white/[0.04]"
-        >
-          <div className="max-w-3xl mx-auto text-center mb-14">
-            <span className="text-xs uppercase font-mono tracking-widest text-purple-400 mb-3 block">
-              Tailored Workflows
-            </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
-              Built for Every Type of Builder.
-            </h2>
-            <p className="text-base sm:text-lg text-gray-400 leading-relaxed">
-              Whether you are architecting a distributed cloud, training a neural
-              network, or shipping a startup product flow.
-            </p>
-          </div>
-
-          {/* Interactive Tabs */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
-            {(
-              [
-                { id: "engineers", label: "Software Engineers", icon: Terminal },
-                { id: "researchers", label: "AI Researchers & Students", icon: BookOpen },
-                { id: "product", label: "Product Teams", icon: Users },
-              ] as const
-            ).map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeSegment === tab.id;
+          {/* Interactive Steps Bar */}
+          <div className="flex items-center justify-center gap-1 sm:gap-2 mb-8 flex-wrap">
+            {WORKFLOW_STEPS.map((step) => {
+              const isActive = activeWorkflow === step.id;
               return (
                 <button
-                  key={tab.id}
-                  onClick={() => setActiveSegment(tab.id)}
-                  className={`inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
-                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-[0_0_20px_rgba(6,182,212,0.2)]"
-                      : "bg-white/[0.02] text-gray-400 hover:text-white border border-white/10 hover:bg-white/[0.05]"
-                    }`}
+                  key={step.id}
+                  type="button"
+                  onClick={() => setActiveWorkflow(step.id)}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                    isActive
+                      ? "bg-[#635BFF] text-white shadow-sm"
+                      : "bg-[#F4F4F5] text-[#52525B] hover:text-[#18181B] hover:bg-[#E4E4E7]"
+                  }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
+                  {step.label}
                 </button>
               );
             })}
           </div>
 
-          {/* Segment Card Content with smooth fade */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeSegment}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.35 }}
-              className="max-w-5xl mx-auto rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-xl p-8 sm:p-12 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]"
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                <div className="lg:col-span-7">
-                  <span className="text-xs font-mono uppercase px-3 py-1 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 inline-block mb-4">
-                    {segments[activeSegment].tag}
-                  </span>
-                  <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4 leading-snug">
-                    {segments[activeSegment].headline}
-                  </h3>
-                  <div className="space-y-3.5 mt-6">
-                    {segments[activeSegment].bullets.map((bullet, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        <div className="w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center shrink-0 mt-0.5 text-cyan-300">
-                          <Check className="w-3 h-3" />
-                        </div>
-                        <span className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                          {bullet}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="lg:col-span-5 rounded-xl bg-black/70 border border-white/10 p-5 font-mono text-xs overflow-x-auto shadow-inner">
-                  <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/[0.08] text-gray-400 text-[11px]">
-                    <span className="text-cyan-400">spec_execution.preview</span>
-                    <span>MasmSpace Runtime</span>
-                  </div>
-                  <pre className="text-gray-300 whitespace-pre leading-relaxed font-mono">
-                    {segments[activeSegment].codeSnippet}
-                  </pre>
-                </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </motion.section>
-
-        {/* ═══════════════════════════════════════════════════════════════════════
-            5. TRANSPARENT PRICING (DEVELOPER FRIENDLY)
-           ═══════════════════════════════════════════════════════════════════════ */}
-        <motion.section
-          id="pricing"
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="max-w-7xl mx-auto px-6 sm:px-8 py-24 sm:py-32 scroll-mt-20 border-t border-white/[0.04]"
-        >
-          <div className="max-w-3xl mx-auto text-center mb-16 sm:mb-20">
-            <span className="text-xs uppercase font-mono tracking-widest text-cyan-400 mb-3 block">
-              Predictable &amp; Generous
+          {/* Step Detail Display */}
+          <div className="max-w-3xl mx-auto p-6 rounded-2xl bg-[#FAFAF9] border border-[#E4E4E7] text-center">
+            <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#635BFF]/10 text-[#635BFF] text-[11px] font-mono font-medium mb-3">
+              {activeWorkflowItem.badge}
             </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
-              Developer-First Pricing.
-            </h2>
-            <p className="text-base sm:text-lg text-gray-400 leading-relaxed">
-              Start building for free with native WASM execution. Upgrade only
-              when you need unlimited AI agent throughput and team sync.
+            <h3 className="text-lg font-semibold text-[#18181B] mb-2">
+              {activeWorkflowItem.title}
+            </h3>
+            <p className="text-sm text-[#52525B] max-w-xl mx-auto leading-relaxed">
+              {activeWorkflowItem.desc}
             </p>
           </div>
+        </div>
+      </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Free Tier */}
-            <Tilt
-              tiltMaxAngleX={8}
-              tiltMaxAngleY={8}
-              scale={1.01}
-              transitionSpeed={2000}
-              glareEnable={true}
-              glareMaxOpacity={0.08}
-              glareColor="#ffffff"
-              glarePosition="all"
-              glareBorderRadius="1rem"
-              className="h-full rounded-2xl"
-            >
-              <div className="h-full p-8 sm:p-10 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-xl flex flex-col justify-between transition-all duration-300 hover:border-white/20">
-                <div>
-                  <span className="text-xs font-mono uppercase text-gray-400">
-                    Starter Plan
-                  </span>
-                  <h3 className="text-2xl font-bold text-white mt-1 mb-2">
-                    Free Tier
-                  </h3>
-                  <div className="flex items-baseline gap-2 mb-6">
-                    <span className="text-4xl sm:text-5xl font-extrabold text-white">
-                      $0
-                    </span>
-                    <span className="text-sm text-gray-400 font-mono">
-                      / forever
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-400 mb-8 leading-relaxed">
-                    Ideal for solo tinkerers, students, and engineers needing a
-                    blazing fast code-enabled sketchpad.
-                  </p>
+      {/* ── 5. PROBLEM & POSITIONING SECTION ── */}
+      <section id="overview" className="py-20 px-4 sm:px-6 max-w-6xl mx-auto">
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <span className="text-xs font-mono uppercase tracking-wider text-[#71717A] block mb-2 font-semibold">
+            Unified Workspace
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#18181B] mb-4">
+            Your ideas shouldn&apos;t live in five different tools.
+          </h2>
+          <p className="text-base text-[#52525B] leading-relaxed">
+            Switching between note-taking apps, diagram editors, chat threads, and
+            task trackers fractures context. MasmSpace connects your entire thinking
+            process onto one infinite canvas.
+          </p>
+        </div>
 
-                  <div className="space-y-3.5 mb-8">
-                    {[
-                      "Core Infinite Canvas & Architecture Engine",
-                      "Local Pyodide WebAssembly Python Runner",
-                      "10 Daily AI Architecture Generation Prompts",
-                      "Local-first JSON, SVG, & PNG High-Res Exports",
-                      "100% Offline Capability",
-                    ].map((feat, i) => (
-                      <div key={i} className="flex items-center gap-3 text-sm text-gray-300">
-                        <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                        <span>{feat}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Link
-                  href="/canvas"
-                  className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl text-sm font-semibold text-white bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 transition-colors"
-                >
-                  Start Free
-                </Link>
+        {/* Visual Comparison Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          {/* Traditional Workflow */}
+          <div className="p-6 rounded-2xl bg-white border border-[#E4E4E7] shadow-sm">
+            <div className="text-xs font-mono uppercase tracking-wider text-[#71717A] mb-4 font-semibold">
+              Traditional Fragmented Stack
+            </div>
+            <div className="space-y-3 text-sm text-[#52525B]">
+              <div className="flex items-center gap-3 p-2.5 rounded-lg bg-[#F4F4F5]">
+                <FileText className="w-4 h-4 text-zinc-400" />
+                <span>Notes buried across scattered docs</span>
               </div>
-            </Tilt>
-
-            {/* Pro Tier with Dynamic Pulsing Glow & 3D Tilt */}
-            <Tilt
-              tiltMaxAngleX={8}
-              tiltMaxAngleY={8}
-              scale={1.02}
-              transitionSpeed={2000}
-              glareEnable={true}
-              glareMaxOpacity={0.12}
-              glareColor="#06b6d4"
-              glarePosition="all"
-              glareBorderRadius="1rem"
-              className="h-full rounded-2xl"
-            >
-              <div className="relative h-full p-8 sm:p-10 rounded-2xl bg-white/[0.03] border-2 border-cyan-400/50 backdrop-blur-xl flex flex-col justify-between shadow-[0_0_50px_rgba(6,182,212,0.35)] animate-[glow-breathe_4s_ease-in-out_infinite] transition-all duration-300 hover:border-cyan-300">
-                {/* Pro Badge */}
-                <div className="absolute -top-3.5 right-8 px-3 py-1 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500 text-black text-xs font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(6,182,212,0.5)]">
-                  Most Popular
-                </div>
-
-                <div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                    <span className="text-xs font-mono uppercase text-cyan-400">
-                      Professional Architecture
-                    </span>
-
-                    {/* Monthly / Yearly Switcher */}
-                    <div className="inline-flex p-0.5 rounded-lg bg-black/60 border border-white/10 text-xs font-mono">
-                      <button
-                        onClick={() => setProBillingCycle("monthly")}
-                        className={`px-2.5 py-1 rounded-md transition-all ${proBillingCycle === "monthly"
-                            ? "bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-400/30"
-                            : "text-gray-400 hover:text-white"
-                          }`}
-                      >
-                        Monthly
-                      </button>
-                      <button
-                        onClick={() => setProBillingCycle("yearly")}
-                        className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${proBillingCycle === "yearly"
-                            ? "bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-400/30"
-                            : "text-gray-400 hover:text-white"
-                          }`}
-                      >
-                        <span>Yearly</span>
-                        <span className="px-1.5 py-0.5 text-[10px] rounded bg-emerald-500/20 text-emerald-400 font-bold leading-none">
-                          Save 18%
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <h3 className="text-2xl font-bold text-white mb-2">
-                    Pro Tier
-                  </h3>
-
-                  {/* Dynamic Price Display */}
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <span className="text-4xl sm:text-5xl font-extrabold text-white">
-                      {proBillingCycle === "yearly" ? "$49" : "$5"}
-                    </span>
-                    <span className="text-sm text-gray-400 font-mono">
-                      {proBillingCycle === "yearly" ? "/ year" : "/ month"}
-                    </span>
-                    {proBillingCycle === "yearly" && (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
-                        Save 18%
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-cyan-400/80 font-mono mb-6">
-                    {proBillingCycle === "yearly"
-                      ? "Billed annually ($4.08/mo effective) • Cancel anytime"
-                      : "Flexible monthly billing • Cancel anytime"}
-                  </p>
-
-                  <p className="text-sm text-gray-400 mb-8 leading-relaxed">
-                    Engineered for lead architects, senior engineers, and teams
-                    demanding infinite AI swarm generation.
-                  </p>
-
-                  <div className="space-y-3.5 mb-8">
-                    {[
-                      "Everything in Free Tier",
-                      "300 Daily AI Architecture Generation Prompts",
-                      "Encrypted Cloud Sync & Version History (Supabase)",
-                      "Priority Low-Latency Multi-User Collaboration",
-                      "Custom Python Script Templates & Voice-to-Canvas",
-                      "Priority 24/7 Developer Support",
-                    ].map((feat, i) => (
-                      <div key={i} className="flex items-center gap-3 text-sm text-white">
-                        <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                        <span>{feat}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Link
-                  href={`/canvas?plan=${proBillingCycle}`}
-                  onClick={() => setIsLaunchingCanvas(true)}
-                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-semibold text-black bg-gradient-to-r from-cyan-400 to-teal-300 hover:brightness-110 shadow-[0_0_25px_rgba(6,182,212,0.35)] hover:shadow-[0_0_35px_rgba(6,182,212,0.55)] transition-all active:scale-[0.98]"
-                >
-                  <span>Upgrade to Pro</span>
-                  <ArrowRight className="w-4 h-4 text-black" />
-                </Link>
+              <div className="flex items-center gap-3 p-2.5 rounded-lg bg-[#F4F4F5]">
+                <Workflow className="w-4 h-4 text-zinc-400" />
+                <span>Diagrams trapped in rigid export images</span>
               </div>
-            </Tilt>
+              <div className="flex items-center gap-3 p-2.5 rounded-lg bg-[#F4F4F5]">
+                <Boxes className="w-4 h-4 text-zinc-400" />
+                <span>Context lost between meetings and task boards</span>
+              </div>
+            </div>
           </div>
-        </motion.section>
 
-        {/* ═══════════════════════════════════════════════════════════════════════
-            6. FAQ (OBJECTION HANDLER)
-           ═══════════════════════════════════════════════════════════════════════ */}
-        <motion.section
-          id="faq"
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="max-w-5xl mx-auto px-6 sm:px-8 py-24 sm:py-32 scroll-mt-20 border-t border-white/[0.04]"
-        >
-          <div className="max-w-3xl mx-auto text-center mb-16">
-            <span className="text-xs uppercase font-mono tracking-widest text-cyan-400 mb-3 block">
-              Clear Answers
+          {/* MasmSpace Unified Workflow */}
+          <div className="p-6 rounded-2xl bg-white border-2 border-[#635BFF]/30 shadow-md relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#635BFF]/5 rounded-bl-full pointer-events-none" />
+            <div className="text-xs font-mono uppercase tracking-wider text-[#635BFF] mb-4 font-semibold">
+              MasmSpace Unified Canvas
+            </div>
+            <div className="space-y-3 text-sm text-[#18181B]">
+              <div className="flex items-center gap-3 p-2.5 rounded-lg bg-[#635BFF]/5">
+                <Check className="w-4 h-4 text-[#635BFF]" />
+                <span className="font-medium">Infinite visual brainstorming & stickies</span>
+              </div>
+              <div className="flex items-center gap-3 p-2.5 rounded-lg bg-[#635BFF]/5">
+                <Check className="w-4 h-4 text-[#635BFF]" />
+                <span className="font-medium">System architecture & flowchart diagramming</span>
+              </div>
+              <div className="flex items-center gap-3 p-2.5 rounded-lg bg-[#635BFF]/5">
+                <Check className="w-4 h-4 text-[#635BFF]" />
+                <span className="font-medium">Integrated AI that understands your board</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 6. CORE CAPABILITIES (EDITORIAL 6) ── */}
+      <section id="features" className="py-20 bg-white border-t border-[#E4E4E7]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="max-w-2xl mb-14">
+            <span className="text-xs font-mono uppercase tracking-wider text-[#635BFF] block mb-2 font-semibold">
+              Core Capabilities
             </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
-              Frequently Asked Questions.
+            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#18181B]">
+              Designed for serious visual work.
             </h2>
-            <p className="text-base sm:text-lg text-gray-400 leading-relaxed">
-              Everything you need to know about WebAssembly execution, privacy,
-              and low-spec device performance.
-            </p>
           </div>
 
-          <div className="space-y-4 max-w-3xl mx-auto">
-            {faqs.map((faq, index) => {
-              const isOpen = openFaq === index;
-              return (
-                <div
-                  key={index}
-                  className="rounded-xl bg-white/[0.02] border border-white/10 overflow-hidden transition-colors"
-                >
-                  <button
-                    onClick={() => toggleFaq(index)}
-                    className="w-full px-6 py-5 flex items-center justify-between text-left text-base font-semibold text-white hover:text-cyan-300 transition-colors focus:outline-none"
-                  >
-                    <span>{faq.q}</span>
-                    <ChevronDown
-                      className={`w-5 h-5 text-gray-400 shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180 text-cyan-400" : ""
-                        }`}
-                    />
-                  </button>
-                  <AnimatePresence>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="px-6 pb-6 pt-1 text-sm text-gray-400 leading-relaxed border-t border-white/[0.04]">
-                          {faq.a}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })}
-          </div>
-        </motion.section>
-
-        {/* ═══════════════════════════════════════════════════════════════════════
-            7. FINAL CTA & MINIMALIST FOOTER
-           ═══════════════════════════════════════════════════════════════════════ */}
-        <motion.section
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="relative px-6 sm:px-8 py-24 sm:py-32 border-t border-white/[0.06] overflow-hidden"
-        >
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-r from-cyan-500/15 via-purple-600/15 to-transparent blur-[140px] rounded-full" />
-          </div>
-
-          <div className="relative max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight mb-6">
-              Ready to Build at the{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 via-purple-400 to-cyan-400 bg-[length:200%_auto] animate-shimmer-text">
-                Speed of Thought?
-              </span>
-            </h2>
-            <p className="text-lg text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-              Join thousands of software architects, developers, and AI
-              researchers crafting the future on MasmSpace.
-            </p>
-            <Link
-              href="/canvas"
-              onClick={() => setIsLaunchingCanvas(true)}
-              className="inline-flex items-center gap-3 px-10 py-4 rounded-xl text-base font-semibold text-black bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-400 hover:brightness-110 shadow-[0_0_35px_rgba(6,182,212,0.45)] hover:shadow-[0_0_50px_rgba(6,182,212,0.7)] transition-all duration-300 active:scale-[0.98]"
-            >
-              <span>Launch MasmSpace Now</span>
-              <ArrowRight className="w-5 h-5 text-black" />
-            </Link>
-          </div>
-        </motion.section>
-      </main>
-
-      {/* ── Footer ── */}
-      <footer className="relative z-10 border-t border-white/[0.06] bg-[#030303]/95 backdrop-blur-2xl py-16 sm:py-20">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8 sm:gap-10">
-            {/* Left Brand info */}
-            <div className="flex flex-col items-center md:items-start gap-2 text-center md:text-left">
-              <div className="flex items-center gap-2.5">
-                <span className="text-base font-semibold text-white tracking-tight">
-                  MasmSpace
+          {/* 6 Editorial Feature Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* 01 Infinite Canvas */}
+            <div className="p-6 rounded-2xl bg-[#FAFAF9] border border-[#E4E4E7] hover:border-[#635BFF]/40 transition-colors flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-mono text-[#71717A] block mb-3 font-semibold">
+                  01 · Spatial Freedom
                 </span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-cyan-400 font-mono">
-                  Powered by PRATHOMIX SOLUTION
-                </span>
+                <h3 className="text-base font-semibold text-[#18181B] mb-2">
+                  Infinite Canvas
+                </h3>
+                <p className="text-xs text-[#52525B] leading-relaxed mb-4">
+                  Think without arbitrary boundaries. Zoom smoothly from a 10,000-foot
+                  strategic view down to minute implementation details.
+                </p>
               </div>
-              <p className="text-xs text-gray-400">
-                © {new Date().getFullYear()} PRATHOMIX SOLUTION. All rights
-                reserved.
+              <div className="h-28 rounded-xl bg-white border border-[#E4E4E7] p-3 flex items-center justify-center text-xs text-[#71717A]">
+                Unbounded 60 FPS graph engine
+              </div>
+            </div>
+
+            {/* 02 Real-Time Collaboration */}
+            <div className="p-6 rounded-2xl bg-[#FAFAF9] border border-[#E4E4E7] hover:border-[#635BFF]/40 transition-colors flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-mono text-[#71717A] block mb-3 font-semibold">
+                  02 · Team Alignment
+                </span>
+                <h3 className="text-base font-semibold text-[#18181B] mb-2">
+                  Multiplayer Collaboration
+                </h3>
+                <p className="text-xs text-[#52525B] leading-relaxed mb-4">
+                  Work together on the same board with sub-50ms sync latency. Live
+                  presence cursors, object locking, and instant room sharing.
+                </p>
+              </div>
+              <div className="h-28 rounded-xl bg-white border border-[#E4E4E7] p-3 flex items-center justify-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-medium text-[#18181B]">Zero-conflict live room sync</span>
+              </div>
+            </div>
+
+            {/* 03 AI Board Intelligence */}
+            <div className="p-6 rounded-2xl bg-[#FAFAF9] border border-[#E4E4E7] hover:border-[#635BFF]/40 transition-colors flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-mono text-[#71717A] block mb-3 font-semibold">
+                  03 · Ambient AI
+                </span>
+                <h3 className="text-base font-semibold text-[#18181B] mb-2">
+                  Board Brain Intelligence
+                </h3>
+                <p className="text-xs text-[#52525B] leading-relaxed mb-4">
+                  Turn chaotic brainstorm notes into structured affinity maps,
+                  summarize key decisions, and synthesize architecture diagrams.
+                </p>
+              </div>
+              <div className="h-28 rounded-xl bg-white border border-[#E4E4E7] p-3 flex items-center justify-center text-xs text-[#635BFF] font-medium">
+                Cmd+K Spotlight Command Palette
+              </div>
+            </div>
+
+            {/* 04 Powerful Diagramming */}
+            <div className="p-6 rounded-2xl bg-[#FAFAF9] border border-[#E4E4E7] hover:border-[#635BFF]/40 transition-colors flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-mono text-[#71717A] block mb-3 font-semibold">
+                  04 · Visual Modeling
+                </span>
+                <h3 className="text-base font-semibold text-[#18181B] mb-2">
+                  Precision Diagramming
+                </h3>
+                <p className="text-xs text-[#52525B] leading-relaxed mb-4">
+                  Microservice containers, relational database cylinders, cloud gateways,
+                  and smart orthogonal arrows with 8px alignment snapping.
+                </p>
+              </div>
+              <div className="h-28 rounded-xl bg-white border border-[#E4E4E7] p-3 flex items-center justify-center text-xs text-[#52525B]">
+                Smart connection snap handles
+              </div>
+            </div>
+
+            {/* 05 Builder Tools */}
+            <div className="p-6 rounded-2xl bg-[#FAFAF9] border border-[#E4E4E7] hover:border-[#635BFF]/40 transition-colors flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-mono text-[#71717A] block mb-3 font-semibold">
+                  05 · Technical Execution
+                </span>
+                <h3 className="text-base font-semibold text-[#18181B] mb-2">
+                  Builder Workflows
+                </h3>
+                <p className="text-xs text-[#52525B] leading-relaxed mb-4">
+                  Link architecture nodes directly to code snippets, API endpoints,
+                  and document pages. Move from high-level design to execution.
+                </p>
+              </div>
+              <div className="h-28 rounded-xl bg-white border border-[#E4E4E7] p-3 flex items-center justify-center text-xs text-[#52525B]">
+                In-browser Code Studio & specs
+              </div>
+            </div>
+
+            {/* 06 Present & Share */}
+            <div className="p-6 rounded-2xl bg-[#FAFAF9] border border-[#E4E4E7] hover:border-[#635BFF]/40 transition-colors flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-mono text-[#71717A] block mb-3 font-semibold">
+                  06 · Presentation
+                </span>
+                <h3 className="text-base font-semibold text-[#18181B] mb-2">
+                  Present & Export
+                </h3>
+                <p className="text-xs text-[#52525B] leading-relaxed mb-4">
+                  Turn your whiteboard into a focused presentation deck with one click.
+                  Export crisp vector SVGs, high-res PNGs, and JSON files.
+                </p>
+              </div>
+              <div className="h-28 rounded-xl bg-white border border-[#E4E4E7] p-3 flex items-center justify-center text-xs text-[#52525B]">
+                Fullscreen presentation HUD
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 7. AI EXPERIENCE SHOWCASE ── */}
+      <section className="py-20 px-4 sm:px-6 max-w-6xl mx-auto">
+        <div className="p-8 sm:p-12 rounded-3xl bg-white border border-[#E4E4E7] shadow-sm">
+          <div className="max-w-2xl mb-8">
+            <span className="text-xs font-mono uppercase tracking-wider text-[#635BFF] block mb-2 font-semibold">
+              AI That Understands Your Board
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#18181B] mb-3">
+              Not a generic chatbot. A spatial collaborator.
+            </h2>
+            <p className="text-sm text-[#52525B] leading-relaxed">
+              MasmSpace AI reads the topology of your canvas. It understands which
+              notes are related, identifies logical gaps in your system design, and
+              automatically tidies your board.
+            </p>
+          </div>
+
+          {/* AI Interactive Demo Simulation */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl bg-[#FAFAF9] border border-[#E4E4E7]">
+              <div className="text-[11px] font-mono text-[#71717A] mb-1">Prompt</div>
+              <div className="text-xs font-medium text-[#18181B] mb-3">
+                &quot;Organize these 12 scattered feature ideas into themes.&quot;
+              </div>
+              <div className="text-[11px] text-[#52525B]">
+                AI clusters sticky notes into Acquisition, Retention, and Core Infra categories.
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#FAFAF9] border border-[#E4E4E7]">
+              <div className="text-[11px] font-mono text-[#71717A] mb-1">Prompt</div>
+              <div className="text-xs font-medium text-[#18181B] mb-3">
+                &quot;Generate event-driven payment architecture.&quot;
+              </div>
+              <div className="text-[11px] text-[#52525B]">
+                Instantly generates Ingress Router, Stripe Webhook Worker, and Postgres DB nodes.
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#FAFAF9] border border-[#E4E4E7]">
+              <div className="text-[11px] font-mono text-[#71717A] mb-1">Prompt</div>
+              <div className="text-xs font-medium text-[#18181B] mb-3">
+                &quot;Extract action items from this workshop.&quot;
+              </div>
+              <div className="text-[11px] text-[#52525B]">
+                Transforms discussion stickies into an actionable numbered task checklist.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 8. FOR BUILDERS SECTION ── */}
+      <section id="builders" className="py-20 bg-white border-t border-[#E4E4E7]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="max-w-2xl mb-12">
+            <span className="text-xs font-mono uppercase tracking-wider text-[#635BFF] block mb-2 font-semibold">
+              For Builders & Engineers
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#18181B] mb-3">
+              From visual thinking to technical execution.
+            </h2>
+            <p className="text-base text-[#52525B] leading-relaxed">
+              Design the architecture, connect dependencies, review data schemas,
+              and write implementation code directly inside the workspace.
+            </p>
+          </div>
+
+          {/* Builder Step Pipeline */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-5 rounded-xl bg-[#FAFAF9] border border-[#E4E4E7]">
+              <div className="w-8 h-8 rounded-lg bg-[#635BFF]/10 text-[#635BFF] flex items-center justify-center mb-3">
+                <Shapes className="w-4 h-4" />
+              </div>
+              <h4 className="text-sm font-semibold text-[#18181B] mb-1">1. Model System</h4>
+              <p className="text-xs text-[#52525B]">
+                Place microservices, caching layers, and database clusters with clean connections.
               </p>
             </div>
 
-            {/* Support Emails & Legal */}
-            <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-gray-400">
-              <a
-                href="mailto:support@prathomix.tech"
-                className="inline-flex items-center gap-1.5 text-gray-400 hover:text-cyan-400 transition-colors"
+            <div className="p-5 rounded-xl bg-[#FAFAF9] border border-[#E4E4E7]">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
+                <Code2 className="w-4 h-4" />
+              </div>
+              <h4 className="text-sm font-semibold text-[#18181B] mb-1">2. Attach Specs</h4>
+              <p className="text-xs text-[#52525B]">
+                Embed OpenAPI endpoints, SQL schemas, and environment configs directly on nodes.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-xl bg-[#FAFAF9] border border-[#E4E4E7]">
+              <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center mb-3">
+                <Terminal className="w-4 h-4" />
+              </div>
+              <h4 className="text-sm font-semibold text-[#18181B] mb-1">3. Run & Validate</h4>
+              <p className="text-xs text-[#52525B]">
+                Execute code in browser via WebAssembly with multi-language runner support.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-xl bg-[#FAFAF9] border border-[#E4E4E7]">
+              <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center mb-3">
+                <Users className="w-4 h-4" />
+              </div>
+              <h4 className="text-sm font-semibold text-[#18181B] mb-1">4. Review with Team</h4>
+              <p className="text-xs text-[#52525B]">
+                Walk through architecture decisions asynchronously or during live sprint reviews.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 9. USE CASES SECTION ── */}
+      <section id="use-cases" className="py-20 px-4 sm:px-6 max-w-6xl mx-auto">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <span className="text-xs font-mono uppercase tracking-wider text-[#635BFF] block mb-2 font-semibold">
+            Use Cases
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#18181B] mb-3">
+            One workspace for every role.
+          </h2>
+          <p className="text-base text-[#52525B]">
+            Whether you are mapping an engineering system, synthesizing user research,
+            or running a product brainstorm.
+          </p>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
+          {USE_CASES.map((uc) => {
+            const isActive = activeUseCase === uc.id;
+            return (
+              <button
+                key={uc.id}
+                type="button"
+                onClick={() => setActiveUseCase(uc.id)}
+                className={`px-4 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                  isActive
+                    ? "bg-[#18181B] text-white shadow-sm"
+                    : "bg-white text-[#52525B] hover:text-[#18181B] border border-[#E4E4E7]"
+                }`}
               >
-                <Mail className="w-3.5 h-3.5 text-cyan-400/80" />
-                <span>support@prathomix.tech</span>
-              </a>
+                {uc.label}
+              </button>
+            );
+          })}
+        </div>
 
-              <a
-                href="mailto:hello@prathomix.tech"
-                className="inline-flex items-center gap-1.5 text-gray-400 hover:text-purple-400 transition-colors"
+        {/* Active Use Case Card */}
+        <div className="p-8 rounded-3xl bg-white border border-[#E4E4E7] shadow-sm max-w-3xl mx-auto">
+          <h3 className="text-lg font-semibold text-[#18181B] mb-2">
+            {activeUseCaseItem.title}
+          </h3>
+          <p className="text-sm text-[#52525B] leading-relaxed mb-6">
+            {activeUseCaseItem.desc}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {activeUseCaseItem.highlights.map((h) => (
+              <span
+                key={h}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#F4F4F5] text-[#18181B] text-xs font-medium"
               >
-                <Mail className="w-3.5 h-3.5 text-purple-400/80" />
-                <span>hello@prathomix.tech</span>
+                <Check className="w-3.5 h-3.5 text-[#635BFF]" />
+                {h}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 10. TEMPLATES SHOWCASE ── */}
+      <section className="py-20 bg-white border-y border-[#E4E4E7]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12">
+            <div>
+              <span className="text-xs font-mono uppercase tracking-wider text-[#635BFF] block mb-2 font-semibold">
+                Templates
+              </span>
+              <h2 className="text-3xl font-semibold tracking-tight text-[#18181B]">
+                Start with an idea. Not a blank canvas.
+              </h2>
+            </div>
+            <Link
+              href="/canvas"
+              className="mt-4 sm:mt-0 text-xs font-medium text-[#635BFF] hover:underline flex items-center gap-1"
+            >
+              Browse all templates in canvas <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {TEMPLATES.map((tmpl) => (
+              <Link
+                key={tmpl.id}
+                href="/canvas"
+                className="p-5 rounded-2xl bg-[#FAFAF9] border border-[#E4E4E7] hover:border-[#635BFF]/50 hover:bg-[#635BFF]/5 transition-all group flex flex-col justify-between"
+              >
+                <div>
+                  <span className="text-[10px] font-mono uppercase text-[#71717A] tracking-wider block mb-2">
+                    {tmpl.category}
+                  </span>
+                  <h4 className="text-sm font-semibold text-[#18181B] group-hover:text-[#635BFF] transition-colors mb-1.5">
+                    {tmpl.title}
+                  </h4>
+                  <p className="text-xs text-[#52525B] leading-relaxed mb-4">
+                    {tmpl.desc}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-[#71717A] pt-3 border-t border-[#E4E4E7]">
+                  <span>{tmpl.nodes} starter blocks</span>
+                  <span className="text-[#635BFF] font-medium group-hover:translate-x-0.5 transition-transform flex items-center">
+                    Use →
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 11. SECURITY & RELIABILITY ── */}
+      <section className="py-16 px-4 sm:px-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto text-center">
+          <div className="p-6 rounded-2xl bg-white border border-[#E4E4E7] shadow-sm">
+            <Cloud className="w-5 h-5 text-[#635BFF] mx-auto mb-2" />
+            <h4 className="text-sm font-semibold text-[#18181B] mb-1">Continuous Cloud Autosave</h4>
+            <p className="text-xs text-[#52525B]">
+              Every stroke and node change is synced instantly to persistent Supabase storage.
+            </p>
+          </div>
+          <div className="p-6 rounded-2xl bg-white border border-[#E4E4E7] shadow-sm">
+            <Lock className="w-5 h-5 text-[#635BFF] mx-auto mb-2" />
+            <h4 className="text-sm font-semibold text-[#18181B] mb-1">Workspace Permissions</h4>
+            <p className="text-xs text-[#52525B]">
+              Share read-only view links or invite collaborators with full edit authority.
+            </p>
+          </div>
+          <div className="p-6 rounded-2xl bg-white border border-[#E4E4E7] shadow-sm">
+            <Download className="w-5 h-5 text-[#635BFF] mx-auto mb-2" />
+            <h4 className="text-sm font-semibold text-[#18181B] mb-1">Universal Export</h4>
+            <p className="text-xs text-[#52525B]">
+              Full data ownership: export crisp vector SVGs, high-res PNGs, and JSON graphs.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 12. PRICING SECTION ── */}
+      <section id="pricing" className="py-20 bg-white border-t border-[#E4E4E7]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+          <div className="max-w-2xl mx-auto mb-10">
+            <span className="text-xs font-mono uppercase tracking-wider text-[#635BFF] block mb-2 font-semibold">
+              Pricing Plans
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#18181B] mb-3">
+              Simple, transparent pricing.
+            </h2>
+            <p className="text-base text-[#52525B]">
+              Start free. Upgrade when you need unlimited boards, AI intelligence, and team collaboration.
+            </p>
+
+            {/* Monthly / Yearly Toggle */}
+            <div className="inline-flex items-center gap-1 p-1 mt-6 rounded-xl bg-[#F4F4F5] border border-[#E4E4E7]">
+              <button
+                type="button"
+                onClick={() => setProBillingCycle("monthly")}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                  proBillingCycle === "monthly"
+                    ? "bg-white text-[#18181B] shadow-sm"
+                    : "text-[#52525B] hover:text-[#18181B]"
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                onClick={() => setProBillingCycle("yearly")}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                  proBillingCycle === "yearly"
+                    ? "bg-white text-[#18181B] shadow-sm"
+                    : "text-[#52525B] hover:text-[#18181B]"
+                }`}
+              >
+                <span>Yearly</span>
+                <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
+                  Save 18%
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Pricing Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto text-left">
+            {/* Free Plan */}
+            <div className="p-6 rounded-2xl bg-[#FAFAF9] border border-[#E4E4E7] flex flex-col justify-between">
+              <div>
+                <h4 className="text-base font-semibold text-[#18181B] mb-1">Free</h4>
+                <p className="text-xs text-[#52525B] mb-4">
+                  For exploring ideas on an infinite visual whiteboard.
+                </p>
+                <div className="text-3xl font-semibold text-[#18181B] mb-6">
+                  $0{" "}
+                  <span className="text-xs font-normal text-[#71717A]">/ forever</span>
+                </div>
+                <ul className="space-y-2.5 text-xs text-[#52525B] mb-6">
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-[#635BFF]" /> 3 active boards
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-[#635BFF]" /> Infinite canvas & shapes
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-[#635BFF]" /> Standard PNG export
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-[#635BFF]" /> Community templates
+                  </li>
+                </ul>
+              </div>
+              <Link
+                href="/canvas"
+                className="w-full py-2 rounded-xl bg-white hover:bg-[#F4F4F5] border border-[#E4E4E7] text-xs font-medium text-[#18181B] text-center shadow-sm transition-colors"
+              >
+                Start Free
+              </Link>
+            </div>
+
+            {/* Pro Plan (Highlighted) */}
+            <div className="p-6 rounded-2xl bg-white border-2 border-[#635BFF] shadow-lg relative flex flex-col justify-between">
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-[#635BFF] text-white text-[10px] font-semibold uppercase tracking-wider">
+                Recommended
+              </span>
+              <div>
+                <h4 className="text-base font-semibold text-[#18181B] mb-1">Pro</h4>
+                <p className="text-xs text-[#52525B] mb-4">
+                  For individual builders and power thinkers.
+                </p>
+                <div className="text-3xl font-semibold text-[#18181B] mb-6">
+                  {proBillingCycle === "yearly" ? "$49" : "$5"}{" "}
+                  <span className="text-xs font-normal text-[#71717A]">
+                    {proBillingCycle === "yearly" ? "/ year" : "/ month"}
+                  </span>
+                </div>
+                <ul className="space-y-2.5 text-xs text-[#52525B] mb-6">
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-[#635BFF]" />{" "}
+                    <strong>Unlimited</strong> boards
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-[#635BFF]" /> AI Board Brain & copilot
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-[#635BFF]" /> Live multiplayer collaboration
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-[#635BFF]" /> Code Studio & execution
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-[#635BFF]" /> High-resolution exports
+                  </li>
+                </ul>
+              </div>
+              <Link
+                href={`/canvas?plan=${proBillingCycle}`}
+                className="w-full py-2 rounded-xl bg-[#635BFF] hover:bg-[#5248E5] text-xs font-medium text-white text-center shadow-sm transition-colors"
+              >
+                Upgrade to Pro
+              </Link>
+            </div>
+
+            {/* Enterprise Plan */}
+            <div className="p-6 rounded-2xl bg-[#FAFAF9] border border-[#E4E4E7] flex flex-col justify-between">
+              <div>
+                <h4 className="text-base font-semibold text-[#18181B] mb-1">Enterprise</h4>
+                <p className="text-xs text-[#52525B] mb-4">
+                  For organizations requiring custom security and SLAs.
+                </p>
+                <div className="text-3xl font-semibold text-[#18181B] mb-6">
+                  Custom
+                </div>
+                <ul className="space-y-2.5 text-xs text-[#52525B] mb-6">
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-[#635BFF]" /> Dedicated cloud instance
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-[#635BFF]" /> SAML SSO & audit logs
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-[#635BFF]" /> Custom AI model endpoints
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-[#635BFF]" /> 99.9% uptime SLA
+                  </li>
+                </ul>
+              </div>
+              <a
+                href="mailto:contact@prathomix.tech?subject=MasmSpace%20Enterprise%20Inquiry"
+                className="w-full py-2 rounded-xl bg-white hover:bg-[#F4F4F5] border border-[#E4E4E7] text-xs font-medium text-[#18181B] text-center shadow-sm transition-colors"
+              >
+                Contact Sales
               </a>
+            </div>
+          </div>
+        </div>
+      </section>
 
-              <span className="text-gray-400/40">|</span>
+      {/* ── 13. FAQ ACCORDION ── */}
+      <section className="py-20 px-4 sm:px-6 max-w-4xl mx-auto">
+        <div className="text-center mb-12">
+          <span className="text-xs font-mono uppercase tracking-wider text-[#71717A] block mb-2 font-semibold">
+            FAQ
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#18181B]">
+            Frequently Asked Questions
+          </h2>
+        </div>
 
-              <Link href="/terms" className="hover:text-white transition-colors">
-                Terms
+        <div className="space-y-3">
+          {[
+            {
+              q: "What makes MasmSpace different from other whiteboard tools?",
+              a: "MasmSpace is built from the ground up for both visual thinkers and builders. It bridges freehand brainstorming with structured system architecture, live code specs, and AI board intelligence on a high-performance infinite canvas.",
+            },
+            {
+              q: "Is MasmSpace free to use?",
+              a: "Yes. You can create up to 3 persistent boards completely free with all basic shapes, sticky notes, and export features. Pro unlocks unlimited boards, AI assistance, and live multiplayer collaboration.",
+            },
+            {
+              q: "How does real-time collaboration work?",
+              a: "Every board has a persistent room ID. When you click 'Share' in the top bar, you can send a link to teammates to co-edit simultaneously with live presence cursors and instant state synchronization.",
+            },
+            {
+              q: "Can I export my boards?",
+              a: "Yes. You can export high-resolution PNG snapshots, vector formats, or JSON files at any time. Your work remains completely under your ownership.",
+            },
+          ].map((item, idx) => (
+            <div
+              key={item.q}
+              className="rounded-xl border border-[#E4E4E7] bg-white overflow-hidden transition-colors"
+            >
+              <button
+                type="button"
+                onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                className="w-full p-4 text-left flex items-center justify-between text-sm font-semibold text-[#18181B] hover:text-[#635BFF] transition-colors cursor-pointer"
+              >
+                <span>{item.q}</span>
+                <ChevronDown
+                  className={`w-4 h-4 text-[#71717A] transition-transform duration-150 ${
+                    openFaq === idx ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              {openFaq === idx && (
+                <div className="px-4 pb-4 text-xs text-[#52525B] leading-relaxed border-t border-[#F4F4F5] pt-3">
+                  {item.a}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 14. FINAL CTA ── */}
+      <section className="py-24 bg-white border-t border-[#E4E4E7] text-center px-4 sm:px-6">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-3xl sm:text-5xl font-semibold tracking-[-0.02em] text-[#18181B] mb-4">
+            Your next idea deserves a canvas.
+          </h2>
+          <p className="text-base text-[#52525B] max-w-xl mx-auto mb-8 leading-relaxed">
+            Start thinking, building, and collaborating in MasmSpace today. No credit
+            card required.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/canvas"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#635BFF] hover:bg-[#5248E5] text-white text-sm font-medium shadow-sm transition-all active:scale-[0.98]"
+            >
+              <span>Launch Canvas</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <a
+              href="#features"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white hover:bg-[#F4F4F5] border border-[#E4E4E7] text-sm font-medium text-[#18181B] transition-colors"
+            >
+              Explore Features
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 15. MINIMAL PREMIUM FOOTER ── */}
+      <footer className="py-14 bg-[#FAFAF9] border-t border-[#E4E4E7] text-xs text-[#71717A]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
+            {/* Brand column */}
+            <div className="col-span-2">
+              <Link href="/" className="flex items-center gap-2.5 mb-3">
+                <div className="relative w-6 h-5 flex items-center justify-center shrink-0">
+                  <Image
+                    src="/masmspace-logo.png"
+                    alt="MasmSpace"
+                    width={24}
+                    height={19}
+                    className="object-contain"
+                  />
+                </div>
+                <span className="font-semibold text-sm text-[#18181B]">
+                  MasmSpace
+                </span>
               </Link>
-              <Link href="/privacy" className="hover:text-white transition-colors">
-                Privacy
-              </Link>
-              <Link href="/cookies" className="hover:text-white transition-colors">
-                Cookies
-              </Link>
+              <p className="text-xs text-[#52525B] max-w-xs leading-relaxed mb-3">
+                The visual workspace for thinking, diagramming, and building complex systems.
+              </p>
+              <div className="text-[11px] text-[#71717A]">
+                Powered by PRATHOMIX SOLUTION
+              </div>
+            </div>
+
+            {/* Product */}
+            <div>
+              <div className="font-semibold text-[#18181B] mb-3">Product</div>
+              <ul className="space-y-2">
+                <li><Link href="/canvas" className="hover:text-[#18181B] transition-colors">Infinite Canvas</Link></li>
+                <li><a href="#features" className="hover:text-[#18181B] transition-colors">Features</a></li>
+                <li><a href="#builders" className="hover:text-[#18181B] transition-colors">For Builders</a></li>
+                <li><a href="#pricing" className="hover:text-[#18181B] transition-colors">Pricing</a></li>
+              </ul>
+            </div>
+
+            {/* Resources */}
+            <div>
+              <div className="font-semibold text-[#18181B] mb-3">Resources</div>
+              <ul className="space-y-2">
+                <li><Link href="/features" className="hover:text-[#18181B] transition-colors">Architecture Guide</Link></li>
+                <li><a href="#use-cases" className="hover:text-[#18181B] transition-colors">Templates</a></li>
+                <li><a href="mailto:contact@prathomix.tech" className="hover:text-[#18181B] transition-colors">Support</a></li>
+              </ul>
+            </div>
+
+            {/* Company & Legal */}
+            <div>
+              <div className="font-semibold text-[#18181B] mb-3">Legal</div>
+              <ul className="space-y-2">
+                <li><Link href="/privacy" className="hover:text-[#18181B] transition-colors">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="hover:text-[#18181B] transition-colors">Terms of Service</Link></li>
+                <li><Link href="/cookies" className="hover:text-[#18181B] transition-colors">Cookie Policy</Link></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="pt-6 border-t border-[#E4E4E7] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px]">
+            <div>© {new Date().getFullYear()} MasmSpace. All rights reserved.</div>
+            <div className="flex items-center gap-4 text-[#71717A]">
+              <span>Made for visual thinkers & systems architects</span>
             </div>
           </div>
         </div>

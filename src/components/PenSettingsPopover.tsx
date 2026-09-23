@@ -2,44 +2,74 @@
 
 import React, { useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pipette, Check } from "lucide-react";
+import { Check, Edit3, Feather, Highlighter, Paintbrush } from "lucide-react";
+
+export type PenType = "ballpen" | "pencil" | "marker" | "brush";
 
 export interface PenSettingsPopoverProps {
   isOpen: boolean;
   onClose: () => void;
+  penType?: PenType;
+  onChangePenType?: (type: PenType) => void;
   penColor: string;
   onChangePenColor: (color: string) => void;
   penWidth: number;
   onChangePenWidth: (width: number) => void;
+  penOpacity?: number;
+  onChangePenOpacity?: (opacity: number) => void;
+  smoothing?: boolean;
+  onToggleSmoothing?: () => void;
 }
 
-const PRESET_COLORS = [
-  { label: "Neon Cyan", hex: "#06b6d4", glow: "rgba(6, 182, 212, 0.6)" },
-  { label: "Neon Purple", hex: "#a855f7", glow: "rgba(168, 85, 247, 0.6)" },
-  { label: "Neon Yellow", hex: "#facc15", glow: "rgba(250, 204, 21, 0.6)" },
-  { label: "Pure White", hex: "#ffffff", glow: "rgba(255, 255, 255, 0.6)" },
-  { label: "Neon Red", hex: "#ef4444", glow: "rgba(239, 68, 68, 0.6)" },
-  { label: "Neon Emerald", hex: "#10b981", glow: "rgba(16, 185, 129, 0.6)" },
+export const STROKE_COLORS = [
+  { label: "Charcoal", hex: "#18181B" },
+  { label: "Muted Gray", hex: "#71717A" },
+  { label: "Indigo", hex: "#635BFF" },
+  { label: "Royal Blue", hex: "#2563EB" },
+  { label: "Sky Cyan", hex: "#0EA5E9" },
+  { label: "Emerald", hex: "#10B981" },
+  { label: "Warm Yellow", hex: "#EAB308" },
+  { label: "Amber Orange", hex: "#F97316" },
+  { label: "Rose Red", hex: "#EF4444" },
+  { label: "Pink", hex: "#EC4899" },
+  { label: "Pure White", hex: "#FFFFFF" },
 ];
 
-const THICKNESS_PRESETS = [
-  { label: "Small", size: 2, dotClass: "w-1.5 h-1.5" },
-  { label: "Medium", size: 4, dotClass: "w-2.5 h-2.5" },
-  { label: "Large", size: 8, dotClass: "w-4 h-4" },
+export const WIDTH_PRESETS = [
+  { size: 1, label: "1px" },
+  { size: 2, label: "2px" },
+  { size: 4, label: "4px" },
+  { size: 6, label: "6px" },
+  { size: 8, label: "8px" },
+  { size: 12, label: "12px" },
+  { size: 16, label: "16px" },
+];
+
+export const OPACITY_PRESETS = [
+  { val: 0.1, label: "10%" },
+  { val: 0.25, label: "25%" },
+  { val: 0.5, label: "50%" },
+  { val: 0.75, label: "75%" },
+  { val: 1.0, label: "100%" },
 ];
 
 export default function PenSettingsPopover({
   isOpen,
   onClose,
+  penType = "ballpen",
+  onChangePenType,
   penColor,
   onChangePenColor,
   penWidth,
   onChangePenWidth,
+  penOpacity = 1.0,
+  onChangePenOpacity,
+  smoothing = true,
+  onToggleSmoothing,
 }: PenSettingsPopoverProps) {
   const popoverRef = useRef<HTMLDivElement | null>(null);
-  const colorInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Close on outside click
+  // Close on outside click or escape
   useEffect(() => {
     if (!isOpen) return;
 
@@ -61,167 +91,196 @@ export default function PenSettingsPopover({
     };
   }, [isOpen, onClose]);
 
-  const isCustomColor = !PRESET_COLORS.some(
-    (c) => c.hex.toLowerCase() === penColor.toLowerCase()
-  );
+  const penTypes = [
+    { id: "ballpen" as PenType, label: "Ball Pen", icon: Edit3 },
+    { id: "pencil" as PenType, label: "Pencil", icon: Feather },
+    { id: "marker" as PenType, label: "Marker", icon: Highlighter },
+    { id: "brush" as PenType, label: "Brush", icon: Paintbrush },
+  ];
 
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
           ref={popoverRef}
-          initial={{ opacity: 0, y: 12, scale: 0.95 }}
+          initial={{ opacity: 0, y: 8, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 8, scale: 0.95 }}
-          transition={{ duration: 0.16, ease: "easeOut" }}
-          className="absolute bottom-full mb-3.5 left-1/2 -translate-x-1/2 z-[60] w-64 p-4 rounded-2xl bg-[#0e1017]/95 backdrop-blur-2xl border border-white/15 shadow-[0_16px_48px_rgba(0,0,0,0.8),0_0_24px_rgba(6,182,212,0.2)] select-none"
+          exit={{ opacity: 0, y: 6, scale: 0.96 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+          className="absolute top-full mt-2.5 left-1/2 -translate-x-1/2 z-[70] w-72 p-3.5 rounded-2xl bg-white border border-zinc-200/90 shadow-[0_8px_30px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)] select-none text-zinc-900"
         >
-          {/* ── Section 1: Color Palette ── */}
-          <div className="mb-3.5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-medium">
-                Ink Color
+          {/* ── 1. Pen Type Selector ── */}
+          <div className="mb-3">
+            <span className="block text-[11px] font-medium text-zinc-500 mb-1.5">
+              Tool Type
+            </span>
+            <div className="grid grid-cols-4 gap-1 p-0.5 rounded-xl bg-zinc-100 border border-zinc-200/60">
+              {penTypes.map((pt) => {
+                const Icon = pt.icon;
+                const isSelected = penType === pt.id;
+                return (
+                  <button
+                    key={pt.id}
+                    type="button"
+                    onClick={() => onChangePenType?.(pt.id)}
+                    title={pt.label}
+                    className={`flex flex-col items-center justify-center py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                      isSelected
+                        ? "bg-white text-[#635BFF] shadow-2xs font-semibold"
+                        : "text-zinc-600 hover:text-zinc-900"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5 mb-0.5" />
+                    <span>{pt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── 2. Color Palette ── */}
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-medium text-zinc-500">
+                Color
               </span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-zinc-300 border border-white/10 uppercase">
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200 uppercase">
                 {penColor}
               </span>
             </div>
 
-            <div className="flex items-center justify-between gap-1.5">
-              {/* Preset Neon Swatches */}
-              {PRESET_COLORS.map((color) => {
-                const isSelected =
-                  penColor.toLowerCase() === color.hex.toLowerCase();
+            <div className="grid grid-cols-6 gap-1.5">
+              {STROKE_COLORS.map((c) => {
+                const isSelected = penColor.toLowerCase() === c.hex.toLowerCase();
                 return (
                   <button
-                    key={color.hex}
+                    key={c.hex}
                     type="button"
-                    onClick={() => onChangePenColor(color.hex)}
-                    title={color.label}
-                    className={`relative w-7 h-7 rounded-full transition-all duration-150 flex items-center justify-center cursor-pointer ${
-                      isSelected
-                        ? "scale-115 ring-2 ring-white ring-offset-2 ring-offset-[#0e1017]"
-                        : "hover:scale-110 opacity-85 hover:opacity-100"
+                    onClick={() => onChangePenColor(c.hex)}
+                    title={c.label}
+                    className={`w-7 h-7 rounded-lg transition-transform flex items-center justify-center relative ${
+                      isSelected ? "scale-110 ring-2 ring-[#635BFF] ring-offset-1" : "hover:scale-105"
                     }`}
                     style={{
-                      backgroundColor: color.hex,
-                      boxShadow: isSelected ? `0 0 12px ${color.glow}` : undefined,
+                      backgroundColor: c.hex,
+                      border: c.hex === "#FFFFFF" ? "1px solid #E4E4E7" : "none",
                     }}
                   >
                     {isSelected && (
                       <Check
                         className={`w-3.5 h-3.5 ${
-                          color.hex === "#ffffff" || color.hex === "#facc15"
-                            ? "text-black"
-                            : "text-white"
+                          c.hex === "#FFFFFF" || c.hex === "#EAB308" ? "text-zinc-900" : "text-white"
                         }`}
-                        strokeWidth={3}
                       />
                     )}
                   </button>
                 );
               })}
-
-              {/* Custom Color Wheel Button */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => colorInputRef.current?.click()}
-                  title="Custom Hex Color Wheel"
-                  className={`relative w-7 h-7 rounded-full transition-all duration-150 flex items-center justify-center cursor-pointer ${
-                    isCustomColor
-                      ? "scale-115 ring-2 ring-white ring-offset-2 ring-offset-[#0e1017] shadow-[0_0_12px_rgba(255,255,255,0.4)]"
-                      : "hover:scale-110 opacity-85 hover:opacity-100"
-                  }`}
-                  style={{
-                    background:
-                      "conic-gradient(from 180deg, #ff0055, #ffdd00, #00ff88, #00ddff, #7700ff, #ff00aa, #ff0055)",
-                  }}
-                >
-                  <div className="w-5 h-5 rounded-full bg-[#0e1017]/80 flex items-center justify-center">
-                    <Pipette className="w-2.5 h-2.5 text-white" />
-                  </div>
-                </button>
-
+              {/* Custom Color Input */}
+              <label
+                title="Custom Color"
+                className="w-7 h-7 rounded-lg border border-dashed border-zinc-300 hover:border-zinc-400 flex items-center justify-center cursor-pointer transition-colors"
+              >
                 <input
-                  ref={colorInputRef}
                   type="color"
                   value={penColor}
                   onChange={(e) => onChangePenColor(e.target.value)}
                   className="sr-only"
-                  tabIndex={-1}
                 />
-              </div>
+                <span className="text-[11px] font-bold text-zinc-500">+</span>
+              </label>
             </div>
           </div>
 
-          <div className="w-full h-[1px] bg-white/10 mb-3.5" />
-
-          {/* ── Section 2: Stroke Thickness ── */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-medium">
-                Pen Stroke
+          {/* ── 3. Stroke Width ── */}
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-medium text-zinc-500">
+                Stroke Width
               </span>
-              <span className="text-[10px] font-mono text-cyan-400 font-semibold">
+              <span className="text-[10px] font-mono text-zinc-700 font-semibold">
                 {penWidth}px
               </span>
             </div>
-
-            {/* Quick S / M / L Preset Dots */}
-            <div className="grid grid-cols-3 gap-1.5 mb-2.5">
-              {THICKNESS_PRESETS.map((preset) => {
-                const isActive = penWidth === preset.size;
+            <div className="flex items-center justify-between gap-1">
+              {WIDTH_PRESETS.map((p) => {
+                const isSelected = penWidth === p.size;
                 return (
                   <button
-                    key={preset.label}
+                    key={p.size}
                     type="button"
-                    onClick={() => onChangePenWidth(preset.size)}
-                    className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl border text-[10px] font-mono transition-all cursor-pointer ${
-                      isActive
-                        ? "bg-cyan-500/20 border-cyan-400/80 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)]"
-                        : "bg-white/5 border-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200"
+                    onClick={() => onChangePenWidth(p.size)}
+                    title={p.label}
+                    className={`flex-1 py-1 rounded-md text-[10px] font-medium transition-all flex flex-col items-center gap-1 ${
+                      isSelected
+                        ? "bg-[#635BFF]/10 text-[#635BFF] border border-[#635BFF]/30 font-semibold"
+                        : "bg-zinc-50 hover:bg-zinc-100 text-zinc-600 border border-zinc-200/70"
                     }`}
                   >
-                    <span
-                      className={`${preset.dotClass} rounded-full`}
-                      style={{ backgroundColor: penColor }}
+                    <div
+                      className="rounded-full bg-current"
+                      style={{
+                        width: Math.min(10, Math.max(2, p.size)),
+                        height: Math.min(10, Math.max(2, p.size)),
+                      }}
                     />
-                    <span>{preset.label}</span>
+                    <span>{p.label}</span>
                   </button>
                 );
               })}
             </div>
+          </div>
 
-            {/* Smooth Precision Slider with Live Preview */}
-            <div className="flex items-center gap-2.5 px-1">
-              <input
-                type="range"
-                min={1}
-                max={16}
-                step={1}
-                value={penWidth}
-                onChange={(e) => onChangePenWidth(Number(e.target.value))}
-                className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:accent-cyan-300 focus:outline-none"
-              />
-              <div
-                className="w-5 h-5 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0"
-                title="Live size preview"
-              >
-                <div
-                  className="rounded-full transition-all duration-100"
-                  style={{
-                    width: `${Math.min(penWidth, 14)}px`,
-                    height: `${Math.min(penWidth, 14)}px`,
-                    backgroundColor: penColor,
-                  }}
-                />
-              </div>
+          {/* ── 4. Opacity ── */}
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-medium text-zinc-500">
+                Opacity
+              </span>
+              <span className="text-[10px] font-mono text-zinc-700 font-semibold">
+                {Math.round(penOpacity * 100)}%
+              </span>
+            </div>
+            <div className="grid grid-cols-5 gap-1">
+              {OPACITY_PRESETS.map((op) => {
+                const isSelected = Math.abs(penOpacity - op.val) < 0.05;
+                return (
+                  <button
+                    key={op.label}
+                    type="button"
+                    onClick={() => onChangePenOpacity?.(op.val)}
+                    className={`py-1 rounded-md text-[10px] font-medium transition-all ${
+                      isSelected
+                        ? "bg-zinc-900 text-white font-semibold"
+                        : "bg-zinc-50 hover:bg-zinc-100 text-zinc-600 border border-zinc-200/70"
+                    }`}
+                  >
+                    {op.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Bottom Downward Arrow / Notch pointing toward Pencil Icon */}
-          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 bg-[#0e1017] border-r border-b border-white/15" />
+          {/* ── 5. Smoothing / Stylus Sensitivity ── */}
+          {onToggleSmoothing && (
+            <div className="pt-2 border-t border-zinc-100 flex items-center justify-between text-xs">
+              <span className="text-[11px] text-zinc-600 font-medium">Stroke Smoothing</span>
+              <button
+                type="button"
+                onClick={onToggleSmoothing}
+                className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-150 ${
+                  smoothing ? "bg-[#635BFF]" : "bg-zinc-300"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-2xs transition duration-150 ${
+                    smoothing ? "translate-x-3" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

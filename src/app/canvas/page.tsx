@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { CanvasLoader } from "@/components/CanvasLoader";
-import LeftSidebar from "@/components/LeftSidebar";
+import LeftNavRail from "@/components/LeftNavRail";
 import SettingsModal from "@/components/SettingsModal";
 import ProUpgradeModal from "@/components/ProUpgradeModal";
 import BoardBrainSearch from "@/components/BoardBrainSearch";
@@ -189,38 +189,31 @@ export default function CanvasPage() {
   };
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-[#09090b] text-zinc-100 transition-colors duration-200">
-      {/* ── Left Navigation Sidebar: Automatically hidden during Presentation Mode ── */}
-      {isSidebarVisible && !isPresentationOpen && (
-        <LeftSidebar
-          boardTitle={boardTitle}
-          onBoardTitleChange={setBoardTitle}
-          onImportDocument={(file) => setImportedFile(file)}
-          onPresentClick={() => setIsPresentationOpen(true)}
+    <main className="relative h-screen w-screen overflow-hidden bg-[#FAFAF9] dark:bg-[#0E0F12] text-zinc-900 dark:text-zinc-100 transition-colors duration-200">
+      {/* ── Left Navigation Rail: Minimal 48px rail, automatically hidden during Presentation Mode ── */}
+      {!isPresentationOpen && (
+        <LeftNavRail
           onSearchClick={() => setIsSearchOpen(true)}
           onBoardBrainClick={() => setIsSearchOpen(true)}
-          onShareClick={() => setIsShareOpen(true)}
-          onCodeStudioClick={() => setIsCodeStudioOpen((prev) => !prev)}
-          isCodeOpen={isCodeStudioOpen}
-          onVoiceClick={() => setIsVoiceListening((prev) => !prev)}
-          isVoiceListening={isVoiceListening}
           onToggleExplorer={() => setIsExplorerOpen((prev) => !prev)}
           isExplorerOpen={isExplorerOpen}
-          onTakeScreenshot={handleTakeScreenshot}
+          onImportDocument={(file) => setImportedFile(file)}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenProModal={() => setIsProModalOpen(true)}
-          isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
-          isSidebarVisible={isSidebarVisible}
-          onToggleSidebarVisibility={() => setIsSidebarVisible((prev) => !prev)}
+          currentBoardTitle={boardTitle}
+          onSwitchBoard={setBoardTitle}
+          onSelectTemplate={(tmplId) => {
+            window.dispatchEvent(new CustomEvent("prathomix:load-template", { detail: tmplId }));
+          }}
         />
       )}
 
       {/* ── Main Architecture ReactFlow Canvas ── */}
       <ArchitectureCanvas
-        sidebarCollapsed={isSidebarCollapsed || !isSidebarVisible || isPresentationOpen}
+        sidebarCollapsed={false}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenUpgradeModal={() => setIsProModalOpen(true)}
+        onShareClick={() => setIsShareOpen(true)}
         importedFile={importedFile}
         onClearImportedFile={() => setImportedFile(null)}
         roomId={roomId}

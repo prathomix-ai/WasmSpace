@@ -8,7 +8,8 @@ export interface DrawingNodeData {
   color: string;
   width: number;
   opacity: number;
-  tool: "pen" | "highlighter";
+  tool: "pen" | "highlighter" | "ballpen" | "pencil" | "marker" | "brush" | string;
+  penType?: "ballpen" | "pencil" | "marker" | "brush";
   boxWidth: number;
   boxHeight: number;
   originalPoints?: { x: number; y: number }[];
@@ -25,16 +26,41 @@ export const DrawingNode = memo(function DrawingNode({
     width = 3,
     opacity = 1,
     tool = "pen",
+    penType,
     boxWidth = 100,
     boxHeight = 100,
   } = nodeData;
 
   const isHighlighter = tool === "highlighter";
+  const effectiveType = penType || (["pencil", "marker", "brush", "ballpen"].includes(tool) ? tool : "ballpen");
+
+  const strokeStyle: React.CSSProperties = isHighlighter
+    ? {
+        mixBlendMode: "screen",
+        filter: `drop-shadow(0 0 6px ${color})`,
+      }
+    : effectiveType === "pencil"
+    ? {
+        opacity: opacity * 0.82,
+        filter: "contrast(1.15)",
+      }
+    : effectiveType === "marker"
+    ? {
+        opacity: Math.min(opacity, 0.92),
+        filter: "saturate(1.2)",
+      }
+    : effectiveType === "brush"
+    ? {
+        filter: `drop-shadow(0 0 1px ${color}60)`,
+      }
+    : {
+        filter: `drop-shadow(0 0 1px ${color}80)`,
+      };
 
   return (
     <div
       className={`relative select-none pointer-events-auto transition-all ${
-        selected ? "ring-1 ring-cyan-400/70 shadow-[0_0_12px_rgba(6,182,212,0.3)] rounded-md" : ""
+        selected ? "ring-1 ring-[#635BFF]/70 shadow-[0_0_12px_rgba(99,91,255,0.25)] rounded-md" : ""
       }`}
       style={{
         width: boxWidth,
@@ -52,16 +78,7 @@ export const DrawingNode = memo(function DrawingNode({
           d={path}
           fill={color}
           opacity={opacity}
-          style={
-            isHighlighter
-              ? {
-                  mixBlendMode: "screen",
-                  filter: `drop-shadow(0 0 6px ${color})`,
-                }
-              : {
-                  filter: `drop-shadow(0 0 1px ${color}80)`,
-                }
-          }
+          style={strokeStyle}
         />
       </svg>
     </div>

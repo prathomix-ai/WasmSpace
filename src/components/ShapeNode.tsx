@@ -416,8 +416,8 @@ function ShapeNodeComponent({ id, data, selected }: NodeProps) {
         isVisible={selected}
         minWidth={40}
         minHeight={40}
-        lineClassName="!border-blue-500/80"
-        handleClassName="!w-2.5 !h-2.5 !bg-white dark:!bg-[#09090b] !border-2 !border-blue-500 !rounded-full"
+        lineClassName="!border-[#635BFF]"
+        handleClassName="!w-2 !h-2 !bg-white dark:!bg-[#18181b] !border-[1.5px] !border-[#635BFF] !rounded-full shadow-sm"
       />
 
       {/* ── Context Toolbar (Color palette, fill mode, duplicate, delete) ── */}
