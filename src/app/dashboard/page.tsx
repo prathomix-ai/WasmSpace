@@ -8,16 +8,12 @@ import {
   Clock,
   Star,
   Users,
-  FolderPlus,
   MoreVertical,
   ExternalLink,
   Copy,
   Trash2,
   Edit2,
-  FolderKanban,
-  Sparkles,
-  ArrowRight,
-  Filter,
+  LayoutGrid,
 } from "lucide-react";
 import HubNavigation from "@/components/HubNavigation";
 
@@ -35,7 +31,7 @@ interface BoardItem {
 const INITIAL_BOARDS: BoardItem[] = [
   {
     id: "board-1",
-    title: "Product Strategy & Architecture 2026",
+    title: "System Architecture & Ingress Gateway",
     lastEdited: "12 mins ago",
     owner: "Alex Rivera",
     isFavorite: true,
@@ -45,7 +41,7 @@ const INITIAL_BOARDS: BoardItem[] = [
   },
   {
     id: "board-2",
-    title: "Cloud Infrastructure & Vector Ingress",
+    title: "Cloud Edge & Vector Ingress Topology",
     lastEdited: "2 hours ago",
     owner: "Alex Rivera",
     isFavorite: true,
@@ -55,7 +51,7 @@ const INITIAL_BOARDS: BoardItem[] = [
   },
   {
     id: "board-3",
-    title: "User Onboarding & Activation Funnel",
+    title: "User Onboarding & Funnel Architecture",
     lastEdited: "Yesterday",
     owner: "Sarah Chen",
     isFavorite: false,
@@ -75,7 +71,7 @@ const INITIAL_BOARDS: BoardItem[] = [
   },
   {
     id: "board-5",
-    title: "Microservices Event Topology",
+    title: "Microservices Event Stream Bus",
     lastEdited: "Last week",
     owner: "Alex Rivera",
     isFavorite: false,
@@ -131,17 +127,17 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9] text-[#18181B] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#0D0D0F] text-[#F4F4F5] flex flex-col font-sans select-none">
       <HubNavigation />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
         {/* Top Header & Search Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#18181B]">
+            <h1 className="text-2xl font-bold tracking-tight text-[#F4F4F5]">
               Boards
             </h1>
-            <p className="text-xs text-[#71717A] mt-1">
+            <p className="text-xs text-[#A1A1AA] mt-1">
               Your visual spaces for system thinking, diagramming, and sprint reviews.
             </p>
           </div>
@@ -155,14 +151,14 @@ export default function DashboardPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search boards..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-white border border-[#E4E4E7] placeholder-[#71717A] text-[#18181B] focus:outline-none focus:border-[#635BFF] focus:ring-2 focus:ring-[#635BFF]/10"
+                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-md bg-[#171719] border border-[#2A2A2F] placeholder-[#71717A] text-[#F4F4F5] focus:outline-none focus:border-[#7C6CFF]"
               />
             </div>
 
             {/* Create Board Button */}
             <Link
               href="/canvas"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#635BFF] hover:bg-[#5248E5] text-white text-xs font-semibold shadow-xs transition-all shrink-0"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-[#7C6CFF] hover:bg-[#635BFF] text-white text-xs font-semibold shadow-xs transition-all shrink-0 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Create Board</span>
@@ -171,10 +167,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Tab Filters */}
-        <div className="flex items-center gap-1 border-b border-[#E4E4E7] pb-3 mb-6 overflow-x-auto text-xs font-medium">
+        <div className="flex items-center gap-1 border-b border-[#2A2A2F] pb-3 mb-6 overflow-x-auto text-xs font-medium">
           {[
             { id: "all", label: "All Boards", count: boards.length },
-            { id: "recent", label: "Recent Boards", count: boards.filter((b) => b.category === "recent").length },
+            { id: "recent", label: "Recent", count: boards.filter((b) => b.category === "recent").length },
             { id: "my", label: "My Boards", count: boards.filter((b) => b.category === "my").length },
             { id: "shared", label: "Shared with me", count: boards.filter((b) => b.category === "shared").length },
             { id: "favorites", label: "Favorites", count: boards.filter((b) => b.isFavorite).length },
@@ -183,14 +179,14 @@ export default function DashboardPage() {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
                 activeTab === tab.id
-                  ? "bg-[#635BFF]/10 text-[#635BFF] font-semibold"
-                  : "text-[#52525B] hover:text-[#18181B] hover:bg-[#F4F4F5]"
+                  ? "bg-[#7C6CFF]/20 text-[#7C6CFF] font-semibold"
+                  : "text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[#1C1C1F]"
               }`}
             >
               <span>{tab.label}</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-200/70 font-mono text-[#52525B]">
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#1C1C1F] border border-[#2A2A2F] font-mono text-[#A1A1AA]">
                 {tab.count}
               </span>
             </button>
@@ -199,160 +195,110 @@ export default function DashboardPage() {
 
         {/* Board Cards Grid */}
         {filteredBoards.length === 0 ? (
-          <div className="py-20 text-center rounded-2xl border border-dashed border-[#E4E4E7] bg-white p-8">
-            <FolderKanban className="w-8 h-8 mx-auto text-[#71717A] mb-3 opacity-60" />
-            <h3 className="text-sm font-semibold text-[#18181B] mb-1">
-              No boards found
-            </h3>
-            <p className="text-xs text-[#71717A] max-w-sm mx-auto mb-4">
-              {searchQuery
-                ? `No boards matched "${searchQuery}". Try a different keyword.`
-                : "Get started by creating your first infinite whiteboard."}
+          <div className="text-center py-20 border border-dashed border-[#2A2A2F] rounded-xl bg-[#111113]">
+            <LayoutGrid className="w-10 h-10 text-[#71717A] mx-auto mb-3" />
+            <h3 className="text-sm font-semibold text-[#F4F4F5]">No boards found</h3>
+            <p className="text-xs text-[#A1A1AA] mt-1 mb-4">
+              {searchQuery ? "Try a different search query." : "Create your first board to start thinking visually."}
             </p>
             <Link
               href="/canvas"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#635BFF] text-white text-xs font-semibold hover:bg-[#5248E5] transition-all"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-[#7C6CFF] text-white text-xs font-medium"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Create New Board</span>
+              <span>Create Board</span>
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredBoards.map((board) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredBoards.map((b) => (
               <div
-                key={board.id}
-                className="group relative rounded-2xl bg-white border border-[#E4E4E7] hover:border-[#635BFF]/40 hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] transition-all flex flex-col overflow-hidden"
+                key={b.id}
+                className="group relative rounded-xl bg-[#171719] border border-[#2A2A2F] hover:border-[#7C6CFF] transition-all p-4 flex flex-col justify-between"
               >
-                {/* Visual Thumbnail Area */}
-                <Link
-                  href="/canvas"
-                  className="h-36 bg-[#FAFAF9] border-b border-[#E4E4E7] p-3 flex flex-col justify-between relative overflow-hidden group-hover:bg-[#F4F4F5] transition-colors"
-                >
-                  {/* Subtle dot pattern */}
-                  <div
-                    className="absolute inset-0 opacity-40 pointer-events-none"
-                    style={{
-                      backgroundImage:
-                        "radial-gradient(circle at 1px 1px, rgba(24, 24, 27, 0.12) 1px, transparent 0)",
-                      backgroundSize: "16px 16px",
-                    }}
-                  />
-
-                  {/* Thumbnail Mock Blocks */}
-                  <div className="relative z-10 flex items-center justify-center h-full">
-                    <div className="w-24 h-16 rounded-lg bg-white border border-[#E4E4E7] shadow-2xs p-1.5 flex flex-col justify-between">
-                      <div className="w-10 h-1.5 rounded-full bg-[#635BFF]/30" />
-                      <div className="space-y-1">
-                        <div className="w-16 h-1 rounded-full bg-zinc-200" />
-                        <div className="w-12 h-1 rounded-full bg-zinc-200" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Top-Right Favorite Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => toggleFavorite(board.id, e)}
-                    className="absolute top-2.5 right-2.5 z-20 p-1.5 rounded-lg bg-white/90 hover:bg-white text-zinc-400 hover:text-amber-500 shadow-2xs transition-colors cursor-pointer"
-                    title={board.isFavorite ? "Remove favorite" : "Add to favorites"}
-                  >
-                    <Star
-                      className={`w-3.5 h-3.5 ${
-                        board.isFavorite ? "fill-amber-400 text-amber-400" : ""
-                      }`}
-                    />
-                  </button>
-                </Link>
-
-                {/* Card Content & Metadata */}
-                <div className="p-3.5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <Link
-                        href="/canvas"
-                        className="text-xs font-semibold text-[#18181B] group-hover:text-[#635BFF] transition-colors line-clamp-1 leading-snug"
-                        title={board.title}
+                <div>
+                  {/* Top Bar with Star and Context Menu */}
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <Link
+                      href="/canvas"
+                      className="text-sm font-semibold text-[#F4F4F5] hover:text-[#7C6CFF] transition-colors line-clamp-1"
+                    >
+                      {b.title}
+                    </Link>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => toggleFavorite(b.id, e)}
+                        className={`p-1 rounded transition-colors ${
+                          b.isFavorite ? "text-[#FBBF24]" : "text-[#71717A] hover:text-[#F4F4F5]"
+                        }`}
+                        title={b.isFavorite ? "Remove from favorites" : "Add to favorites"}
                       >
-                        {board.title}
-                      </Link>
+                        <Star className="w-3.5 h-3.5 fill-current" />
+                      </button>
 
-                      {/* Dropdown Menu Trigger */}
                       <div className="relative">
                         <button
                           type="button"
-                          onClick={() =>
-                            setOpenMenuId(openMenuId === board.id ? null : board.id)
-                          }
-                          className="p-1 rounded-md text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] transition-colors"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setOpenMenuId(openMenuId === b.id ? null : b.id);
+                          }}
+                          className="p-1 rounded text-[#71717A] hover:text-[#F4F4F5] hover:bg-[#242428] transition-colors"
                         >
                           <MoreVertical className="w-3.5 h-3.5" />
                         </button>
 
-                        {/* Card Context Menu */}
-                        {openMenuId === board.id && (
-                          <div className="absolute right-0 mt-1 w-36 bg-white border border-[#E4E4E7] rounded-xl shadow-lg p-1 z-30 text-xs">
-                            <Link
-                              href="/canvas"
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-zinc-700 hover:bg-zinc-100 transition-colors"
-                            >
-                              <ExternalLink className="w-3 h-3 text-zinc-400" />
-                              <span>Open Board</span>
-                            </Link>
+                        {openMenuId === b.id && (
+                          <div className="absolute right-0 mt-1 w-36 rounded-md bg-[#1C1C1F] border border-[#2A2A2F] shadow-xl p-1 z-30 text-xs">
                             <button
                               type="button"
-                              onClick={(e) => duplicateBoard(board, e)}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-zinc-700 hover:bg-zinc-100 transition-colors cursor-pointer"
+                              onClick={(e) => duplicateBoard(b, e)}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#242428] text-left text-[#F4F4F5]"
                             >
-                              <Copy className="w-3 h-3 text-zinc-400" />
+                              <Copy className="w-3.5 h-3.5 text-[#A1A1AA]" />
                               <span>Duplicate</span>
                             </button>
-                            <div className="h-px bg-zinc-100 my-1" />
                             <button
                               type="button"
-                              onClick={(e) => deleteBoard(board.id, e)}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                              onClick={(e) => deleteBoard(b.id, e)}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#F87171]/10 text-left text-[#F87171]"
                             >
-                              <Trash2 className="w-3 h-3 text-red-500" />
+                              <Trash2 className="w-3.5 h-3.5" />
                               <span>Delete</span>
                             </button>
                           </div>
                         )}
                       </div>
                     </div>
+                  </div>
 
-                    <div className="flex items-center gap-2 text-[10px] text-[#71717A] mb-3">
-                      <span>Edited {board.lastEdited}</span>
-                      <span>·</span>
-                      <span>{board.blockCount} blocks</span>
+                  {/* Thumbnail / Preview placeholder */}
+                  <Link
+                    href="/canvas"
+                    className="block h-28 w-full rounded-lg bg-[#0D0D0F] border border-[#2A2A2F] mb-3 relative overflow-hidden group-hover:border-[#7C6CFF]/40 transition-colors"
+                  >
+                    <div
+                      className="absolute inset-0 opacity-40"
+                      style={{
+                        backgroundImage: "radial-gradient(#18181B 1.2px, transparent 1.2px)",
+                        backgroundSize: "16px 16px",
+                      }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center text-[10px] font-mono text-[#71717A]">
+                      {b.blockCount} blocks · Topology
                     </div>
-                  </div>
+                  </Link>
+                </div>
 
-                  {/* Collaborator Avatars */}
-                  <div className="flex items-center justify-between pt-2 border-t border-[#F4F4F5]">
-                    <span className="text-[10px] text-[#71717A] font-medium truncate max-w-[120px]">
-                      {board.owner}
-                    </span>
-
-                    {board.collaborators.length > 0 && (
-                      <div className="flex items-center -space-x-1.5">
-                        {board.collaborators.slice(0, 2).map((c, i) => (
-                          <div
-                            key={i}
-                            title={c}
-                            className="w-5 h-5 rounded-full bg-[#635BFF] text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white"
-                          >
-                            {c.charAt(0)}
-                          </div>
-                        ))}
-                        {board.collaborators.length > 2 && (
-                          <div className="w-5 h-5 rounded-full bg-zinc-200 text-zinc-600 text-[8px] font-bold flex items-center justify-center ring-2 ring-white font-mono">
-                            +{board.collaborators.length - 2}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                {/* Card Footer */}
+                <div className="flex items-center justify-between pt-2 border-t border-[#2A2A2F] text-[11px] text-[#71717A]">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-3 h-3" />
+                    <span>{b.lastEdited}</span>
                   </div>
+                  <span className="font-mono">{b.owner}</span>
                 </div>
               </div>
             ))}

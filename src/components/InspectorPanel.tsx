@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -9,6 +9,12 @@ import {
   ArrowUpToLine,
   ArrowDownToLine,
   Sliders,
+  ChevronDown,
+  ChevronRight,
+  RotateCw,
+  Eye,
+  Layers,
+  Code,
 } from "lucide-react";
 import { type Node } from "@xyflow/react";
 
@@ -22,14 +28,14 @@ export interface InspectorPanelProps {
 }
 
 const PALETTE = [
-  "#18181B", // Dark
-  "#635BFF", // Indigo
-  "#0EA5E9", // Sky
-  "#10B981", // Emerald
-  "#F59E0B", // Amber
-  "#EF4444", // Rose
-  "#FEF3C7", // Sticky Yellow
-  "#F3E8FF", // Lavender
+  "#F4F4F5",
+  "#A1A1AA",
+  "#7C6CFF",
+  "#3B82F6",
+  "#4ADE80",
+  "#FBBF24",
+  "#F87171",
+  "#171719",
 ];
 
 export default function InspectorPanel({
@@ -40,13 +46,27 @@ export default function InspectorPanel({
   onBringToFront,
   onSendToBack,
 }: InspectorPanelProps) {
+  // Collapsible section states
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    transform: true,
+    appearance: true,
+    layer: true,
+    advanced: false,
+  });
+
+  const toggleSection = (key: string) => {
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   if (!isOpen || !selectedNode) return null;
 
   const nodeData = (selectedNode.data || {}) as any;
-  const isLocked = !!nodeData.locked;
+  const isLocked = Boolean(nodeData.locked || nodeData.isLocked);
   const opacity = nodeData.opacity !== undefined ? nodeData.opacity : 100;
-  const currentColor = nodeData.color || "#635BFF";
-  const fillMode = nodeData.fillMode || "tint";
+  const currentColor = nodeData.color || "#7C6CFF";
+  const rotation = nodeData.rotation || 0;
+  const strokeWidth = nodeData.strokeWidth || 1;
+  const borderRadius = nodeData.borderRadius || 6;
 
   const posX = Math.round(selectedNode.position?.x || 0);
   const posY = Math.round(selectedNode.position?.y || 0);
@@ -55,180 +75,280 @@ export default function InspectorPanel({
 
   return (
     <AnimatePresence>
-      <motion.div
+      <motion.aside
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: 20 }}
         transition={{ duration: 0.15, ease: "easeOut" }}
-        className="fixed top-16 right-3 bottom-14 z-35 w-64 bg-white/98 dark:bg-[#18181b]/98 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl flex flex-col overflow-hidden text-zinc-900 dark:text-zinc-100 select-none"
+        className="fixed top-[52px] right-0 bottom-0 z-35 w-[290px] bg-[#171719] border-l border-[#2A2A2F] shadow-[0_12px_36px_-4px_rgba(0,0,0,0.5)] flex flex-col text-[#F4F4F5] select-none"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-3.5 py-3 border-b border-zinc-100 dark:border-zinc-800">
+        <div className="flex items-center justify-between px-3.5 py-3 border-b border-[#2A2A2F] bg-[#111113]">
           <div className="flex items-center gap-2">
-            <Sliders className="w-3.5 h-3.5 text-[#635BFF]" />
-            <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
-              Inspector
-            </span>
+            <Sliders className="w-3.5 h-3.5 text-[#7C6CFF]" />
+            <span className="text-xs font-semibold text-[#F4F4F5]">Inspector</span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            className="p-1 rounded text-[#71717A] hover:text-[#F4F4F5] hover:bg-[#242428] transition-colors cursor-pointer"
+            title="Close inspector (Esc)"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Scrollable Properties */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-4 text-xs font-sans">
-          {/* 1. Transform / Position */}
-          <div>
-            <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block mb-2">
-              Transform
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60">
-                <span className="text-[10px] font-mono text-zinc-400">X</span>
-                <span className="text-[11px] font-mono text-zinc-800 dark:text-zinc-200">{posX}</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60">
-                <span className="text-[10px] font-mono text-zinc-400">Y</span>
-                <span className="text-[11px] font-mono text-zinc-800 dark:text-zinc-200">{posY}</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60">
-                <span className="text-[10px] font-mono text-zinc-400">W</span>
-                <span className="text-[11px] font-mono text-zinc-800 dark:text-zinc-200">{width}</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60">
-                <span className="text-[10px] font-mono text-zinc-400">H</span>
-                <span className="text-[11px] font-mono text-zinc-800 dark:text-zinc-200">{height}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
-
-          {/* 2. Appearance & Color */}
-          <div>
-            <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block mb-2">
-              Appearance
-            </span>
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {PALETTE.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => onUpdateNode(selectedNode.id, { color: c })}
-                  style={{ backgroundColor: c }}
-                  className={`w-5 h-5 rounded-full transition-transform cursor-pointer border border-black/10 ${
-                    currentColor.toLowerCase() === c.toLowerCase()
-                      ? "scale-110 ring-2 ring-[#635BFF] ring-offset-1"
-                      : "hover:scale-105 opacity-80 hover:opacity-100"
-                  }`}
-                />
-              ))}
-            </div>
-
-            {/* Fill Mode */}
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400">Fill Mode</span>
-              <div className="flex items-center gap-1">
-                {(["tint", "solid", "outline"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => onUpdateNode(selectedNode.id, { fillMode: mode })}
-                    className={`px-2 py-0.5 rounded text-[10px] uppercase font-medium transition-colors cursor-pointer ${
-                      fillMode === mode
-                        ? "bg-[#635BFF] text-white"
-                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                    }`}
-                  >
-                    {mode}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Opacity Slider */}
-            <div className="space-y-1 mt-3">
-              <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
-                <span>Opacity</span>
-                <span className="font-mono text-[10px]">{opacity}%</span>
-              </div>
-              <input
-                type="range"
-                min={10}
-                max={100}
-                value={opacity}
-                onChange={(e) =>
-                  onUpdateNode(selectedNode.id, { opacity: Number(e.target.value) })
-                }
-                className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-[#635BFF]"
-              />
-            </div>
-          </div>
-
-          <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
-
-          {/* 3. Layer Ordering */}
-          <div>
-            <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block mb-2">
-              Layer Hierarchy
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => onBringToFront?.(selectedNode.id)}
-                className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-[11px] transition-colors cursor-pointer"
-              >
-                <ArrowUpToLine className="w-3.5 h-3.5 text-zinc-500" />
-                <span>To front</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onSendToBack?.(selectedNode.id)}
-                className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-[11px] transition-colors cursor-pointer"
-              >
-                <ArrowDownToLine className="w-3.5 h-3.5 text-zinc-500" />
-                <span>To back</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
-
-          {/* 4. Protection & Lock */}
-          <div>
-            <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block mb-2">
-              Protection
-            </span>
+        <div className="flex-1 overflow-y-auto p-3 space-y-3.5 text-xs font-sans">
+          {/* 1. Transform / Position & Size */}
+          <div className="border border-[#2A2A2F] rounded-lg p-2.5 bg-[#111113]">
             <button
               type="button"
-              onClick={() => onUpdateNode(selectedNode.id, { locked: !isLocked })}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl border transition-colors cursor-pointer ${
-                isLocked
-                  ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400"
-                  : "bg-zinc-50 dark:bg-zinc-800/60 border-zinc-200/60 dark:border-zinc-700/60 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100"
-              }`}
+              onClick={() => toggleSection("transform")}
+              className="w-full flex items-center justify-between text-left cursor-pointer"
             >
-              <div className="flex items-center gap-2">
-                {isLocked ? (
-                  <Lock className="w-3.5 h-3.5 text-amber-500" />
-                ) : (
-                  <Unlock className="w-3.5 h-3.5 text-zinc-400" />
-                )}
-                <span className="text-xs font-medium">
-                  {isLocked ? "Element locked" : "Lock element"}
-                </span>
-              </div>
-              <span className="text-[10px] font-mono text-zinc-400">
-                {isLocked ? "Read-only" : "Editable"}
+              <span className="text-[10px] font-semibold text-[#71717A] uppercase tracking-wider">
+                Position & Size
               </span>
+              {openSections.transform ? (
+                <ChevronDown className="w-3 h-3 text-[#71717A]" />
+              ) : (
+                <ChevronRight className="w-3 h-3 text-[#71717A]" />
+              )}
             </button>
+
+            {openSections.transform && (
+              <div className="mt-2.5 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#1C1C1F] border border-[#2A2A2F]">
+                    <span className="text-[10px] font-mono text-[#71717A]">X</span>
+                    <span className="text-[11px] font-mono text-[#F4F4F5]">{posX}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#1C1C1F] border border-[#2A2A2F]">
+                    <span className="text-[10px] font-mono text-[#71717A]">Y</span>
+                    <span className="text-[11px] font-mono text-[#F4F4F5]">{posY}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#1C1C1F] border border-[#2A2A2F]">
+                    <span className="text-[10px] font-mono text-[#71717A]">W</span>
+                    <span className="text-[11px] font-mono text-[#F4F4F5]">{width}px</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#1C1C1F] border border-[#2A2A2F]">
+                    <span className="text-[10px] font-mono text-[#71717A]">H</span>
+                    <span className="text-[11px] font-mono text-[#F4F4F5]">{height}px</span>
+                  </div>
+                </div>
+
+                {/* Rotation preset buttons */}
+                <div className="pt-1 flex items-center justify-between">
+                  <span className="text-[10px] text-[#A1A1AA] flex items-center gap-1">
+                    <RotateCw className="w-3 h-3" /> Rotate
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {[0, 90, 180, 270].map((deg) => (
+                      <button
+                        key={deg}
+                        type="button"
+                        onClick={() => onUpdateNode(selectedNode.id, { rotation: deg })}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono cursor-pointer transition-colors ${
+                          rotation === deg
+                            ? "bg-[#7C6CFF]/20 text-[#7C6CFF] font-medium"
+                            : "bg-[#1C1C1F] text-[#A1A1AA] hover:text-[#F4F4F5]"
+                        }`}
+                      >
+                        {deg}°
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 2. Appearance: Fill, Stroke, Radius */}
+          <div className="border border-[#2A2A2F] rounded-lg p-2.5 bg-[#111113]">
+            <button
+              type="button"
+              onClick={() => toggleSection("appearance")}
+              className="w-full flex items-center justify-between text-left cursor-pointer"
+            >
+              <span className="text-[10px] font-semibold text-[#71717A] uppercase tracking-wider">
+                Appearance
+              </span>
+              {openSections.appearance ? (
+                <ChevronDown className="w-3 h-3 text-[#71717A]" />
+              ) : (
+                <ChevronRight className="w-3 h-3 text-[#71717A]" />
+              )}
+            </button>
+
+            {openSections.appearance && (
+              <div className="mt-2.5 space-y-3">
+                {/* Palette */}
+                <div>
+                  <span className="text-[10px] text-[#A1A1AA] block mb-1.5">Color Accent</span>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {PALETTE.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => onUpdateNode(selectedNode.id, { color: c })}
+                        className={`w-6 h-6 rounded border transition-transform cursor-pointer mx-auto ${
+                          currentColor === c
+                            ? "border-[#7C6CFF] ring-2 ring-[#7C6CFF]/40"
+                            : "border-[#2A2A2F] hover:scale-105"
+                        }`}
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Border Radius */}
+                <div>
+                  <div className="flex items-center justify-between text-[10px] text-[#A1A1AA] mb-1">
+                    <span>Corner Radius</span>
+                    <span className="font-mono text-[#F4F4F5]">{borderRadius}px</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1 text-center">
+                    {[0, 4, 8, 16].map((rad) => (
+                      <button
+                        key={rad}
+                        type="button"
+                        onClick={() => onUpdateNode(selectedNode.id, { borderRadius: rad })}
+                        className={`py-1 rounded text-[10px] font-mono cursor-pointer transition-colors ${
+                          borderRadius === rad
+                            ? "bg-[#7C6CFF]/20 text-[#7C6CFF] font-medium"
+                            : "bg-[#1C1C1F] text-[#A1A1AA] hover:text-[#F4F4F5]"
+                        }`}
+                      >
+                        {rad}px
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Opacity Slider */}
+                <div>
+                  <div className="flex items-center justify-between text-[10px] text-[#A1A1AA] mb-1">
+                    <span className="flex items-center gap-1">
+                      <Eye className="w-3 h-3" /> Opacity
+                    </span>
+                    <span className="font-mono text-[#F4F4F5]">{opacity}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="10"
+                    max="100"
+                    value={opacity}
+                    onChange={(e) =>
+                      onUpdateNode(selectedNode.id, { opacity: Number(e.target.value) })
+                    }
+                    className="w-full h-1 bg-[#1C1C1F] rounded appearance-none cursor-pointer accent-[#7C6CFF]"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 3. Layer Ordering & Lock */}
+          <div className="border border-[#2A2A2F] rounded-lg p-2.5 bg-[#111113]">
+            <button
+              type="button"
+              onClick={() => toggleSection("layer")}
+              className="w-full flex items-center justify-between text-left cursor-pointer"
+            >
+              <span className="text-[10px] font-semibold text-[#71717A] uppercase tracking-wider">
+                Layer & Protection
+              </span>
+              {openSections.layer ? (
+                <ChevronDown className="w-3 h-3 text-[#71717A]" />
+              ) : (
+                <ChevronRight className="w-3 h-3 text-[#71717A]" />
+              )}
+            </button>
+
+            {openSections.layer && (
+              <div className="mt-2.5 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onBringToFront?.(selectedNode.id)}
+                    className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded bg-[#1C1C1F] hover:bg-[#242428] border border-[#2A2A2F] text-[11px] text-[#F4F4F5] transition-colors cursor-pointer"
+                  >
+                    <ArrowUpToLine className="w-3.5 h-3.5 text-[#A1A1AA]" />
+                    <span>To Front</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSendToBack?.(selectedNode.id)}
+                    className="flex items-center justify-center gap-1.5 px-2 py-1.5 rounded bg-[#1C1C1F] hover:bg-[#242428] border border-[#2A2A2F] text-[11px] text-[#F4F4F5] transition-colors cursor-pointer"
+                  >
+                    <ArrowDownToLine className="w-3.5 h-3.5 text-[#A1A1AA]" />
+                    <span>To Back</span>
+                  </button>
+                </div>
+
+                {/* Lock Toggle */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUpdateNode(selectedNode.id, {
+                      locked: !isLocked,
+                      isLocked: !isLocked,
+                    })
+                  }
+                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded border transition-colors cursor-pointer ${
+                    isLocked
+                      ? "bg-[#FBBF24]/10 border-[#FBBF24]/30 text-[#FBBF24]"
+                      : "bg-[#1C1C1F] border-[#2A2A2F] text-[#F4F4F5] hover:bg-[#242428]"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {isLocked ? (
+                      <Lock className="w-3.5 h-3.5" />
+                    ) : (
+                      <Unlock className="w-3.5 h-3.5 text-[#71717A]" />
+                    )}
+                    <span className="text-xs font-medium">
+                      {isLocked ? "Element Locked" : "Lock Position"}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-[#71717A]">
+                    {isLocked ? "Protected" : "Unlocked"}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 4. Advanced */}
+          <div className="border border-[#2A2A2F] rounded-lg p-2.5 bg-[#111113]">
+            <button
+              type="button"
+              onClick={() => toggleSection("advanced")}
+              className="w-full flex items-center justify-between text-left cursor-pointer"
+            >
+              <span className="text-[10px] font-semibold text-[#71717A] uppercase tracking-wider">
+                Advanced Metadata
+              </span>
+              {openSections.advanced ? (
+                <ChevronDown className="w-3 h-3 text-[#71717A]" />
+              ) : (
+                <ChevronRight className="w-3 h-3 text-[#71717A]" />
+              )}
+            </button>
+
+            {openSections.advanced && (
+              <div className="mt-2 text-[10px] font-mono text-[#71717A] space-y-1">
+                <div>Type: {selectedNode.type}</div>
+                <div>ID: {selectedNode.id}</div>
+              </div>
+            )}
           </div>
         </div>
-      </motion.div>
+      </motion.aside>
     </AnimatePresence>
   );
 }

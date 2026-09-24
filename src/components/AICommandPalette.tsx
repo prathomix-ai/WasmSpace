@@ -13,14 +13,10 @@ import {
   Loader2,
   Check,
   Network,
-  GitBranch,
-  Presentation,
-  CopyX,
   HelpCircle,
-  Clock,
-  Zap,
+  X,
+  CornerDownLeft,
 } from "lucide-react";
-import ProBadge from "@/components/ProBadge";
 
 export interface AICommandPaletteProps {
   isOpen: boolean;
@@ -31,83 +27,48 @@ export interface AICommandPaletteProps {
   onOpenUpgradeModal?: () => void;
 }
 
-export const SUGGESTED_ACTIONS = [
+export const SUGGESTED_COMMANDS = [
   {
     id: "summarize",
     label: "Summarize board",
     desc: "Extract key architectural decisions and takeaways",
     icon: FileText,
-    isPro: false,
   },
   {
     id: "organize",
-    label: "Organize board",
+    label: "Organize ideas",
     desc: "Align nodes and tidy up spacing automatically",
     icon: Layout,
-    isPro: false,
   },
   {
     id: "diagram",
     label: "Generate diagram",
     desc: "Synthesize microservices or event-driven system architecture",
     icon: Workflow,
-    isPro: true,
   },
   {
     id: "related",
     label: "Find related ideas",
     desc: "Surface connected concepts across notes and shapes",
     icon: Network,
-    isPro: false,
   },
   {
     id: "tasks",
-    label: "Convert notes into tasks",
-    desc: "Turn brainstormed sticky notes into structured action items",
+    label: "Turn notes into tasks",
+    desc: "Convert brainstormed sticky notes into structured action items",
     icon: ListTodo,
-    isPro: false,
-  },
-  {
-    id: "mindmap",
-    label: "Create mind map",
-    desc: "Branch central themes into structured visual topics",
-    icon: GitBranch,
-    isPro: false,
-  },
-  {
-    id: "flowchart",
-    label: "Create flowchart",
-    desc: "Generate sequential logic flow with decisions and endpoints",
-    icon: Workflow,
-    isPro: false,
   },
   {
     id: "cleanup",
     label: "Clean up layout",
     desc: "Straighten connectors and resolve overlapping elements",
     icon: Wand2,
-    isPro: false,
-  },
-  {
-    id: "presentation",
-    label: "Generate presentation",
-    desc: "Arrange canvas frames into a sequential slide deck",
-    icon: Presentation,
-    isPro: true,
-  },
-  {
-    id: "duplicates",
-    label: "Find duplicate ideas",
-    desc: "Identify redundant sticky notes and propose merges",
-    icon: CopyX,
-    isPro: false,
   },
   {
     id: "explain",
-    label: "Explain selected content",
-    desc: "Analyze selected diagrams or technical snippets",
+    label: "Explain this system",
+    desc: "Deep-dive analysis of data flows and architecture topology",
     icon: HelpCircle,
-    isPro: false,
   },
 ];
 
@@ -115,221 +76,165 @@ export default function AICommandPalette({
   isOpen,
   onClose,
   onExecutePrompt,
-  isPro = false,
-  aiUsageCount = 6,
-  onOpenUpgradeModal,
 }: AICommandPaletteProps) {
   const [query, setQuery] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const limit = isPro ? 150 : 15;
-  const isLimitReached = aiUsageCount >= limit;
 
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 50);
+      setTimeout(() => inputRef.current?.focus(), 40);
+      setSelectedIndex(0);
       setQuery("");
-      setStatusMessage(null);
-      setIsLoading(false);
     }
   }, [isOpen]);
 
-  // Global Cmd+K / Ctrl+K listener
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        if (isOpen) onClose();
-      }
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  const filteredCommands = SUGGESTED_COMMANDS.filter((cmd) =>
+    cmd.label.toLowerCase().includes(query.toLowerCase()) ||
+    cmd.desc.toLowerCase().includes(query.toLowerCase())
+  );
 
-  const handleSubmit = async (promptText: string, actionType?: string, actionIsPro?: boolean) => {
-    if (!promptText.trim()) return;
-
-    if (actionIsPro && !isPro) {
-      onOpenUpgradeModal?.();
-      return;
-    }
-
-    if (isLimitReached) {
-      onOpenUpgradeModal?.();
-      return;
-    }
-
+  const handleRunCommand = async (cmdId: string, cmdLabel: string) => {
     setIsLoading(true);
-    setStatusMessage("Board Brain is processing your canvas...");
     try {
-      await onExecutePrompt(promptText, actionType);
-      setStatusMessage("Done! Board updated.");
-      setTimeout(() => {
-        onClose();
-      }, 700);
-    } catch {
-      setStatusMessage("Error executing AI command. Please try again.");
-      setTimeout(() => setIsLoading(false), 1500);
+      await onExecutePrompt(cmdLabel, cmdId);
+      onClose();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const filteredActions = SUGGESTED_ACTIONS.filter(
-    (a) =>
-      a.label.toLowerCase().includes(query.toLowerCase()) ||
-      a.desc.toLowerCase().includes(query.toLowerCase())
-  );
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      onClose();
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((prev) =>
+        prev < filteredCommands.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex((prev) =>
+        prev > 0 ? prev - 1 : filteredCommands.length - 1
+      );
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (filteredCommands.length > 0 && selectedIndex < filteredCommands.length) {
+        const selected = filteredCommands[selectedIndex];
+        handleRunCommand(selected.id, selected.label);
+      } else if (query.trim()) {
+        handleRunCommand("custom", query.trim());
+      }
+    }
+  };
+
+  if (!isOpen) return null;
 
   return (
     <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 sm:pt-28 px-4 bg-black/30 backdrop-blur-xs select-none">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -10 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
-            className="w-full max-w-xl bg-white rounded-2xl border border-zinc-200/90 shadow-[0_16px_50px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden text-zinc-900"
-          >
-            {/* Header / Title */}
-            <div className="px-4 pt-3.5 pb-2 flex items-center justify-between border-b border-zinc-100">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-[#635BFF]/10 text-[#635BFF] flex items-center justify-center">
-                  <Sparkles className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-semibold text-zinc-900">
-                    Ask your board anything
-                  </h3>
-                  <p className="text-[10px] text-zinc-400">
-                    Board Brain spatial assistant
-                  </p>
-                </div>
-              </div>
-
-              {/* 12-Hour Usage Tracker Pill */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600 text-[10px] font-mono">
-                  <Clock className="w-2.5 h-2.5 text-zinc-400" />
-                  <span>
-                    {aiUsageCount} / {limit} used
-                  </span>
-                  <span className="text-zinc-400">·</span>
-                  <span className="text-zinc-500">Resets in 7h 42m</span>
-                </div>
-                {!isPro && (
-                  <button
-                    type="button"
-                    onClick={onOpenUpgradeModal}
-                    className="text-[10px] text-[#635BFF] hover:underline font-semibold"
-                  >
-                    Upgrade
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Input Bar */}
-            <div className="p-3 border-b border-zinc-100 flex items-center gap-2.5">
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && query.trim()) {
-                    handleSubmit(query);
-                  }
-                }}
-                disabled={isLoading}
-                placeholder="What would you like to do?"
-                className="w-full text-sm bg-transparent outline-none placeholder-zinc-400 text-zinc-900"
-              />
+      <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4 bg-black/60 backdrop-blur-sm select-none">
+        <motion.div
+          initial={{ opacity: 0, y: -16, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -16, scale: 0.98 }}
+          transition={{ duration: 0.14, ease: "easeOut" }}
+          className="w-full max-w-lg bg-[#171719] border border-[#2A2A2F] rounded-xl shadow-[0_16px_50px_rgba(0,0,0,0.6)] overflow-hidden text-[#F4F4F5]"
+        >
+          {/* Top Search Input */}
+          <div className="flex items-center gap-2.5 px-3.5 py-3 border-b border-[#2A2A2F] bg-[#111113]">
+            <Sparkles className="w-4 h-4 text-[#7C6CFF] shrink-0" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSelectedIndex(0);
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask your board anything..."
+              className="flex-1 bg-transparent text-xs text-[#F4F4F5] placeholder-[#71717A] outline-none"
+            />
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 text-[#7C6CFF] animate-spin shrink-0" />
+            ) : (
               <button
                 type="button"
-                onClick={() => query.trim() && handleSubmit(query)}
-                disabled={!query.trim() || isLoading}
-                className="p-1.5 rounded-lg bg-[#635BFF] hover:bg-[#5248E2] text-white disabled:opacity-40 transition-opacity cursor-pointer shrink-0"
+                onClick={onClose}
+                className="p-1 rounded text-[#71717A] hover:text-[#F4F4F5] hover:bg-[#242428] transition-colors cursor-pointer"
               >
-                <ArrowRight className="w-3.5 h-3.5" />
+                <X className="w-3.5 h-3.5" />
               </button>
+            )}
+          </div>
+
+          {/* Suggested Commands List */}
+          <div className="max-h-72 overflow-y-auto p-1.5 space-y-0.5">
+            <div className="px-2 py-1 text-[10px] font-semibold text-[#71717A] uppercase tracking-wider">
+              Suggested AI Actions
             </div>
 
-            {/* Status Message or Limit Warning */}
-            {isLimitReached && (
-              <div className="px-4 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-xs flex items-center justify-between">
-                <span>Your AI limit has been reached ({limit} actions). Resets in 7h 42m.</span>
-                <button
-                  type="button"
-                  onClick={onOpenUpgradeModal}
-                  className="font-semibold text-amber-900 underline hover:text-black"
-                >
-                  Upgrade to Pro
-                </button>
+            {filteredCommands.length === 0 ? (
+              <div className="px-3 py-6 text-center text-xs text-[#71717A]">
+                Press <kbd className="px-1.5 py-0.5 rounded bg-[#242428] text-[#F4F4F5] font-mono">Enter</kbd> to ask &quot;{query}&quot;
               </div>
-            )}
-
-            {statusMessage && (
-              <div className="px-4 py-2 bg-indigo-50 border-b border-indigo-100 text-indigo-700 text-xs flex items-center gap-2">
-                {isLoading ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#635BFF]" />
-                ) : (
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                )}
-                <span>{statusMessage}</span>
-              </div>
-            )}
-
-            {/* Suggested Actions List */}
-            <div className="p-2 max-h-72 overflow-y-auto space-y-0.5">
-              <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
-                Suggested Actions
-              </div>
-
-              {filteredActions.map((action) => {
-                const Icon = action.icon;
+            ) : (
+              filteredCommands.map((cmd, idx) => {
+                const Icon = cmd.icon;
+                const isSelected = idx === selectedIndex;
                 return (
                   <button
-                    key={action.id}
+                    key={cmd.id}
                     type="button"
-                    disabled={isLoading}
-                    onClick={() => handleSubmit(action.label, action.id, action.isPro)}
-                    className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-zinc-100 text-left transition-colors cursor-pointer group"
+                    onClick={() => handleRunCommand(cmd.id, cmd.label)}
+                    onMouseEnter={() => setSelectedIndex(idx)}
+                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left transition-colors cursor-pointer ${
+                      isSelected
+                        ? "bg-[#242428] text-[#F4F4F5]"
+                        : "text-[#A1A1AA] hover:bg-[#1C1C1F] hover:text-[#F4F4F5]"
+                    }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 rounded-lg bg-zinc-100 group-hover:bg-white border border-zinc-200/60 flex items-center justify-center text-zinc-600 group-hover:text-[#635BFF] transition-colors shrink-0">
+                      <div
+                        className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${
+                          isSelected
+                            ? "bg-[#7C6CFF]/20 text-[#7C6CFF]"
+                            : "bg-[#111113] text-[#71717A]"
+                        }`}
+                      >
                         <Icon className="w-3.5 h-3.5" />
                       </div>
-                      <div className="truncate">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-medium text-zinc-800 group-hover:text-zinc-900">
-                            {action.label}
-                          </span>
-                          {action.isPro && <ProBadge />}
+                      <div className="min-w-0">
+                        <div className="text-xs font-medium truncate">{cmd.label}</div>
+                        <div className="text-[11px] text-[#71717A] truncate">
+                          {cmd.desc}
                         </div>
-                        <span className="text-[11px] text-zinc-500 block truncate">
-                          {action.desc}
-                        </span>
                       </div>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-zinc-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+
+                    {isSelected && (
+                      <div className="flex items-center gap-1 text-[10px] font-mono text-[#71717A] shrink-0">
+                        <span>Run</span>
+                        <CornerDownLeft className="w-3 h-3" />
+                      </div>
+                    )}
                   </button>
                 );
-              })}
-            </div>
+              })
+            )}
+          </div>
 
-            {/* Footer */}
-            <div className="px-4 py-2 bg-zinc-50 border-t border-zinc-100 flex items-center justify-between text-[11px] text-zinc-400 font-mono">
-              <span>Press Esc to close</span>
-              <span>Cmd+K</span>
-            </div>
-          </motion.div>
-        </div>
-      )}
+          {/* Footer note */}
+          <div className="px-3 py-2 border-t border-[#2A2A2F] bg-[#111113] flex items-center justify-between text-[10px] text-[#71717A] font-mono">
+            <span>↑↓ Navigate</span>
+            <span>↵ Execute</span>
+            <span>ESC Close</span>
+          </div>
+        </motion.div>
+      </div>
     </AnimatePresence>
   );
 }

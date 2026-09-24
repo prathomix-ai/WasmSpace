@@ -12,7 +12,6 @@ import {
   LayoutTemplate,
   Search,
   Settings,
-  HelpCircle,
   CreditCard,
   Keyboard,
 } from "lucide-react";
@@ -34,26 +33,26 @@ export default function HubNavigation({ currentTab }: HubNavigationProps = {}) {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-[#FAFAF9]/90 backdrop-blur-md border-b border-[#E4E4E7] select-none">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+    <header className="sticky top-0 z-50 h-[52px] bg-[#171719] border-b border-[#2A2A2F] text-[#F4F4F5] select-none">
+      <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 flex items-center justify-between">
         {/* Left: Brand Logo & Wordmark */}
         <div className="flex items-center gap-6">
           <Link
             href="/"
-            className="flex items-center gap-2.5 group transition-opacity hover:opacity-85"
+            className="flex items-center gap-2 group transition-opacity hover:opacity-90"
             title="MasmSpace Home"
           >
-            <div className="relative w-7 h-6 flex items-center justify-center shrink-0">
+            <div className="relative w-6 h-6 flex items-center justify-center rounded bg-[#1C1C1F] border border-[#2A2A2F]">
               <Image
                 src="/masmspace-logo.png"
                 alt="MasmSpace"
-                width={28}
-                height={22}
+                width={18}
+                height={18}
                 className="object-contain"
                 priority
               />
             </div>
-            <span className="font-semibold text-sm tracking-tight text-[#18181B]">
+            <span className="font-semibold text-xs tracking-tight text-[#F4F4F5]">
               MasmSpace
             </span>
           </Link>
@@ -62,15 +61,15 @@ export default function HubNavigation({ currentTab }: HubNavigationProps = {}) {
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || (item.href === "/dashboard" && pathname === "/boards");
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
                     isActive
-                      ? "bg-[#635BFF]/10 text-[#635BFF] font-semibold"
-                      : "text-[#52525B] hover:text-[#18181B] hover:bg-[#F4F4F5]"
+                      ? "bg-[#7C6CFF]/20 text-[#7C6CFF] font-semibold"
+                      : "text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[#242428]"
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -85,31 +84,21 @@ export default function HubNavigation({ currentTab }: HubNavigationProps = {}) {
         <div className="flex items-center gap-2.5">
           <Link
             href="/shortcuts"
-            className="hidden sm:flex items-center gap-1 p-1.5 rounded-lg text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] transition-colors"
+            className="hidden sm:flex items-center gap-1 p-1.5 rounded-md text-[#71717A] hover:text-[#F4F4F5] hover:bg-[#242428] transition-colors"
             title="Keyboard Shortcuts"
           >
             <Keyboard className="w-4 h-4" />
           </Link>
           <Link
             href="/billing"
-            className="hidden sm:flex items-center gap-1 p-1.5 rounded-lg text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] transition-colors"
+            className="hidden sm:flex items-center gap-1 p-1.5 rounded-md text-[#71717A] hover:text-[#F4F4F5] hover:bg-[#242428] transition-colors"
             title="Billing & Plans"
           >
             <CreditCard className="w-4 h-4" />
           </Link>
           <Link
-            href="/support"
-            className="hidden sm:flex items-center gap-1 p-1.5 rounded-lg text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] transition-colors"
-            title="Help & Support"
-          >
-            <HelpCircle className="w-4 h-4" />
-          </Link>
-
-          <div className="h-4 w-px bg-[#E4E4E7] mx-1 hidden sm:block" />
-
-          <Link
             href="/canvas"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#635BFF] hover:bg-[#5248E5] text-white text-xs font-semibold shadow-xs transition-all active:scale-[0.98]"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#7C6CFF] hover:bg-[#635BFF] text-white text-xs font-medium transition-all"
           >
             <span>Launch Canvas</span>
             <ArrowRight className="w-3.5 h-3.5" />

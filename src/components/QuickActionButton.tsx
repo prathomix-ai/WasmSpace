@@ -9,6 +9,7 @@ import {
   Shapes,
   FileUp,
   Waypoints,
+  Image as ImageIcon,
 } from "lucide-react";
 
 export interface QuickActionButtonProps {
@@ -29,6 +30,7 @@ export default function QuickActionButton({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Close on outside click
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -41,29 +43,45 @@ export default function QuickActionButton({
     return () => window.removeEventListener("mousedown", handleOutside);
   }, [isOpen]);
 
+  // Keyboard shortcut listener (/ or Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if typing in an input or textarea
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea") return;
+
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setIsOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const items = [
-    { label: "Sticky Note", icon: StickyNote, action: onAddStickyNote, color: "text-amber-500" },
-    { label: "Text", icon: Type, action: onAddText, color: "text-zinc-600 dark:text-zinc-300" },
-    { label: "Shape", icon: Shapes, action: onAddShape, color: "text-[#635BFF]" },
-    { label: "Connector", icon: Waypoints, action: onAddConnector, color: "text-sky-500" },
-    { label: "File / Image", icon: FileUp, action: onAddImageOrFile, color: "text-emerald-500" },
+    { label: "Sticky note", icon: StickyNote, action: onAddStickyNote, shortcut: "S", color: "text-[#FBBF24]" },
+    { label: "Text", icon: Type, action: onAddText, shortcut: "T", color: "text-[#F4F4F5]" },
+    { label: "Shape", icon: Shapes, action: onAddShape, shortcut: "R", color: "text-[#7C6CFF]" },
+    { label: "Connector", icon: Waypoints, action: onAddConnector, shortcut: "C", color: "text-[#3B82F6]" },
+    { label: "Image / File", icon: FileUp, action: onAddImageOrFile, shortcut: "F", color: "text-[#4ADE80]" },
   ];
 
   return (
     <div
       ref={containerRef}
-      className="fixed bottom-3 left-1/2 -translate-x-1/2 z-30 pointer-events-none select-none"
+      className="fixed bottom-4 left-[68px] z-30 pointer-events-none select-none"
     >
-      <div className="relative flex flex-col items-center">
+      <div className="relative">
         {/* Expanded Popover List */}
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
               transition={{ duration: 0.12, ease: "easeOut" }}
-              className="pointer-events-auto mb-2 w-44 bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl p-1.5 z-40 text-xs"
+              className="pointer-events-auto absolute bottom-11 left-0 w-44 bg-[#1C1C1F] border border-[#2A2A2F] rounded-lg shadow-[0_10px_38px_-10px_rgba(0,0,0,0.5)] p-1 z-40 text-xs"
             >
               {items.map((item) => {
                 const Icon = item.icon;
@@ -75,10 +93,15 @@ export default function QuickActionButton({
                       item.action();
                       setIsOpen(false);
                     }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer text-left font-medium"
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 rounded hover:bg-[#242428] text-[#F4F4F5] transition-colors cursor-pointer text-left font-medium"
                   >
-                    <Icon className={`w-3.5 h-3.5 ${item.color}`} />
-                    <span>{item.label}</span>
+                    <div className="flex items-center gap-2">
+                      <Icon className={`w-3.5 h-3.5 ${item.color}`} />
+                      <span>{item.label}</span>
+                    </div>
+                    {item.shortcut && (
+                      <kbd className="text-[10px] font-mono text-[#71717A]">{item.shortcut}</kbd>
+                    )}
                   </button>
                 );
               })}
@@ -86,15 +109,15 @@ export default function QuickActionButton({
           )}
         </AnimatePresence>
 
-        {/* Floating Toggle Button */}
+        {/* Small floating action trigger button */}
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          title="Quick Actions (+)"
-          className={`pointer-events-auto w-9 h-9 rounded-full flex items-center justify-center shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all cursor-pointer ${
+          title="Quick actions (/)"
+          className={`pointer-events-auto w-8 h-8 rounded-md flex items-center justify-center border transition-all cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.25)] ${
             isOpen
-              ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rotate-45"
-              : "bg-[#635BFF] text-white hover:bg-[#5248E5] hover:scale-105 active:scale-95"
+              ? "bg-[#7C6CFF] text-white border-[#7C6CFF] rotate-45"
+              : "bg-[#171719] text-[#A1A1AA] hover:text-[#F4F4F5] border-[#2A2A2F] hover:bg-[#242428]"
           }`}
         >
           <Plus className="w-4 h-4" />

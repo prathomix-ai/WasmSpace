@@ -87,30 +87,30 @@ export default function PresentationModeHUD({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 16, scale: 0.95 }}
           transition={{ duration: 0.16, ease: "easeOut" }}
-          className="pointer-events-auto flex items-center gap-2 bg-white/95 backdrop-blur-md px-3 py-2 rounded-2xl border border-zinc-200/90 shadow-[0_8px_32px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.04)] text-zinc-800 text-xs"
+          className="pointer-events-auto flex items-center gap-2 bg-[#171719] border border-[#2A2A2F] px-3 py-1.5 rounded-lg shadow-[0_12px_36px_-4px_rgba(0,0,0,0.5)] text-[#F4F4F5] text-xs"
         >
           {/* Slide Navigation: Prev */}
           <button
             type="button"
             onClick={onPrevSlide}
             disabled={currentSlideIndex <= 0}
-            title="Previous Slide (Left Arrow)"
-            className="p-1.5 rounded-lg hover:bg-zinc-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
+            title="Previous slide (Left Arrow)"
+            className="p-1.5 rounded text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[#242428] disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
 
           {/* Slide Progress / Title Indicator */}
           <div className="flex items-center gap-1.5 px-2 font-mono text-[11px] text-zinc-600">
-            <span className="font-semibold text-zinc-900">
+            <span className="font-semibold text-[#F4F4F5]">
               {currentSlideIndex + 1}
             </span>
-            <span className="text-zinc-400">/</span>
+            <span className="text-[#71717A]">/</span>
             <span>{Math.max(1, totalSlides)}</span>
             {currentSlideTitle && (
               <>
-                <span className="text-zinc-300">·</span>
-                <span className="font-sans font-medium text-zinc-700 truncate max-w-[120px]">
+                <span className="text-[#71717A]">·</span>
+                <span className="font-sans font-medium text-[#A1A1AA] truncate max-w-[120px]">
                   {currentSlideTitle}
                 </span>
               </>
@@ -123,22 +123,22 @@ export default function PresentationModeHUD({
             onClick={onNextSlide}
             disabled={currentSlideIndex >= totalSlides - 1}
             title="Next Slide (Right Arrow or Space)"
-            className="p-1.5 rounded-lg hover:bg-zinc-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
+            className="p-1.5 rounded text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[#242428] disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
 
-          <div className="h-4 w-px bg-zinc-200 mx-1" />
+          <div className="h-3.5 w-px bg-[#2A2A2F] mx-0.5" />
 
           {/* Pointer / Laser Mode */}
           <button
             type="button"
             onClick={() => onSelectTool?.(activeTool === "laser" ? "select" : "laser")}
             title="Presenter Laser Pointer"
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+            className={`p-1.5 rounded transition-colors cursor-pointer ${
               activeTool === "laser"
-                ? "bg-[#635BFF]/10 text-[#635BFF] font-semibold"
-                : "hover:bg-zinc-100 text-zinc-600"
+                ? "bg-[#7C6CFF]/20 text-[#7C6CFF] font-semibold"
+                : "hover:bg-[#242428] text-[#A1A1AA] hover:text-[#F4F4F5]"
             }`}
           >
             <MousePointer className="w-3.5 h-3.5" />
@@ -149,46 +149,46 @@ export default function PresentationModeHUD({
             type="button"
             onClick={() => onSelectTool?.(activeTool === "pen" ? "select" : "pen")}
             title="Pen Annotation"
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+            className={`p-1.5 rounded transition-colors cursor-pointer ${
               activeTool === "pen"
-                ? "bg-[#635BFF]/10 text-[#635BFF] font-semibold"
-                : "hover:bg-zinc-100 text-zinc-600"
+                ? "bg-[#7C6CFF]/20 text-[#7C6CFF] font-semibold"
+                : "hover:bg-[#242428] text-[#A1A1AA] hover:text-[#F4F4F5]"
             }`}
           >
             <Pen className="w-3.5 h-3.5" />
           </button>
 
-          <div className="h-4 w-px bg-zinc-200 mx-1" />
+          <div className="h-3.5 w-px bg-[#2A2A2F] mx-0.5" />
 
           {/* Zoom controls */}
           <button
             type="button"
             onClick={onZoomOut}
             title="Zoom Out"
-            className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-600 transition-colors cursor-pointer"
+            className="p-1.5 rounded hover:bg-[#242428] text-[#A1A1AA] hover:text-[#F4F4F5] transition-colors cursor-pointer"
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
-          <span className="font-mono text-[10px] text-zinc-500 w-8 text-center">
+          <span className="font-mono text-[10px] text-[#A1A1AA] w-8 text-center">
             {Math.round(zoomLevel)}%
           </span>
           <button
             type="button"
             onClick={onZoomIn}
             title="Zoom In"
-            className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-600 transition-colors cursor-pointer"
+            className="p-1.5 rounded hover:bg-[#242428] text-[#A1A1AA] hover:text-[#F4F4F5] transition-colors cursor-pointer"
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
 
-          <div className="h-4 w-px bg-zinc-200 mx-1" />
+          <div className="h-3.5 w-px bg-[#2A2A2F] mx-0.5" />
 
           {/* Fullscreen Toggle */}
           <button
             type="button"
             onClick={toggleFullscreen}
             title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-            className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-600 transition-colors cursor-pointer"
+            className="p-1.5 rounded hover:bg-[#242428] text-[#A1A1AA] hover:text-[#F4F4F5] transition-colors cursor-pointer"
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
@@ -198,11 +198,11 @@ export default function PresentationModeHUD({
             type="button"
             onClick={onExit}
             title="Exit Presentation Mode (Esc)"
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-medium transition-colors cursor-pointer ml-1"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-[#F87171]/15 text-[#F87171] hover:bg-[#F87171]/25 font-medium transition-colors cursor-pointer ml-1 text-xs"
           >
             <X className="w-3.5 h-3.5" />
             <span>Exit</span>
-            <kbd className="text-[9px] font-mono text-zinc-400 bg-white border border-zinc-200 px-1 rounded">
+            <kbd className="text-[9px] font-mono text-[#F87171] bg-[#111113] border border-[#F87171]/30 px-1 rounded">
               Esc
             </kbd>
           </button>

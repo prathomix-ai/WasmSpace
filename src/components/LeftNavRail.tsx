@@ -10,11 +10,13 @@ import {
   FileUp,
   LayoutTemplate,
   Settings,
+  HelpCircle,
   X,
   Plus,
   Clock,
   ArrowRight,
   Check,
+  ChevronRight,
 } from "lucide-react";
 
 export type NavRailTab =
@@ -25,6 +27,7 @@ export type NavRailTab =
   | "files"
   | "templates"
   | "settings"
+  | "help"
   | null;
 
 export interface LeftNavRailProps {
@@ -43,13 +46,13 @@ export interface LeftNavRailProps {
 const TEMPLATES = [
   {
     id: "microservices",
-    title: "Microservices Architecture",
+    title: "System Architecture",
     desc: "API gateway, services, database clusters & caching",
     category: "Architecture",
   },
   {
     id: "cloud-topology",
-    title: "Cloud Edge & CDN Topology",
+    title: "Cloud & CDN Topology",
     desc: "Ingress routes, serverless workers, auth & storage",
     category: "Cloud",
   },
@@ -61,8 +64,8 @@ const TEMPLATES = [
   },
   {
     id: "sprint-kanban",
-    title: "Sprint Planning & Brainstorm",
-    desc: "Categorized sticky notes, roadmaps & tasks",
+    title: "Sprint Planning & Roadmaps",
+    desc: "Categorized sticky notes, roadmap & tasks",
     category: "Agile",
   },
   {
@@ -87,11 +90,11 @@ export default function LeftNavRail({
   isExplorerOpen = false,
   onImportDocument,
   onOpenSettings,
-  onOpenProModal: _onOpenProModal,
   onSelectTemplate,
   currentBoardTitle = "System Architecture Topology",
   onSwitchBoard,
 }: LeftNavRailProps) {
+  const [isHovered, setIsHovered] = useState(false);
   const [activeTab, setActiveTab] = useState<NavRailTab>(null);
   const flyoutRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -130,6 +133,11 @@ export default function LeftNavRail({
       setActiveTab(null);
       return;
     }
+    if (tab === "help") {
+      window.open("https://github.com", "_blank");
+      setActiveTab(null);
+      return;
+    }
     setActiveTab((prev) => (prev === tab ? null : tab));
   };
 
@@ -142,20 +150,26 @@ export default function LeftNavRail({
   };
 
   const navItems = [
-    { id: "boards" as NavRailTab, label: "Boards", icon: LayoutGrid },
-    { id: "search" as NavRailTab, label: "Search (Cmd+F)", icon: Search },
-    { id: "ai" as NavRailTab, label: "Board Brain", icon: Sparkles },
-    { id: "projects" as NavRailTab, label: "Explorer", icon: FolderKanban, active: isExplorerOpen },
-    { id: "files" as NavRailTab, label: "Import", icon: FileUp },
-    { id: "templates" as NavRailTab, label: "Templates", icon: LayoutTemplate },
+    { id: "boards" as NavRailTab, label: "Boards", icon: LayoutGrid, shortcut: "B" },
+    { id: "search" as NavRailTab, label: "Search", icon: Search, shortcut: "⌘K" },
+    { id: "ai" as NavRailTab, label: "Board Brain", icon: Sparkles, shortcut: "AI" },
+    { id: "projects" as NavRailTab, label: "Projects", icon: FolderKanban, active: isExplorerOpen, shortcut: "P" },
+    { id: "files" as NavRailTab, label: "Files", icon: FileUp, shortcut: "F" },
+    { id: "templates" as NavRailTab, label: "Templates", icon: LayoutTemplate, shortcut: "T" },
   ];
 
   return (
-    <div className="fixed top-16 left-3 bottom-14 z-30 flex items-start pointer-events-none select-none">
-      {/* ── 1. Narrow Collapsible Rail (48px) ── */}
-      <div className="pointer-events-auto w-12 flex flex-col items-center justify-between py-3 bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-[0_2px_12px_rgba(0,0,0,0.06)] text-zinc-600 dark:text-zinc-400 h-full max-h-[520px]">
-        {/* Top items */}
-        <div className="flex flex-col items-center gap-1.5 w-full">
+    <>
+      {/* ── Left Navigation Rail: 54px by default, expanding smoothly to 220px on hover over canvas ── */}
+      <nav
+        aria-label="Sidebar Navigation"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className="fixed top-[52px] bottom-0 left-0 z-30 flex flex-col justify-between py-3 px-1.5 bg-[#111113] border-r border-[#2A2A2F] transition-all duration-200 ease-out select-none shadow-[4px_0_24px_rgba(0,0,0,0.25)]"
+        style={{ width: isHovered ? "220px" : "54px" }}
+      >
+        {/* Top Section Nav Items */}
+        <div className="flex flex-col gap-1 w-full">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id || item.active;
@@ -164,65 +178,110 @@ export default function LeftNavRail({
                 key={item.id}
                 type="button"
                 onClick={() => handleTabClick(item.id)}
-                title={item.label}
-                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer relative group ${
+                title={!isHovered ? item.label : undefined}
+                className={`w-full h-9 rounded-md flex items-center transition-colors cursor-pointer px-2.5 ${
                   isActive
-                    ? "bg-[#635BFF]/10 text-[#635BFF] font-medium"
-                    : "hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                    ? "bg-[#7C6CFF]/20 text-[#7C6CFF] font-medium"
+                    : "text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[#1C1C1F]"
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                {/* Micro tooltip */}
-                <span className="absolute left-12 px-2 py-1 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded-md text-[11px] font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-md z-50">
-                  {item.label}
-                </span>
+                <Icon className="w-4 h-4 shrink-0" />
+                {isHovered && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -4 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="ml-3 flex items-center justify-between flex-1 overflow-hidden"
+                  >
+                    <span className="text-xs font-medium truncate text-[#F4F4F5]">
+                      {item.label}
+                    </span>
+                    {item.shortcut && (
+                      <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono text-[#71717A] bg-[#1C1C1F] border border-[#2A2A2F]">
+                        {item.shortcut}
+                      </kbd>
+                    )}
+                  </motion.div>
+                )}
               </button>
             );
           })}
         </div>
 
-        {/* Bottom items: Settings */}
-        <div className="flex flex-col items-center gap-1.5 w-full pt-2 border-t border-zinc-100 dark:border-zinc-800">
+        {/* Bottom Section: Settings & Help */}
+        <div className="flex flex-col gap-1 w-full pt-2 border-t border-[#2A2A2F]">
           <button
             type="button"
             onClick={() => handleTabClick("settings")}
-            title="Settings"
-            className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all cursor-pointer group relative"
+            title={!isHovered ? "Settings" : undefined}
+            className="w-full h-9 rounded-md flex items-center transition-colors cursor-pointer px-2.5 text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[#1C1C1F]"
           >
-            <Settings className="w-4 h-4" />
-            <span className="absolute left-12 px-2 py-1 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded-md text-[11px] font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-md z-50">
-              Settings
-            </span>
+            <Settings className="w-4 h-4 shrink-0" />
+            {isHovered && (
+              <motion.div
+                initial={{ opacity: 0, x: -4 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.15 }}
+                className="ml-3 flex items-center justify-between flex-1 overflow-hidden"
+              >
+                <span className="text-xs font-medium truncate text-[#F4F4F5]">Settings</span>
+                <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono text-[#71717A] bg-[#1C1C1F] border border-[#2A2A2F]">
+                  ⌘,
+                </kbd>
+              </motion.div>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleTabClick("help")}
+            title={!isHovered ? "Help & Shortcuts" : undefined}
+            className="w-full h-9 rounded-md flex items-center transition-colors cursor-pointer px-2.5 text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[#1C1C1F]"
+          >
+            <HelpCircle className="w-4 h-4 shrink-0" />
+            {isHovered && (
+              <motion.div
+                initial={{ opacity: 0, x: -4 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.15 }}
+                className="ml-3 flex items-center justify-between flex-1 overflow-hidden"
+              >
+                <span className="text-xs font-medium truncate text-[#F4F4F5]">Help</span>
+                <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono text-[#71717A] bg-[#1C1C1F] border border-[#2A2A2F]">
+                  ?
+                </kbd>
+              </motion.div>
+            )}
           </button>
         </div>
-      </div>
+      </nav>
 
-      {/* ── 2. Smooth Overlay Flyout Panel (280px) ── */}
+      {/* ── Overlay Flyout Panel for Boards / Templates / Files ── */}
       <AnimatePresence>
         {activeTab && (
           <motion.div
             ref={flyoutRef}
-            initial={{ opacity: 0, x: -10 }}
+            initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -10 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="pointer-events-auto ml-2 w-72 bg-white/98 dark:bg-[#18181b]/98 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-3 text-zinc-900 dark:text-zinc-100 z-40 max-h-[520px] flex flex-col"
+            exit={{ opacity: 0, x: -8 }}
+            transition={{ duration: 0.14, ease: "easeOut" }}
+            className="fixed top-[52px] left-[56px] bottom-3 z-35 w-80 bg-[#171719] border border-[#2A2A2F] rounded-lg shadow-[0_12px_36px_-4px_rgba(0,0,0,0.5)] p-3 text-[#F4F4F5] flex flex-col"
           >
-            {/* Flyout Header */}
-            <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-zinc-100 dark:border-zinc-800">
-              <span className="text-xs font-semibold capitalize text-zinc-800 dark:text-zinc-200">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#2A2A2F]">
+              <span className="text-xs font-semibold capitalize text-[#F4F4F5]">
                 {activeTab}
               </span>
               <button
                 type="button"
                 onClick={() => setActiveTab(null)}
-                className="p-1 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="p-1 rounded text-[#71717A] hover:text-[#F4F4F5] hover:bg-[#242428] transition-colors cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {/* Content: Boards Tab */}
+            {/* Boards Content */}
             {activeTab === "boards" && (
               <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
                 <button
@@ -234,13 +293,13 @@ export default function LeftNavRail({
                       setActiveTab(null);
                     }
                   }}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl bg-[#635BFF]/10 text-[#635BFF] hover:bg-[#635BFF]/15 transition-colors text-xs font-medium cursor-pointer"
+                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md bg-[#7C6CFF]/15 text-[#7C6CFF] hover:bg-[#7C6CFF]/25 transition-colors text-xs font-medium cursor-pointer"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5" />
                   <span>Create new board</span>
                 </button>
 
-                <div className="pt-2 text-[10px] font-semibold text-zinc-400 uppercase tracking-wider px-1">
+                <div className="pt-2 text-[10px] font-semibold text-[#71717A] uppercase tracking-wider px-1">
                   Recent Boards
                 </div>
 
@@ -252,21 +311,21 @@ export default function LeftNavRail({
                       onSwitchBoard?.(b.title);
                       setActiveTab(null);
                     }}
-                    className={`w-full text-left p-2 rounded-xl transition-all cursor-pointer group ${
+                    className={`w-full text-left p-2 rounded-md transition-colors cursor-pointer group ${
                       b.title === currentBoardTitle
-                        ? "bg-zinc-100 dark:bg-zinc-800/80 font-medium"
-                        : "hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+                        ? "bg-[#242428] font-medium"
+                        : "hover:bg-[#1C1C1F]"
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-zinc-800 dark:text-zinc-200 truncate">
+                      <span className="text-xs text-[#F4F4F5] truncate group-hover:text-[#7C6CFF]">
                         {b.title}
                       </span>
                       {b.title === currentBoardTitle && (
-                        <Check className="w-3 h-3 text-[#635BFF] shrink-0" />
+                        <Check className="w-3 h-3 text-[#7C6CFF] shrink-0" />
                       )}
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-zinc-400 mt-0.5">
+                    <div className="flex items-center gap-1 mt-0.5 text-[10px] text-[#71717A]">
                       <Clock className="w-2.5 h-2.5" />
                       <span>{b.updatedAt}</span>
                     </div>
@@ -275,12 +334,12 @@ export default function LeftNavRail({
               </div>
             )}
 
-            {/* Content: Templates Tab */}
+            {/* Templates Content */}
             {activeTab === "templates" && (
-              <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 px-1 mb-1">
-                  Click a template to populate your canvas:
-                </p>
+              <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
+                <div className="text-[10px] font-semibold text-[#71717A] uppercase tracking-wider px-1 mb-1">
+                  Ready-to-use Starters
+                </div>
                 {TEMPLATES.map((tmpl) => (
                   <button
                     key={tmpl.id}
@@ -289,18 +348,18 @@ export default function LeftNavRail({
                       onSelectTemplate?.(tmpl.id);
                       setActiveTab(null);
                     }}
-                    className="w-full text-left p-2.5 rounded-xl border border-zinc-200/70 dark:border-zinc-800 hover:border-[#635BFF]/50 hover:bg-[#635BFF]/5 transition-all cursor-pointer group"
+                    className="w-full text-left p-2.5 rounded-md hover:bg-[#1C1C1F] border border-transparent hover:border-[#2A2A2F] transition-colors cursor-pointer group"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 group-hover:text-[#635BFF] transition-colors">
+                      <span className="text-xs font-medium text-[#F4F4F5] group-hover:text-[#7C6CFF]">
                         {tmpl.title}
                       </span>
-                      <ArrowRight className="w-3 h-3 text-zinc-400 group-hover:text-[#635BFF] group-hover:translate-x-0.5 transition-all" />
+                      <ChevronRight className="w-3.5 h-3.5 text-[#71717A] group-hover:translate-x-0.5 transition-transform" />
                     </div>
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2 leading-relaxed">
+                    <p className="text-[11px] text-[#A1A1AA] mt-0.5 line-clamp-2">
                       {tmpl.desc}
                     </p>
-                    <span className="inline-block mt-1.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                    <span className="inline-block mt-1 text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#111113] text-[#71717A]">
                       {tmpl.category}
                     </span>
                   </button>
@@ -308,29 +367,27 @@ export default function LeftNavRail({
               </div>
             )}
 
-            {/* Content: Files / Import Tab */}
+            {/* Files Content */}
             {activeTab === "files" && (
-              <div className="flex-1 flex flex-col justify-center items-center text-center p-4 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+              <div className="flex-1 flex flex-col justify-center items-center p-4 text-center">
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".json,.pdf,.png,.jpg,.jpeg,.svg,.txt,.md"
-                  onChange={handleFileChange}
+                  accept=".json,.pdf,.png,.jpg,.jpeg"
                   className="hidden"
+                  onChange={handleFileChange}
                 />
-                <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 mb-2">
-                  <FileUp className="w-5 h-5 text-[#635BFF]" />
+                <div className="w-10 h-10 rounded-full bg-[#1C1C1F] border border-[#2A2A2F] flex items-center justify-center text-[#7C6CFF] mb-2">
+                  <FileUp className="w-5 h-5" />
                 </div>
-                <h4 className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mb-1">
-                  Import document or blueprint
-                </h4>
-                <p className="text-[11px] text-zinc-400 mb-3 max-w-[200px] leading-relaxed">
-                  Support for PDF architecture docs, JSON canvases, and images.
+                <h4 className="text-xs font-semibold text-[#F4F4F5]">Import files & docs</h4>
+                <p className="text-[11px] text-[#A1A1AA] mt-1 mb-3">
+                  Upload PDF specifications, system JSON topologies or PNG diagrams.
                 </p>
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-3 py-1.5 rounded-lg bg-[#635BFF] hover:bg-[#5248E5] text-white text-xs font-medium transition-colors cursor-pointer shadow-sm"
+                  className="px-3 py-1.5 rounded-md bg-[#7C6CFF] text-[#F4F4F5] hover:bg-[#635BFF] text-xs font-medium transition-colors cursor-pointer"
                 >
                   Choose file
                 </button>
@@ -339,6 +396,6 @@ export default function LeftNavRail({
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }

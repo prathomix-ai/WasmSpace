@@ -1024,6 +1024,121 @@ function ArchitectureCanvasInner({
     [activeToolMode, setEdges]
   );
 
+  // ── Global Keyboard Shortcuts (Section 38: V, H, S, T, R, P, C, E, Del, Cmd+Z, Cmd+Shift+Z, Cmd+D, Cmd+K, Esc) ──
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept if user is typing in inputs or textareas
+      const activeEl = document.activeElement;
+      const tag = activeEl?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || (activeEl as HTMLElement)?.isContentEditable) {
+        return;
+      }
+
+      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+      const cmdKey = isMac ? e.metaKey : e.ctrlKey;
+
+      // Undo: Cmd+Z (without Shift)
+      if (cmdKey && e.key.toLowerCase() === "z" && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+        return;
+      }
+
+      // Redo: Cmd+Shift+Z or Cmd+Y
+      if ((cmdKey && e.key.toLowerCase() === "z" && e.shiftKey) || (cmdKey && e.key.toLowerCase() === "y")) {
+        e.preventDefault();
+        handleRedo();
+        return;
+      }
+
+      // Duplicate: Cmd+D
+      if (cmdKey && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        const selected = nodes.filter((n) => n.selected);
+        if (selected.length > 0) {
+          pushHistorySnapshot();
+          const newNodes = selected.map((n) => ({
+            ...n,
+            id: `node-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+            position: { x: n.position.x + 30, y: n.position.y + 30 },
+            selected: true,
+          }));
+          setNodes((prev) => [...prev.map((n) => ({ ...n, selected: false })), ...newNodes]);
+          setSynthesizeNotification(`Duplicated ${selected.length} object(s)`);
+          setTimeout(() => setSynthesizeNotification(null), 1500);
+        }
+        return;
+      }
+
+      // AI Command Palette: Cmd+K
+      if (cmdKey && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsAICommandOpen((prev) => !prev);
+        return;
+      }
+
+      // Delete: Backspace or Delete
+      if (e.key === "Backspace" || e.key === "Delete") {
+        const hasSelected = nodes.some((n) => n.selected) || edges.some((ed) => ed.selected);
+        if (hasSelected) {
+          e.preventDefault();
+          pushHistorySnapshot();
+          const selNodeIds = new Set(nodes.filter((n) => n.selected).map((n) => n.id));
+          setNodes((prev) => prev.filter((n) => !n.selected));
+          setEdges((prev) => prev.filter((ed) => !ed.selected && !selNodeIds.has(ed.source) && !selNodeIds.has(ed.target)));
+          setSynthesizeNotification("Deleted selected item(s)");
+          setTimeout(() => setSynthesizeNotification(null), 1500);
+        }
+        return;
+      }
+
+      // Escape: Deselect all / close inspector / switch to select tool
+      if (e.key === "Escape") {
+        setNodes((prev) => prev.map((n) => ({ ...n, selected: false })));
+        setIsInspectorOpen(false);
+        setIsAICommandOpen(false);
+        setActiveToolMode("select");
+        return;
+      }
+
+      // Tool Switching (Single letter shortcuts without modifier keys)
+      if (!cmdKey && !e.altKey) {
+        switch (e.key.toLowerCase()) {
+          case "v":
+            setActiveToolMode("select");
+            break;
+          case "h":
+            setActiveToolMode("pan");
+            break;
+          case "p":
+            setActiveToolMode("pen");
+            break;
+          case "e":
+            setActiveToolMode("eraser");
+            break;
+          case "c":
+            setActiveToolMode("laser" as any); // laser acts as connector mode
+            break;
+          case "t":
+            handleAddShape("text");
+            setActiveToolMode("select");
+            break;
+          case "r":
+            handleAddShape("rectangle");
+            setActiveToolMode("select");
+            break;
+          case "s":
+            handleAddShape("stickyNote");
+            setActiveToolMode("select");
+            break;
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [nodes, edges, handleUndo, handleRedo, pushHistorySnapshot, handleAddShape, setNodes, setEdges]);
+
   // ── Context Menu Actions (Add Node, Copy, Paste, Group, Export as PNG) ──
   const handlePaneContextMenu = useCallback(
     (event: MouseEvent | React.MouseEvent) => {
@@ -2344,7 +2459,7 @@ function ArchitectureCanvasInner({
         }
         handlePaneContextMenu(e);
       }}
-      className={`absolute inset-0 z-0 transition-all duration-300 overflow-hidden bg-[#FAFAF9] dark:bg-[#0E0F12] text-zinc-900 dark:text-zinc-100 ${className}`}
+      className={`absolute inset-0 z-0 transition-all duration-300 overflow-hidden bg-[#0D0D0F] text-[#F4F4F5] ${className}`}
     >
       <ReactFlow
         nodes={nodes}
@@ -2366,11 +2481,11 @@ function ArchitectureCanvasInner({
         snapToGrid={isSnappingEnabled && activeToolMode !== "pen" && activeToolMode !== "highlighter"}
         snapGrid={[8, 8]}
         nodeTypes={nodeTypes}
-        colorMode={isDark ? "dark" : "light"}
+        colorMode="dark"
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         fitViewOptions={{ padding: 0.25, maxZoom: 1 }}
-        minZoom={0.2}
-        maxZoom={2.5}
+        minZoom={0.1}
+        maxZoom={8.0}
         panOnDrag={activeToolMode === "pan" || isReadOnly}
         selectionOnDrag={!isReadOnly && activeToolMode === "select"}
         onlyRenderVisibleElements={true}
@@ -2388,7 +2503,7 @@ function ArchitectureCanvasInner({
         defaultEdgeOptions={{
           type: "smoothstep",
           animated: false,
-          style: { stroke: isDark ? "#3f3f46" : "#cbd5e1", strokeWidth: 1.5 },
+          style: { stroke: "#7C6CFF", strokeWidth: 1.5 },
         }}
         proOptions={{ hideAttribution: true }}
       >
@@ -2398,12 +2513,8 @@ function ArchitectureCanvasInner({
             variant={gridType === "lines" ? BackgroundVariant.Lines : BackgroundVariant.Dots}
             gap={gridType === "lines" ? 24 : 24}
             size={gridType === "lines" ? 1 : 1.2}
-            color={
-              isDark
-                ? (gridType === "lines" ? "#27272a" : "#27272a")
-                : (gridType === "lines" ? "#E4E4E7" : "#E4E4E7")
-            }
-            className={gridType === "lines" ? "opacity-70" : "opacity-80"}
+            color={gridType === "lines" ? "#1F1F24" : "#18181B"}
+            className={gridType === "lines" ? "opacity-60" : "opacity-90"}
           />
         )}
 
@@ -2416,12 +2527,12 @@ function ArchitectureCanvasInner({
             nodeColor={getMinimapNodeColor}
             nodeStrokeColor={getMinimapNodeStrokeColor}
             nodeStrokeWidth={1}
-            nodeBorderRadius={3}
-            maskColor={isDark ? "rgba(14, 15, 18, 0.75)" : "rgba(250, 250, 249, 0.75)"}
-            maskStrokeColor={isDark ? "#27272a" : "#E4E4E7"}
+            nodeBorderRadius={2}
+            maskColor="rgba(13, 13, 15, 0.85)"
+            maskStrokeColor="#2A2A2F"
             maskStrokeWidth={1}
-            className="!bg-white/95 dark:!bg-[#18181b]/95 !border !border-zinc-200 dark:!border-zinc-800 !rounded-xl !shadow-md overflow-hidden !bottom-12 !right-3"
-            style={{ width: 160, height: 100 }}
+            className="!bg-[#171719] !border !border-[#2A2A2F] !rounded-lg !shadow-[0_8px_30px_rgba(0,0,0,0.35)] overflow-hidden !bottom-12 !right-3.5"
+            style={{ width: 140, height: 90 }}
           />
         )}
 

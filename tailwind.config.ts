@@ -16,15 +16,31 @@ const config: Config = {
 
   theme: {
     extend: {
-      // ── Color Palette: Midnight Oceanic & Aurora ─────────────────────────
+      // ── Color Palette: Refined MasmSpace Dark System ─────────────────────
       colors: {
+        masm: {
+          canvas:     '#0D0D0F', // Main canvas background
+          surface:    '#111113', // Canvas secondary surface
+          toolbar:    '#171719', // Unified top bar & controls
+          elevated:   '#1C1C1F', // Elevated panels, flyouts, modals
+          hover:      '#242428', // Subtle hover states
+          border:     '#2A2A2F', // Precise borders
+          text:       '#F4F4F5', // Primary high-contrast text
+          secondary:  '#A1A1AA', // Secondary descriptive text
+          muted:      '#71717A', // Muted micro labels / shortcuts
+          accent:     '#7C6CFF', // Primary subtle purple/indigo accent
+          'accent-hover': '#635BFF', // Secondary accent
+          success:    '#4ADE80', // Status success
+          warning:    '#FBBF24', // Status warning
+          error:      '#F87171', // Destructive / error
+        },
         midnight: {
-          DEFAULT: '#09090b',
-          dark:    '#030712',
-          deep:    '#02040a',
-          surface: '#0d1117',
-          card:    'rgba(17, 24, 39, 0.7)',
-          border:  'rgba(255, 255, 255, 0.08)',
+          DEFAULT: '#0D0D0F',
+          dark:    '#0B0B0D',
+          deep:    '#08080A',
+          surface: '#111113',
+          card:    '#171719',
+          border:  '#2A2A2F',
         },
         ocean: {
           50:  '#f0f9ff',
@@ -40,27 +56,19 @@ const config: Config = {
           950: '#082f49',
         },
         aurora: {
-          purple:  '#a855f7',
+          purple:  '#7C6CFF',
           blue:    '#3b82f6',
           cyan:    '#06b6d4',
-          emerald: '#10b981',
+          emerald: '#4ADE80',
           teal:    '#14b8a6',
-          violet:  '#8b5cf6',
-          indigo:  '#6366f1',
-        },
-        neon: {
-          cyan:   '#38bdf8',
-          purple: '#818cf8',
-          orange: '#fb923c',
-          green:  '#34d399',
-          pink:   '#f472b6',
-          yellow: '#facc15',
+          violet:  '#7C6CFF',
+          indigo:  '#635BFF',
         },
         void: {
-          DEFAULT: '#09090b',
-          dark:    '#030712',
-          surface: '#0f172a',
-          raised:  '#1e293b',
+          DEFAULT: '#0D0D0F',
+          dark:    '#0B0B0D',
+          surface: '#111113',
+          raised:  '#171719',
         },
       },
 
@@ -128,13 +136,13 @@ const config: Config = {
         '2xl': '32px',
       },
 
-      // ── Box shadows ─────────────────────────────────────────────────────
+      // ── Box shadows: Refined, non-neon shadows ─────────────────────────
       boxShadow: {
-        'neon-cyan':   '0 1px 3px rgba(0,0,0,0.3)',
-        'neon-purple': '0 1px 3px rgba(0,0,0,0.3)',
-        'aurora-glow': '0 4px 20px rgba(0,0,0,0.4)',
-        'glass':       '0 8px 32px rgba(0,0,0,0.37), inset 0 0 20px rgba(255,255,255,0.05)',
-        'glass-card':  '0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)',
+        'masm-subtle': '0 1px 3px rgba(0,0,0,0.2)',
+        'masm-panel':  '0 8px 30px rgba(0,0,0,0.25)',
+        'masm-elevated': '0 12px 36px -4px rgba(0,0,0,0.35)',
+        'masm-dropdown': '0 10px 38px -10px rgba(0,0,0,0.45), 0 10px 20px -15px rgba(0,0,0,0.35)',
+        'masm-tooltip': '0 4px 12px rgba(0,0,0,0.3)',
       },
     },
   },

@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Minus, Plus, Maximize2, Map } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Minus, Plus, Maximize2, Map, Grid, Magnet } from "lucide-react";
 
 export interface BottomControlsProps {
   zoomLevel: number;
@@ -11,6 +11,10 @@ export interface BottomControlsProps {
   onFitView: () => void;
   isMinimapOpen: boolean;
   onToggleMinimap: () => void;
+  gridType?: string;
+  onToggleGrid?: () => void;
+  snapToGrid?: boolean;
+  onToggleSnap?: () => void;
 }
 
 export default function BottomControls({
@@ -21,18 +25,22 @@ export default function BottomControls({
   onFitView,
   isMinimapOpen,
   onToggleMinimap,
+  gridType = "dots",
+  onToggleGrid,
+  snapToGrid = true,
+  onToggleSnap,
 }: BottomControlsProps) {
   return (
     <>
-      {/* ── Bottom-Left Zoom & Navigation Controls ── */}
-      <div className="fixed bottom-3 left-3 z-30 pointer-events-none select-none">
-        <div className="pointer-events-auto flex items-center gap-0.5 bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-md px-1 py-1 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-[0_2px_8px_rgba(0,0,0,0.04)] text-zinc-700 dark:text-zinc-300 text-xs">
+      {/* ── Bottom-Left Zoom & Canvas Controls (Compact, Dark) ── */}
+      <div className="fixed bottom-3.5 left-[110px] z-30 pointer-events-none select-none">
+        <div className="pointer-events-auto flex items-center gap-0.5 bg-[#171719] border border-[#2A2A2F] rounded-lg p-0.5 shadow-[0_4px_16px_rgba(0,0,0,0.35)] text-xs text-[#F4F4F5]">
           {/* Zoom Out */}
           <button
             type="button"
             onClick={onZoomOut}
-            title="Zoom Out (-)"
-            className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+            title="Zoom out (-)"
+            className="w-7 h-7 rounded flex items-center justify-center text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[#242428] transition-colors cursor-pointer"
           >
             <Minus className="w-3.5 h-3.5" />
           </button>
@@ -41,8 +49,8 @@ export default function BottomControls({
           <button
             type="button"
             onClick={onResetZoom}
-            title="Reset Zoom to 100%"
-            className="px-2 py-1 rounded-md text-[11px] font-mono font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer min-w-[42px] text-center"
+            title="Reset zoom to 100%"
+            className="px-2 h-7 rounded text-[11px] font-mono text-[#F4F4F5] hover:bg-[#242428] transition-colors cursor-pointer text-center min-w-[44px]"
           >
             {Math.round(zoomLevel)}%
           </button>
@@ -51,41 +59,75 @@ export default function BottomControls({
           <button
             type="button"
             onClick={onZoomIn}
-            title="Zoom In (+)"
-            className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+            title="Zoom in (+)"
+            className="w-7 h-7 rounded flex items-center justify-center text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[#242428] transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
 
-          <div className="w-px h-3.5 bg-zinc-200 dark:bg-zinc-800 mx-0.5" />
+          <div className="w-px h-3.5 bg-[#2A2A2F] mx-0.5" />
 
           {/* Fit to View */}
           <button
             type="button"
             onClick={onFitView}
-            title="Fit to Screen (Shift+1)"
-            className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+            title="Fit to screen (Shift+1)"
+            className="w-7 h-7 rounded flex items-center justify-center text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[#242428] transition-colors cursor-pointer"
           >
             <Maximize2 className="w-3.5 h-3.5" />
           </button>
+
+          {/* Optional Grid Style Toggle */}
+          {onToggleGrid && (
+            <button
+              type="button"
+              onClick={onToggleGrid}
+              title={`Grid: ${gridType}`}
+              className="w-7 h-7 rounded flex items-center justify-center text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[#242428] transition-colors cursor-pointer"
+            >
+              <Grid className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {/* Optional Snap Toggle */}
+          {onToggleSnap && (
+            <button
+              type="button"
+              onClick={onToggleSnap}
+              title={snapToGrid ? "Snap to grid: On" : "Snap to grid: Off"}
+              className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${
+                snapToGrid
+                  ? "text-[#7C6CFF] bg-[#7C6CFF]/15"
+                  : "text-[#71717A] hover:text-[#A1A1AA] hover:bg-[#242428]"
+              }`}
+            >
+              <Magnet className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* ── Bottom-Right Minimap Toggle ── */}
-      <div className="fixed bottom-3 right-3 z-30 pointer-events-none select-none">
-        <div className="pointer-events-auto flex items-center bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-md p-1 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-[0_2px_8px_rgba(0,0,0,0.04)] text-zinc-700 dark:text-zinc-300 text-xs">
+      {/* ── Bottom-Right Minimap Toggle (Tiny, remembers state) ── */}
+      <div className="fixed bottom-3.5 right-3.5 z-30 pointer-events-none select-none">
+        <div className="pointer-events-auto flex items-center bg-[#171719] border border-[#2A2A2F] rounded-lg p-0.5 shadow-[0_4px_16px_rgba(0,0,0,0.35)] text-xs text-[#F4F4F5]">
           <button
             type="button"
-            onClick={onToggleMinimap}
-            title={isMinimapOpen ? "Hide Minimap" : "Show Minimap"}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${
+            onClick={() => {
+              const next = !isMinimapOpen;
+              onToggleMinimap();
+              if (typeof window !== "undefined") {
+                localStorage.setItem("masmspace_show_minimap", String(next));
+              }
+            }}
+            title={isMinimapOpen ? "Hide minimap" : "Show minimap"}
+            className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors cursor-pointer ${
               isMinimapOpen
-                ? "bg-[#635BFF]/10 text-[#635BFF]"
-                : "hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                ? "bg-[#7C6CFF]/20 text-[#7C6CFF] font-medium"
+                : "text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-[#242428]"
             }`}
           >
             <Map className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-medium hidden sm:inline">Map</span>
+            <span className="text-[11px] hidden sm:inline">Map</span>
           </button>
         </div>
       </div>

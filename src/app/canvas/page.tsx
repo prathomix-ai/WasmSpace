@@ -189,7 +189,7 @@ export default function CanvasPage() {
   };
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-[#FAFAF9] dark:bg-[#0E0F12] text-zinc-900 dark:text-zinc-100 transition-colors duration-200">
+    <main className="relative h-screen w-screen overflow-hidden bg-[#0D0D0F] text-[#F4F4F5] transition-colors duration-200">
       {/* ── Left Navigation Rail: Minimal 48px rail, automatically hidden during Presentation Mode ── */}
       {!isPresentationOpen && (
         <LeftNavRail
